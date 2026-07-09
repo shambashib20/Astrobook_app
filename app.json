@@ -7,6 +7,12 @@
     "icon": "./assets/images/icon.png",
     "scheme": "astrobook",
     "userInterfaceStyle": "automatic",
+    "ios": {
+      "infoPlist": {
+        "NSCameraUsageDescription": "Astrobook astrologer ke saath video consultation ke liye camera use karta hai.",
+        "NSMicrophoneUsageDescription": "Astrobook astrologer ke saath video consultation ke liye microphone use karta hai."
+      }
+    },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#6B21A8",
@@ -15,7 +21,14 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.tushar440.astrobook"
+      "package": "com.tushar440.astrobook",
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS",
+        "BLUETOOTH",
+        "BLUETOOTH_CONNECT"
+      ]
     },
     "web": {
       "output": "static",
@@ -34,8 +47,7 @@
           }
         }
       ],
-      "@react-native-community/datetimepicker",
-      "@react-native-google-signin/google-signin"
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,

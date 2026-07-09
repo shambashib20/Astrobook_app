@@ -1,0 +1,235 @@
+import { astrologersService } from "@/features/astrologer/services";
+import { useRef, useState } from "react";
+import { postsService } from "../services/posts.service";
+import type { Post } from "../types/post.types";
+
+const PAGE_SIZE = 10;
+
+// Backend `posts` table sirf astrologerId store karta hai, astrologer ka
+// naam/emoji join karke nahi deta — isliye yahan client-side enrich karte
+// hain astrologers list se. Cache module-level rakha hai taaki infinite
+// scroll ke har page pe same astrologer dobara fetch na ho.
+// Basic consultancy ka id bhi yahin cache hota hai — Feed ke "Book Now"
+// button ke liye (kyunki post.linkedServiceId abhi kabhi set nahi hota).
+const astrologerCache = new Map<
+  string,
+  { name: string; emoji?: string; basicServiceId: string | null }
+>();
+
+async function enrichWithAstrologers(posts: Post[]): Promise<Post[]> {
+  const uniqueIds = Array.from(
+    new Set(
+      posts.map((p) => p.astrologerId).filter((id) => !astrologerCache.has(id)),
+    ),
+  );
+  if (uniqueIds.length > 0) {
+    const fetched = await Promise.all(
+      uniqueIds.map((id) =>
+        Promise.all([
+          astrologersService.getById(id).catch(() => null),
+          astrologersService.getServices(id).catch(() => []),
+        ]),
+      ),
+    );
+    fetched.forEach(([a, services], i) => {
+      const basic = services?.find((s) => s.isBasic) ?? null;
+      astrologerCache.set(uniqueIds[i]!, {
+        name: a?.name ?? "Astrologer",
+        emoji: a?.meta?.emoji,
+        basicServiceId: basic?.id ?? null,
+      });
+    });
+  }
+  return posts.map((p) => ({
+    ...p,
+    astrologerName: astrologerCache.get(p.astrologerId)?.name ?? "Astrologer",
+    astrologerAvatar: astrologerCache.get(p.astrologerId)?.emoji,
+    basicServiceId: astrologerCache.get(p.astrologerId)?.basicServiceId ?? null,
+  }));
+}
+
+// ─── useFeedPosts ────────────────────────────────────────────────────────────
+// Home feed — sabke posts, infinite scroll ke saath, astrologer info enriched
+
+export function useFeedPosts() {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const offsetRef = useRef(0);
+
+  const fetchFeed = async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+    setError(null);
+    offsetRef.current = 0;
+    try {
+      const { posts: data, hasMore: more } = await postsService.getAll(
+        PAGE_SIZE,
+        0,
+      );
+      const enriched = await enrichWithAstrologers(data);
+      setPosts(enriched);
+      setHasMore(more);
+      offsetRef.current = data.length;
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Feed load nahi hua");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // FlatList ke onEndReached se call hota hai — agla page laata hai
+  const loadMore = async () => {
+    if (loadingMore || !hasMore || loading) return;
+    setLoadingMore(true);
+    try {
+      const { posts: data, hasMore: more } = await postsService.getAll(
+        PAGE_SIZE,
+        offsetRef.current,
+      );
+      const enriched = await enrichWithAstrologers(data);
+      setPosts((prev) => {
+        const existingIds = new Set(prev.map((p) => p.id));
+        return [...prev, ...enriched.filter((p) => !existingIds.has(p.id))];
+      });
+      setHasMore(more);
+      offsetRef.current += data.length;
+    } catch {
+      // Silent fail on load-more — user scroll ruk jayega, refresh se retry
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  return {
+    posts,
+    loading,
+    refreshing,
+    loadingMore,
+    hasMore,
+    error,
+    fetchFeed,
+    loadMore,
+  };
+}
+
+// ─── useCategoryPosts ────────────────────────────────────────────────────────
+// Explore category detail page — us tag ke posts, infinite scroll ke saath
+
+export function useCategoryPosts(tag: string | undefined) {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const offsetRef = useRef(0);
+
+  const fetchPosts = async () => {
+    if (!tag) return;
+    setLoading(true);
+    setError(null);
+    offsetRef.current = 0;
+    try {
+      const { posts: data, hasMore: more } = await postsService.getByTag(
+        tag,
+        PAGE_SIZE,
+        0,
+      );
+      const enriched = await enrichWithAstrologers(data);
+      setPosts(enriched);
+      setHasMore(more);
+      offsetRef.current = data.length;
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Posts load nahi hue");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadMore = async () => {
+    if (!tag || loadingMore || !hasMore || loading) return;
+    setLoadingMore(true);
+    try {
+      const { posts: data, hasMore: more } = await postsService.getByTag(
+        tag,
+        PAGE_SIZE,
+        offsetRef.current,
+      );
+      const enriched = await enrichWithAstrologers(data);
+      setPosts((prev) => {
+        const existingIds = new Set(prev.map((p) => p.id));
+        return [...prev, ...enriched.filter((p) => !existingIds.has(p.id))];
+      });
+      setHasMore(more);
+      offsetRef.current += data.length;
+    } catch {
+      // silent
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  return { posts, loading, loadingMore, hasMore, error, fetchPosts, loadMore };
+}
+
+// ─── useAstrologerPosts ──────────────────────────────────────────────────────
+// Ek specific astrologer ke posts — profile page ke "Posts" section ke liye
+
+export function useAstrologerPosts(astrologerId: string | undefined) {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchPosts = async () => {
+    if (!astrologerId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await postsService.getByAstrologer(astrologerId);
+      setPosts(data);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Posts load nahi hue");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { posts, loading, error, fetchPosts };
+}
+
+// ─── usePost ─────────────────────────────────────────────────────────────────
+// Single post detail + kuch related posts (same feed se, current post chhodke)
+
+export function usePost(id: string | undefined) {
+  const [post, setPost] = useState<Post | null>(null);
+  const [relatedPosts, setRelatedPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchPost = async () => {
+    if (!id) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const [detail, all] = await Promise.all([
+        postsService.getById(id),
+        postsService.getAll(10, 0),
+      ]);
+      const enrichedDetail = (await enrichWithAstrologers([detail]))[0]!;
+      const related = all.posts.filter((p) => p.id !== id).slice(0, 6);
+      const enrichedRelated = await enrichWithAstrologers(related);
+      setPost(enrichedDetail);
+      setRelatedPosts(enrichedRelated);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Post load nahi hua");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { post, relatedPosts, loading, error, fetchPost };
+}

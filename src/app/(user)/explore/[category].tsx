@@ -1,10 +1,14 @@
-import { MOCK_ASTROLOGERS, MOCK_POSTS } from "@/mock/data";
+import { consultationService } from "@/features/consultation/service";
+import type { BrowsedService } from "@/features/consultation/types";
+import { useCategoryPosts } from "@/features/posts/hooks/useFeed";
+import type { Post } from "@/features/posts/types/post.types";
 import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Dimensions,
   FlatList,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -109,6 +113,20 @@ const CATEGORY_META: Record<
   },
 };
 
+const BG_PALETTE = [
+  "#6B21A8",
+  "#1E3A5F",
+  "#92400E",
+  "#065F46",
+  "#9D174D",
+  "#4C1D95",
+];
+function colorForId(id: string) {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = (hash + id.charCodeAt(i)) % 997;
+  return BG_PALETTE[hash % BG_PALETTE.length]!;
+}
+
 export default function CategoryScreen() {
   const router = useRouter();
   const { category, label } = useLocalSearchParams<{
@@ -122,128 +140,187 @@ export default function CategoryScreen() {
     description: "Explore the cosmic wisdom of this ancient practice.",
   };
 
-  const posts = MOCK_POSTS;
-  const astrologers = MOCK_ASTROLOGERS;
+  const {
+    posts,
+    loading: postsLoading,
+    loadingMore: postsLoadingMore,
+    hasMore: postsHasMore,
+    fetchPosts,
+    loadMore: loadMorePosts,
+  } = useCategoryPosts(category);
+
+  const [services, setServices] = useState<BrowsedService[]>([]);
+  const [servicesLoading, setServicesLoading] = useState(false);
+
+  useEffect(() => {
+    fetchPosts();
+    if (category) {
+      setServicesLoading(true);
+      consultationService
+        .browseByTag(category, 20, 0)
+        .then((res) => setServices(res.services))
+        .catch(() => setServices([]))
+        .finally(() => setServicesLoading(false));
+    }
+  }, [category]);
+
+  const renderPostItem = ({ item }: { item: Post }) => (
+    <TouchableOpacity
+      style={[
+        styles.postCard,
+        { backgroundColor: colorForId(item.astrologerId) },
+      ]}
+      activeOpacity={0.9}
+      onPress={() =>
+        router.push({
+          pathname: "/(user)/post/[id]" as any,
+          params: { id: item.id },
+        })
+      }
+    >
+      <View style={styles.postCardHeader}>
+        <View style={styles.postAvatar}>
+          <Text style={{ fontSize: 16 }}>{item.astrologerAvatar ?? "🔮"}</Text>
+        </View>
+        <Text style={styles.postAuthor} numberOfLines={1}>
+          {item.astrologerName ?? "Astrologer"}
+        </Text>
+      </View>
+      <Text style={styles.postContent} numberOfLines={4}>
+        {item.content}
+      </Text>
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.root}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Hero Section */}
-        <View style={[styles.hero, { backgroundColor: meta.color }]}>
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => router.back()}
-          >
-            <Feather name="arrow-left" size={22} color="#FFF" />
-          </TouchableOpacity>
-          <Text style={styles.heroEmoji}>{meta.emoji}</Text>
-          <Text style={styles.heroTitle}>{label}</Text>
-          <Text style={styles.heroDesc}>{meta.description}</Text>
-        </View>
-
-        {/* Posts Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Posts on {label}</Text>
-          <FlatList
-            data={posts}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalList}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
+      <FlatList
+        data={posts}
+        keyExtractor={(item) => item.id}
+        horizontal={false}
+        showsVerticalScrollIndicator={false}
+        onEndReached={loadMorePosts}
+        onEndReachedThreshold={0.4}
+        ListHeaderComponent={
+          <View>
+            {/* Hero Section */}
+            <View style={[styles.hero, { backgroundColor: meta.color }]}>
               <TouchableOpacity
-                style={[styles.postCard, { backgroundColor: item.bgColor }]}
-                activeOpacity={0.9}
-                onPress={() =>
-                  router.push({
-                    pathname: "/(user)/astrologer-profile" as any,
-                    params: { id: item.astrologerId },
-                  })
-                }
+                style={styles.backBtn}
+                onPress={() => router.back()}
               >
-                <View style={styles.postCardHeader}>
-                  <View style={styles.postAvatar}>
-                    <Text style={{ fontSize: 16 }}>{item.emoji}</Text>
-                  </View>
-                  <Text style={styles.postAuthor} numberOfLines={1}>
-                    {item.astrologerName}
-                  </Text>
-                </View>
-                <Text style={styles.postContent} numberOfLines={4}>
-                  {item.content}
-                </Text>
-                <View style={styles.postStats}>
-                  <Text style={styles.postStat}>👍 {item.likes}</Text>
-                  <Text style={styles.postStat}>💬 {item.comments}</Text>
-                </View>
+                <Feather name="arrow-left" size={22} color="#FFF" />
               </TouchableOpacity>
-            )}
-          />
-        </View>
+              <Text style={styles.heroEmoji}>{meta.emoji}</Text>
+              <Text style={styles.heroTitle}>{label}</Text>
+              <Text style={styles.heroDesc}>{meta.description}</Text>
+            </View>
 
-        {/* Top Astrologers Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Top {label}ists for you</Text>
-          <FlatList
-            data={astrologers}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalList}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.astroCard}
-                activeOpacity={0.9}
-                onPress={() =>
-                  router.push({
-                    pathname: "/(user)/astrologer-profile" as any,
-                    params: { id: item.id },
-                  })
-                }
-              >
-                <View
-                  style={[styles.astroAvatar, { backgroundColor: item.color }]}
-                >
-                  <Text style={{ fontSize: 24 }}>{item.emoji}</Text>
-                  <View
-                    style={[
-                      styles.onlineDot,
-                      { backgroundColor: item.online ? "#22C55E" : "#9CA3AF" },
-                    ]}
-                  />
-                </View>
-                <Text style={styles.astroName} numberOfLines={1}>
-                  {item.name.split(" ")[0]}
+            {/* Consultancies Section */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Consultancies</Text>
+              {servicesLoading ? (
+                <ActivityIndicator color="#9d0399" style={{ marginTop: 12 }} />
+              ) : services.length === 0 ? (
+                <Text style={styles.emptyText}>
+                  Is category mein abhi koi consultancy nahi hai
                 </Text>
-                <Text style={styles.astroSpeciality} numberOfLines={1}>
-                  {item.speciality}
-                </Text>
-                <Text style={styles.astroRating}>⭐ {item.rating}</Text>
-                <Text style={styles.astroPrice}>₹{item.price}</Text>
-                <TouchableOpacity style={styles.bookBtn}>
-                  <Text style={styles.bookBtnText}>Book</Text>
-                </TouchableOpacity>
-              </TouchableOpacity>
-            )}
-          />
-        </View>
+              ) : (
+                <FlatList
+                  data={services}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.horizontalList}
+                  keyExtractor={(item) => item.id}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={styles.astroCard}
+                      activeOpacity={0.9}
+                      onPress={() =>
+                        router.push({
+                          pathname: "/(user)/astrologer-profile" as any,
+                          params: { id: item.astrologerId },
+                        })
+                      }
+                    >
+                      <View
+                        style={[
+                          styles.astroAvatar,
+                          { backgroundColor: colorForId(item.id) },
+                        ]}
+                      >
+                        <Text style={{ fontSize: 24 }}>🔮</Text>
+                      </View>
+                      <Text style={styles.astroName} numberOfLines={1}>
+                        {item.title}
+                      </Text>
+                      <Text style={styles.astroSpeciality} numberOfLines={1}>
+                        by {item.astrologerName}
+                      </Text>
+                      <Text style={styles.astroPrice}>
+                        {item.price ? `₹${item.price}` : "—"}
+                      </Text>
+                      <TouchableOpacity
+                        style={styles.bookBtn}
+                        onPress={() =>
+                          router.push({
+                            pathname: "/(user)/astrologer-profile" as any,
+                            params: { id: item.astrologerId },
+                          })
+                        }
+                      >
+                        <Text style={styles.bookBtnText}>Book</Text>
+                      </TouchableOpacity>
+                    </TouchableOpacity>
+                  )}
+                />
+              )}
+            </View>
 
-        <View style={{ height: 32 }} />
-      </ScrollView>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Recent Posts</Text>
+              {postsLoading && posts.length === 0 && (
+                <ActivityIndicator color="#9d0399" style={{ marginTop: 12 }} />
+              )}
+              {!postsLoading && posts.length === 0 && (
+                <Text style={styles.emptyText}>Koi post nahi mila</Text>
+              )}
+            </View>
+          </View>
+        }
+        renderItem={renderPostItem}
+        numColumns={1}
+        contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
+        ListFooterComponent={
+          postsLoadingMore ? (
+            <ActivityIndicator color="#9d0399" style={{ marginVertical: 20 }} />
+          ) : !postsHasMore && posts.length > 0 ? (
+            <Text style={styles.endText}>Bas itna hi</Text>
+          ) : (
+            <View style={{ height: 32 }} />
+          )
+        }
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#F9F5FF" },
+  emptyText: { fontSize: 13, color: "#9CA3AF", paddingHorizontal: 16 },
+  endText: {
+    textAlign: "center",
+    fontSize: 12,
+    color: "#9CA3AF",
+    paddingVertical: 20,
+  },
 
-  // Hero
   hero: {
     paddingTop: 60,
     paddingBottom: 28,
     paddingHorizontal: 20,
     alignItems: "center",
-    gap: 10,
+    gap: 6,
   },
   backBtn: {
     position: "absolute",
@@ -252,68 +329,60 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "rgba(0,0,0,0.25)",
     alignItems: "center",
     justifyContent: "center",
   },
-  heroEmoji: { fontSize: 48, marginBottom: 4 },
-  heroTitle: {
-    fontSize: 26,
-    fontWeight: "800",
-    color: "#FFF",
-    textAlign: "center",
-  },
+  heroEmoji: { fontSize: 40 },
+  heroTitle: { fontSize: 22, fontWeight: "800", color: "#FFF", marginTop: 4 },
   heroDesc: {
     fontSize: 13,
     color: "rgba(255,255,255,0.85)",
     textAlign: "center",
-    lineHeight: 20,
+    lineHeight: 19,
     marginTop: 4,
   },
 
-  // Section
-  section: { paddingTop: 20, paddingBottom: 4 },
+  section: { paddingTop: 20, paddingHorizontal: 16 },
   sectionTitle: {
-    fontSize: 17,
-    fontWeight: "800",
-    color: "#1A1A2E",
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0b1d5b",
     marginBottom: 12,
-    paddingHorizontal: 16,
   },
-  horizontalList: { paddingHorizontal: 16, gap: 12 },
 
-  // Post Card
+  horizontalList: { gap: 10, paddingBottom: 4 },
   postCard: {
-    width: SCREEN_WIDTH * 0.65,
-    borderRadius: 16,
+    borderRadius: 14,
     padding: 14,
-    gap: 8,
+    minHeight: 130,
   },
-  postCardHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
+  postCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 8,
+  },
   postAvatar: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: "rgba(255,255,255,0.2)",
     alignItems: "center",
     justifyContent: "center",
   },
-  postAuthor: { fontSize: 12, fontWeight: "700", color: "#FFF", flex: 1 },
-  postContent: { fontSize: 13, color: "rgba(255,255,255,0.9)", lineHeight: 19 },
-  postStats: { flexDirection: "row", gap: 12 },
-  postStat: { fontSize: 11, color: "rgba(255,255,255,0.8)" },
+  postAuthor: { fontSize: 12, color: "#FFF", fontWeight: "700", flex: 1 },
+  postContent: { fontSize: 13, color: "#FFF", lineHeight: 19 },
 
-  // Astro Card
   astroCard: {
-    width: 120,
+    width: 140,
     backgroundColor: "#FFF",
-    borderRadius: 16,
+    borderRadius: 14,
     padding: 12,
     alignItems: "center",
-    gap: 4,
     borderWidth: 1,
     borderColor: "#EDE9FF",
-    elevation: 1,
+    elevation: 2,
   },
   astroAvatar: {
     width: 56,
@@ -321,33 +390,22 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 4,
+    marginBottom: 8,
   },
-  onlineDot: {
-    position: "absolute",
-    bottom: 2,
-    right: 2,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: "#FFF",
+  astroName: { fontSize: 13, fontWeight: "700", color: "#1F2937" },
+  astroSpeciality: { fontSize: 11, color: "#6B7280", marginTop: 2 },
+  astroPrice: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#9d0399",
+    marginTop: 4,
+    marginBottom: 8,
   },
-  astroName: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#1A1A2E",
-    textAlign: "center",
-  },
-  astroSpeciality: { fontSize: 10, color: "#9d0399", textAlign: "center" },
-  astroRating: { fontSize: 11, color: "#F59E0B", fontWeight: "600" },
-  astroPrice: { fontSize: 13, fontWeight: "800", color: "#1A1A2E" },
   bookBtn: {
     backgroundColor: "#9d0399",
-    borderRadius: 8,
+    borderRadius: 6,
     paddingHorizontal: 16,
-    paddingVertical: 5,
-    marginTop: 2,
+    paddingVertical: 6,
   },
   bookBtnText: { color: "#FFF", fontSize: 11, fontWeight: "700" },
 });

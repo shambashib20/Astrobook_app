@@ -1,78 +1,139 @@
 import Header from "@/components/header";
+import { useAstrologerProfile } from "@/features/astrologer/hooks/useAstrologerProfile";
+import { useUser } from "@/features/auth/store/auth.store";
+import { consultationService } from "@/features/consultation/service";
+import { paymentService } from "@/features/payment/service";
 import { Feather } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-
-// Mock order data — wire karna baad mein params/cart se
-const MOCK_ORDER = {
-  astrologerName: "Pt. Rajesh Sharma",
-  astrologerEmoji: "🔮",
-  serviceName: "Kundli Analysis",
-  callType: "VIDEO",
-  durationMins: 30,
-  date: "25 June 2026",
-  time: "11:00 AM",
-  items: 1,
-  originalPrice: 1200,
-  discount: 200,
-  platformFee: 20,
-  couponDiscount: 0,
-};
-
-const VALID_COUPONS: Record<string, number> = {
-  ASTRO10: 100,
-  FIRST50: 50,
-};
+import RazorpayCheckout from "react-native-razorpay";
 
 export default function CheckoutScreen() {
   const router = useRouter();
+  const user = useUser();
+  const { astroId, serviceId, scheduledAt, retryAppointmentId } =
+    useLocalSearchParams<{
+      astroId: string;
+      serviceId: string;
+      scheduledAt: string;
+      retryAppointmentId?: string;
+    }>();
 
-  const [coupon, setCoupon] = useState("");
-  const [couponApplied, setCouponApplied] = useState(false);
-  const [couponDiscount, setCouponDiscount] = useState(0);
-  const [couponError, setCouponError] = useState("");
+  const {
+    astrologer,
+    services,
+    loading: profileLoading,
+    fetchProfile,
+  } = useAstrologerProfile(astroId);
+  const service = services.find((s) => s.id === serviceId) ?? null;
 
-  const subtotal =
-    MOCK_ORDER.originalPrice -
-    MOCK_ORDER.discount -
-    couponDiscount +
-    MOCK_ORDER.platformFee;
+  // Hook khud fetch trigger nahi karta — book-slot.tsx wala hi bug yahan bhi tha
+  useEffect(() => {
+    fetchProfile();
+  }, [astroId]);
 
-  const totalSavings = MOCK_ORDER.discount + couponDiscount;
+  const [placing, setPlacing] = useState(false);
+  // Ek baar appointment ban jaaye (pending), usko yahan store karte hain —
+  // taaki payment fail/cancel hone par retry pe dobara naya appointment na
+  // ban jaaye. Agar payment-failed screen se "retryAppointmentId" ke saath
+  // wapas aaye hain, toh usi ko seed kar do — naya initiateBooking mat karo.
+  const [pendingAppointmentId, setPendingAppointmentId] = useState<
+    string | null
+  >(retryAppointmentId ?? null);
 
-  const handleApplyCoupon = () => {
-    const code = coupon.trim().toUpperCase();
-    if (VALID_COUPONS[code]) {
-      setCouponDiscount(VALID_COUPONS[code]);
-      setCouponApplied(true);
-      setCouponError("");
-    } else {
-      setCouponError("Invalid coupon code");
-      setCouponApplied(false);
-      setCouponDiscount(0);
+  const scheduledDate = scheduledAt ? new Date(scheduledAt) : null;
+
+  const handlePayment = async () => {
+    if (!astroId || !serviceId || !scheduledAt) return;
+    setPlacing(true);
+    // `let` yahan bahar rakha hai (try ke bahar scope) taaki catch block
+    // mein bhi reliably access ho — state (pendingAppointmentId) turant
+    // update nahi hota isi render cycle mein, isliye state pe depend nahi
+    // kar sakte the yahan
+    let appointmentId: string | null = pendingAppointmentId;
+    try {
+      // Step 1: Booking "pending" status mein banao — agar pichle attempt
+      // se already ban chuki hai toh dobara mat banao
+      if (!appointmentId) {
+        const appointment = await consultationService.initiateBooking({
+          astrologerId: astroId,
+          serviceId,
+          scheduledAt,
+        });
+        appointmentId = appointment.id;
+        setPendingAppointmentId(appointmentId);
+      }
+
+      // Step 2: Razorpay order banao
+      const order = await paymentService.createOrder(appointmentId);
+
+      // Step 3: Razorpay checkout kholo
+      const razorpayResult = await RazorpayCheckout.open({
+        description: service?.title ?? "Astrobook Consultation",
+        currency: order.currency,
+        key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID as string,
+        amount: Math.round(order.amount * 100), // rupees → paise
+        name: "AstroBook",
+        order_id: order.orderId,
+        prefill: {
+          email: user?.email ?? undefined,
+          contact: user?.phone ?? undefined,
+          name: user?.name ?? undefined,
+        },
+        theme: { color: "#9d0399" },
+      });
+
+      // Step 4: Payment verify karo → appointment confirm hoga backend pe
+      await paymentService.verifyPayment({
+        appointmentId,
+        razorpayOrderId: razorpayResult.razorpay_order_id,
+        razorpayPaymentId: razorpayResult.razorpay_payment_id,
+        razorpaySignature: razorpayResult.razorpay_signature,
+      });
+
+      router.replace({
+        pathname: "/(user)/booking-confirmation" as any,
+        params: { appointmentId },
+      });
+    } catch (err: any) {
+      // Razorpay checkout khud reject karta hai jab user cancel kare ya
+      // payment fail ho — us case mein err.description milta hai (koi
+      // response.data.message nahi hota, isliye pehle woh check karo)
+      const message =
+        err?.response?.data?.message ||
+        err?.description ||
+        "Payment complete nahi ho paya";
+
+      router.replace({
+        pathname: "/(user)/payment-failed" as any,
+        params: {
+          appointmentId: appointmentId ?? undefined,
+          reason: message,
+          astroId,
+          serviceId,
+          scheduledAt,
+        },
+      });
+    } finally {
+      setPlacing(false);
     }
   };
 
-  const handleRemoveCoupon = () => {
-    setCoupon("");
-    setCouponApplied(false);
-    setCouponDiscount(0);
-    setCouponError("");
-  };
-
-  const handlePayment = () => {
-    router.push("/(user)/booking-confirmation");
-    // TODO: Razorpay integration
-    // alert("Navigating to Payment Gateway...");
-  };
+  if (profileLoading || !astrologer || !service || !scheduledDate) {
+    return (
+      <View style={[styles.root, styles.centerFill]}>
+        <ActivityIndicator color="#9d0399" size="large" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.root}>
@@ -88,31 +149,34 @@ export default function CheckoutScreen() {
 
           <View style={styles.orderRow}>
             <View style={styles.orderEmoji}>
-              <Text style={{ fontSize: 28 }}>{MOCK_ORDER.astrologerEmoji}</Text>
+              <Text style={{ fontSize: 28 }}>
+                {astrologer.meta?.emoji ?? "🔮"}
+              </Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.orderServiceName}>
-                {MOCK_ORDER.serviceName}
-              </Text>
-              <Text style={styles.orderAstroName}>
-                with {MOCK_ORDER.astrologerName}
-              </Text>
+              <Text style={styles.orderServiceName}>{service.title}</Text>
+              <Text style={styles.orderAstroName}>with {astrologer.name}</Text>
               <View style={styles.orderChipsRow}>
                 <View style={styles.chip}>
                   <Text style={styles.chipText}>
-                    {MOCK_ORDER.callType === "VIDEO" ? "📹 Video" : "📞 Voice"}
-                  </Text>
-                </View>
-                <View style={styles.chip}>
-                  <Text style={styles.chipText}>
-                    ⏱ {MOCK_ORDER.durationMins} min
+                    ⏱ {service.durationMinutes} min
                   </Text>
                 </View>
               </View>
               <View style={styles.slotRow}>
                 <Feather name="calendar" size={12} color="#9d0399" />
                 <Text style={styles.slotText}>
-                  {MOCK_ORDER.date} • {MOCK_ORDER.time}
+                  {scheduledDate.toLocaleDateString("en-IN", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}{" "}
+                  •{" "}
+                  {scheduledDate.toLocaleTimeString("en-IN", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: true,
+                  })}
                 </Text>
               </View>
             </View>
@@ -121,76 +185,19 @@ export default function CheckoutScreen() {
 
         {/* --- CUSTOMER DETAILS CARD --- */}
         <View style={styles.card}>
-          <View style={styles.cardHeaderRow}>
-            <Text style={styles.sectionTitle}>Customer details</Text>
-            <TouchableOpacity
-              onPress={() => alert("Open Edit Address/Profile Modal")}
-            >
-              <Text style={styles.editBtnText}>Edit</Text>
-            </TouchableOpacity>
-          </View>
-
+          <Text style={styles.sectionTitle}>Customer details</Text>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Name : </Text>
-            <Text style={styles.detailValue}>Ankush Sarkar</Text>
+            <Text style={styles.detailValue}>{user?.name ?? "—"}</Text>
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Phone : </Text>
-            <Text style={styles.detailValue}>+91 99968 47146</Text>
+            <Text style={styles.detailValue}>{user?.phone ?? "—"}</Text>
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Email : </Text>
-            <Text style={styles.detailValue}>ankush256@gmail.com</Text>
+            <Text style={styles.detailValue}>{user?.email ?? "—"}</Text>
           </View>
-        </View>
-
-        {/* --- COUPON CARD --- */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Apply Coupon</Text>
-
-          {couponApplied ? (
-            <View style={styles.couponAppliedRow}>
-              <View style={styles.couponAppliedLeft}>
-                <Feather name="tag" size={14} color="#22C55E" />
-                <Text style={styles.couponAppliedText}>
-                  "{coupon.toUpperCase()}" applied — ₹{couponDiscount} off!
-                </Text>
-              </View>
-              <TouchableOpacity onPress={handleRemoveCoupon}>
-                <Text style={styles.couponRemoveText}>Remove</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <>
-              <View style={styles.couponInputRow}>
-                <TextInput
-                  style={styles.couponInput}
-                  placeholder="Enter coupon code"
-                  placeholderTextColor="#9CA3AF"
-                  value={coupon}
-                  onChangeText={(t) => {
-                    setCoupon(t);
-                    setCouponError("");
-                  }}
-                  autoCapitalize="characters"
-                />
-                <TouchableOpacity
-                  style={[
-                    styles.couponApplyBtn,
-                    !coupon.trim() && styles.couponApplyBtnDisabled,
-                  ]}
-                  onPress={handleApplyCoupon}
-                  disabled={!coupon.trim()}
-                >
-                  <Text style={styles.couponApplyText}>Apply</Text>
-                </TouchableOpacity>
-              </View>
-              {couponError ? (
-                <Text style={styles.couponErrorText}>{couponError}</Text>
-              ) : null}
-              <Text style={styles.couponHint}>Try: ASTRO10 or FIRST50</Text>
-            </>
-          )}
         </View>
 
         {/* --- PRICE DETAILS CARD --- */}
@@ -198,47 +205,9 @@ export default function CheckoutScreen() {
           <Text style={styles.sectionTitle}>Price details</Text>
 
           <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>
-              Price ({MOCK_ORDER.items} item)
-            </Text>
-            <Text style={styles.priceValue}>₹ {MOCK_ORDER.originalPrice}</Text>
-          </View>
-          <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Discount</Text>
-            <Text style={[styles.priceValue, styles.discountText]}>
-              - ₹ {MOCK_ORDER.discount}
-            </Text>
-          </View>
-          {couponApplied && (
-            <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>
-                Coupon ({coupon.toUpperCase()})
-              </Text>
-              <Text style={[styles.priceValue, styles.discountText]}>
-                - ₹ {couponDiscount}
-              </Text>
-            </View>
-          )}
-          <View style={styles.priceRow}>
-            <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
-            >
-              <Text style={styles.priceLabel}>Platform Fee</Text>
-              <Feather name="info" size={13} color="#9CA3AF" />
-            </View>
-            <Text style={styles.priceValue}>₹ {MOCK_ORDER.platformFee}</Text>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.priceRow}>
             <Text style={styles.totalLabel}>Total Amount</Text>
-            <Text style={styles.totalValue}>₹ {subtotal}</Text>
+            <Text style={styles.totalValue}>₹ {service.price ?? "—"}</Text>
           </View>
-
-          <Text style={styles.savingText}>
-            You will save ₹{totalSavings} on this order 🎉
-          </Text>
         </View>
 
         {/* --- CANCELLATION POLICY --- */}
@@ -248,27 +217,27 @@ export default function CheckoutScreen() {
             <Text style={styles.policyTitle}>Cancellation Policy</Text>
           </View>
           <Text style={styles.policyText}>
-            • Free cancellation up to{" "}
-            <Text style={styles.policyBold}>1 hour</Text> before session.
+            • Booking cancel karne ke liye "My Bookings" mein jaake cancel karo.
           </Text>
-          <Text style={styles.policyText}>
-            • 50% refund if cancelled within 1 hour of session.
-          </Text>
-          <Text style={styles.policyText}>• No refund for no-shows.</Text>
         </View>
 
-        {/* --- MAKE PAYMENT --- */}
-
-        <View style={{ height: 70 }} />
+        <View style={{ height: 90 }} />
       </ScrollView>
+
       <View style={styles.stickyBottom}>
-        <TouchableOpacity style={styles.paymentBtn} onPress={handlePayment}>
-          <Text style={styles.paymentBtnText}>Make Payment • ₹{subtotal}</Text>
+        <TouchableOpacity
+          style={[styles.paymentBtn, placing && styles.paymentBtnDisabled]}
+          onPress={handlePayment}
+          disabled={placing}
+        >
+          {placing ? (
+            <ActivityIndicator size="small" color="#FFF" />
+          ) : (
+            <Text style={styles.paymentBtnText}>
+              Pay Now • ₹{service.price ?? "—"}
+            </Text>
+          )}
         </TouchableOpacity>
-        <View style={styles.securePaymentRow}>
-          <Feather name="shield" size={16} color="#22C55E" />
-          <Text style={styles.secureText}>Safe and Secure Payments</Text>
-        </View>
       </View>
     </View>
   );
@@ -276,6 +245,7 @@ export default function CheckoutScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#F9F5FF" },
+  centerFill: { alignItems: "center", justifyContent: "center" },
   listContent: { padding: 16, gap: 14, paddingBottom: 40 },
 
   card: {
@@ -293,7 +263,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: { fontSize: 15, fontWeight: "700", color: "#1F2937" },
 
-  // Order Summary
   orderRow: { flexDirection: "row", gap: 12, alignItems: "flex-start" },
   orderEmoji: {
     width: 52,
@@ -322,71 +291,19 @@ const styles = StyleSheet.create({
   slotRow: { flexDirection: "row", alignItems: "center", gap: 5 },
   slotText: { fontSize: 12, color: "#9d0399", fontWeight: "600" },
 
-  // Customer Details
-  cardHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  editBtnText: { color: "#9d0399", fontSize: 13, fontWeight: "600" },
   detailRow: { flexDirection: "row", alignItems: "flex-start" },
   detailLabel: { fontSize: 13, color: "#6B7280", fontWeight: "500" },
   detailValue: { fontSize: 13, color: "#1F2937", fontWeight: "600", flex: 1 },
 
-  // Coupon
-  couponInputRow: { flexDirection: "row", gap: 8 },
-  couponInput: {
-    flex: 1,
-    backgroundColor: "#F9F5FF",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: "#1A1A2E",
-    borderWidth: 1.5,
-    borderColor: "#EDE9FF",
-    letterSpacing: 1,
-  },
-  couponApplyBtn: {
-    backgroundColor: "#9d0399",
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    justifyContent: "center",
-  },
-  couponApplyBtnDisabled: { opacity: 0.4 },
-  couponApplyText: { color: "#FFF", fontWeight: "700", fontSize: 13 },
-  couponErrorText: { fontSize: 12, color: "#EF4444" },
-  couponHint: { fontSize: 11, color: "#9CA3AF" },
-  couponAppliedRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#F0FDF4",
-    borderRadius: 8,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: "#BBF7D0",
-  },
-  couponAppliedLeft: { flexDirection: "row", alignItems: "center", gap: 6 },
-  couponAppliedText: { fontSize: 13, color: "#15803D", fontWeight: "600" },
-  couponRemoveText: { fontSize: 12, color: "#EF4444", fontWeight: "600" },
-
-  // Price
   priceRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 2,
   },
-  priceLabel: { fontSize: 13, color: "#6B7280" },
-  priceValue: { fontSize: 13, fontWeight: "600", color: "#1A1A2E" },
-  discountText: { color: "#22C55E" },
-  divider: { height: 1, backgroundColor: "#E5E7EB", marginVertical: 4 },
   totalLabel: { fontSize: 15, fontWeight: "700", color: "#1F2937" },
   totalValue: { fontSize: 17, fontWeight: "800", color: "#9d0399" },
-  savingText: { fontSize: 12, color: "#22C55E", fontWeight: "500" },
 
-  // Policy
   policyCard: {
     backgroundColor: "#FFFBEB",
     borderRadius: 12,
@@ -403,25 +320,7 @@ const styles = StyleSheet.create({
   },
   policyTitle: { fontSize: 13, fontWeight: "700", color: "#92400E" },
   policyText: { fontSize: 12, color: "#78350F", lineHeight: 18 },
-  policyBold: { fontWeight: "700" },
 
-  // Bottom
-  bottomActionContainer: { marginTop: 4, alignItems: "center", gap: 10 },
-  paymentBtn: {
-    backgroundColor: "#9d0399",
-    borderRadius: 12,
-    paddingVertical: 15,
-    width: "100%",
-    alignItems: "center",
-    elevation: 3,
-  },
-  paymentBtnText: { color: "#FFF", fontSize: 16, fontWeight: "800" },
-  securePaymentRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  secureText: { fontSize: 12, color: "#6B7280" },
   stickyBottom: {
     position: "absolute",
     bottom: 0,
@@ -430,10 +329,19 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    paddingBottom: 24, // safe area ke liye
+    paddingBottom: 24,
     borderTopWidth: 1,
     borderTopColor: "#EDE9FF",
-    gap: 8,
     elevation: 10,
   },
+  paymentBtn: {
+    backgroundColor: "#9d0399",
+    borderRadius: 12,
+    paddingVertical: 15,
+    width: "100%",
+    alignItems: "center",
+    elevation: 3,
+  },
+  paymentBtnDisabled: { opacity: 0.6 },
+  paymentBtnText: { color: "#FFF", fontSize: 16, fontWeight: "800" },
 });

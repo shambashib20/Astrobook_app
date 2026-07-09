@@ -1,7 +1,9 @@
 import Header from "@/components/header";
+import { useCategories } from "@/features/categories/hooks/useCategories";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Dimensions,
   ScrollView,
   StyleSheet,
@@ -16,120 +18,6 @@ const PADDING = 16;
 const CARD_WIDTH = (SCREEN_WIDTH - PADDING * 2 - GAP) / 2;
 const CARD_HEIGHT = CARD_WIDTH * 0.75;
 
-// Top filter tabs
-const FILTERS = [
-  { id: "all", label: "All" },
-  { id: "numerology", label: "Numerology" },
-  { id: "vastu", label: "Vastu" },
-  { id: "vedic", label: "Vedic" },
-  { id: "tarot", label: "Tarot" },
-  { id: "palmistry", label: "Palmistry" },
-  { id: "reiki", label: "Reiki" },
-  { id: "meditation", label: "Meditation" },
-];
-
-// All categories with parent filter
-const ALL_CATEGORIES = [
-  {
-    id: "numerology",
-    label: "Numerology",
-    emoji: "🔢",
-    color: "#1E40AF",
-    filter: "numerology",
-  },
-  {
-    id: "vastu",
-    label: "Vastu",
-    emoji: "🏠",
-    color: "#1E3A5F",
-    filter: "vastu",
-  },
-  {
-    id: "vedic-astrology",
-    label: "Vedic Astrology",
-    emoji: "⭐",
-    color: "#4C1D95",
-    filter: "vedic",
-  },
-  {
-    id: "kundli",
-    label: "Kundli",
-    emoji: "🔮",
-    color: "#6B21A8",
-    filter: "vedic",
-  },
-  {
-    id: "tarot",
-    label: "Tarot",
-    emoji: "🃏",
-    color: "#92400E",
-    filter: "tarot",
-  },
-  {
-    id: "tarot-love",
-    label: "Tarot Love",
-    emoji: "💕",
-    color: "#9D174D",
-    filter: "tarot",
-  },
-  {
-    id: "palmistry",
-    label: "Palmistry",
-    emoji: "✋",
-    color: "#065F46",
-    filter: "palmistry",
-  },
-  {
-    id: "face-reading",
-    label: "Face Reading",
-    emoji: "👁️",
-    color: "#7C2D12",
-    filter: "palmistry",
-  },
-  {
-    id: "reiki",
-    label: "Reiki",
-    emoji: "✨",
-    color: "#065F46",
-    filter: "reiki",
-  },
-  {
-    id: "past-life",
-    label: "Past Life",
-    emoji: "🌀",
-    color: "#134E4A",
-    filter: "reiki",
-  },
-  {
-    id: "meditation",
-    label: "Meditation",
-    emoji: "🧘",
-    color: "#1E40AF",
-    filter: "meditation",
-  },
-  {
-    id: "gemstones",
-    label: "Gemstones",
-    emoji: "💎",
-    color: "#6B21A8",
-    filter: "meditation",
-  },
-  {
-    id: "numerology-name",
-    label: "Name Analysis",
-    emoji: "📛",
-    color: "#1E3A5F",
-    filter: "numerology",
-  },
-  {
-    id: "vastu-home",
-    label: "Home Vastu",
-    emoji: "🏡",
-    color: "#065F46",
-    filter: "vastu",
-  },
-];
-
 const INITIAL_COUNT = 6;
 
 export default function ExploreScreen() {
@@ -137,15 +25,22 @@ export default function ExploreScreen() {
   const [activeFilter, setActiveFilter] = useState("all");
   const [showAll, setShowAll] = useState(false);
 
+  const { filters, categories, loading, error, fetchCategories } =
+    useCategories();
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
   const filtered =
     activeFilter === "all"
-      ? ALL_CATEGORIES
-      : ALL_CATEGORIES.filter((c) => c.filter === activeFilter);
+      ? categories
+      : categories.filter((c) => c.filter === activeFilter);
 
   const displayed = showAll ? filtered : filtered.slice(0, INITIAL_COUNT);
 
   // Group into rows of 2
-  const rows: (typeof ALL_CATEGORIES)[number][][] = [];
+  const rows: (typeof categories)[number][][] = [];
   for (let i = 0; i < displayed.length; i += 2) {
     rows.push(displayed.slice(i, i + 2));
   }
@@ -161,7 +56,7 @@ export default function ExploreScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filtersRow}
         >
-          {FILTERS.map((f) => (
+          {filters.map((f) => (
             <TouchableOpacity
               key={f.id}
               style={[
@@ -186,52 +81,64 @@ export default function ExploreScreen() {
         </ScrollView>
       </View>
 
-      {/* Grid */}
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.content}
-      >
-        {rows.map((row, rowIndex) => (
-          <View key={rowIndex} style={styles.row}>
-            {row.map((cat) => (
-              <TouchableOpacity
-                key={cat.id}
-                style={[styles.card, { backgroundColor: cat.color }]}
-                activeOpacity={0.85}
-                onPress={() =>
-                  router.push({
-                    pathname: "/(user)/explore/[category]" as any,
-                    params: { category: cat.id, label: cat.label },
-                  })
-                }
-              >
-                <Text style={styles.cardEmoji}>{cat.emoji}</Text>
-                <Text style={styles.cardLabel}>{cat.label}</Text>
-              </TouchableOpacity>
-            ))}
-            {/* Empty placeholder if odd number */}
-            {row.length === 1 && <View style={styles.cardEmpty} />}
-          </View>
-        ))}
+      {loading ? (
+        <ActivityIndicator color="#9d0399" style={{ marginTop: 40 }} />
+      ) : error ? (
+        <Text style={styles.emptyText}>{error}</Text>
+      ) : (
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.content}
+        >
+          {/* Grid */}
+          {rows.map((row, rowIndex) => (
+            <View key={rowIndex} style={styles.row}>
+              {row.map((cat) => (
+                <TouchableOpacity
+                  key={cat.id}
+                  style={[styles.card, { backgroundColor: cat.color }]}
+                  activeOpacity={0.85}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/(user)/explore/[category]" as any,
+                      params: { category: cat.id, label: cat.label },
+                    })
+                  }
+                >
+                  <Text style={styles.cardEmoji}>{cat.emoji}</Text>
+                  <Text style={styles.cardLabel}>{cat.label}</Text>
+                </TouchableOpacity>
+              ))}
+              {/* Empty placeholder if odd number */}
+              {row.length === 1 && <View style={styles.cardEmpty} />}
+            </View>
+          ))}
 
-        {/* Show More */}
-        {!showAll && filtered.length > INITIAL_COUNT && (
-          <TouchableOpacity
-            style={styles.showMoreBtn}
-            onPress={() => setShowAll(true)}
-          >
-            <Text style={styles.showMoreText}>Show more</Text>
-            <Text style={styles.showMoreArrow}>↓</Text>
-          </TouchableOpacity>
-        )}
+          {/* Show More */}
+          {!showAll && filtered.length > INITIAL_COUNT && (
+            <TouchableOpacity
+              style={styles.showMoreBtn}
+              onPress={() => setShowAll(true)}
+            >
+              <Text style={styles.showMoreText}>Show more</Text>
+              <Text style={styles.showMoreArrow}>↓</Text>
+            </TouchableOpacity>
+          )}
 
-        <View style={{ height: 32 }} />
-      </ScrollView>
+          <View style={{ height: 32 }} />
+        </ScrollView>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  emptyText: {
+    fontSize: 13,
+    color: "#9CA3AF",
+    textAlign: "center",
+    marginTop: 40,
+  },
   root: { flex: 1, backgroundColor: "#F9F5FF" },
 
   // Filter tabs

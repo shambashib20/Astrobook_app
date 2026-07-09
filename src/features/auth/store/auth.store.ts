@@ -4,7 +4,6 @@ import axios from "axios";
 import { create } from "zustand";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-// Backend se lowercase aata hai — 'user' | 'astrologer'
 
 export type AuthUser = {
   id: string;
@@ -13,6 +12,7 @@ export type AuthUser = {
   email: string | null;
   role: "user" | "astrologer" | "admin";
   isOnboarded: boolean;
+  isAstrologer: boolean; // ← added
 };
 
 export type AuthResult = {
@@ -46,15 +46,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   isLoading: true,
 
   loginSuccess: async ({ accessToken, refreshToken, user, isNewUser }) => {
-    console.log(
-      "saving tokens:",
-      accessToken?.slice(0, 20),
-      refreshToken?.slice(0, 20),
-    );
     await AsyncStorage.setItem("accessToken", accessToken);
     await AsyncStorage.setItem("refreshToken", refreshToken);
-    const saved = await AsyncStorage.getItem("refreshToken");
-    console.log("saved refreshToken:", saved?.slice(0, 20));
     set({ isLoggedIn: true, isNewUser, user, accessToken, isLoading: false });
   },
 
@@ -87,7 +80,6 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     set({ isLoading: true });
     try {
       const refreshToken = await AsyncStorage.getItem("refreshToken");
-      console.log("refreshToken from storage:", refreshToken); // ← yeh add karo
       if (!refreshToken) {
         set({ isLoading: false });
         return false;
@@ -108,7 +100,6 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       set({ isLoggedIn: true, accessToken, user, isLoading: false });
       return true;
     } catch (err) {
-      console.log("restoreSession error:", err);
       await AsyncStorage.multiRemove(["accessToken", "refreshToken"]);
       set({ isLoading: false });
       return false;

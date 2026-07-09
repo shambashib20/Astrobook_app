@@ -1,6 +1,7 @@
 import Header from "@/components/header";
 import { useLogout } from "@/features/auth/hooks/useAuth";
-import { useUser } from "@/features/auth/store/auth.store";
+import { AstrologerProfileView } from "@/features/astrologer/components/AstrologerProfileView";
+import { useAuthStore, useUser } from "@/features/auth/store/auth.store";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -26,6 +27,17 @@ export default function ProfileScreen() {
   const user = useUser();
   const { handleLogout } = useLogout();
   const [loggingOut, setLoggingOut] = useState(false);
+  const { isLoading } = useAuthStore();
+
+  // Loading ho raha hai — kuch mat dikhao, flicker avoid karo
+  if (isLoading) {
+    return null;
+  }
+
+  // Astrologer hai — same route, alag view (koi redirect nahi)
+  if (user?.isAstrologer) {
+    return <AstrologerProfileView />;
+  }
 
   const onLogout = async () => {
     setLoggingOut(true);
@@ -40,7 +52,6 @@ export default function ProfileScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* Profile Card */}
         <View style={styles.profileCard}>
           <View style={styles.avatarCircle}>
             <Text style={styles.avatarEmoji}>👤</Text>
@@ -48,12 +59,14 @@ export default function ProfileScreen() {
           <Text style={styles.name}>{user?.name ?? "User"}</Text>
           {user?.phone ? <Text style={styles.phone}>{user.phone}</Text> : null}
           {user?.email ? <Text style={styles.email}>{user.email}</Text> : null}
-          <TouchableOpacity style={styles.editBtn}>
+          <TouchableOpacity
+            style={styles.editBtn}
+            onPress={() => router.push("/(user)/edit-profile" as any)}
+          >
             <Text style={styles.editBtnText}>Edit Profile</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Menu */}
         <View style={styles.menuCard}>
           {MENU_ITEMS.map((item, index) => (
             <TouchableOpacity
@@ -71,15 +84,16 @@ export default function ProfileScreen() {
           ))}
         </View>
 
-        {/* Logout */}
         <TouchableOpacity
-          style={[styles.logoutBtn, loggingOut && styles.logoutBtnLoading]}
+          style={[styles.logoutBtn, loggingOut && { opacity: 0.6 }]}
           onPress={onLogout}
           disabled={loggingOut}
           activeOpacity={0.75}
         >
           {loggingOut ? (
-            <View style={styles.logoutInner}>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+            >
               <ActivityIndicator size="small" color="#EF4444" />
               <Text style={styles.logoutText}>Logging out...</Text>
             </View>
@@ -155,12 +169,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1.5,
     borderColor: "#EF4444",
-  },
-  logoutBtnLoading: { opacity: 0.6 },
-  logoutInner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
   },
   logoutText: { color: "#EF4444", fontSize: 15, fontWeight: "700" },
 });

@@ -1,11 +1,14 @@
 import Header from "@/components/header";
+import { useFeedPosts } from "@/features/posts/hooks/useFeed";
+import type { Post } from "@/features/posts/types/post.types";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect } from "react";
 import {
+  ActivityIndicator,
   Dimensions,
-  ScrollView,
+  FlatList,
+  ImageBackground,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -14,71 +17,36 @@ import {
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-const MOCK_FEED_POSTS = [
-  {
-    id: "1",
-    astrologerId: "astro_001",
-    astrologerName: "Suprio Karmakar",
-    emoji: "🙏",
-    bgColor: "#6B21A8",
-    content:
-      "দুর্গতি নাশিনী\nইয়া দেবী সর্বভূতেষু, শক্তি রূপেণ সংস্থিতা!\nনমস্তে নমস্তে নমস্তে নমো নমঃ ॥",
-    footer: "মহালয়া শুভেচ্ছা",
-    likes: 248,
-    comments: 42,
-    shares: 18,
-    createdAt: "2025-11-01T10:00:00Z",
-  },
-  {
-    id: "2",
-    astrologerId: "astro_002",
-    astrologerName: "Ananya Sharma",
-    emoji: "🌟",
-    bgColor: "#1E3A5F",
-    content:
-      "Mercury Retrograde ends today! Time to move forward with clarity and renewed purpose. ✨\n\nThis is the perfect time to revisit old projects and clear communication.",
-    footer: "Cosmic Update",
-    likes: 156,
-    comments: 28,
-    shares: 12,
-    createdAt: "2025-11-01T08:00:00Z",
-  },
-  // ... (rest of your mock data remains the same)
-  {
-    id: "20",
-    astrologerId: "astro_005",
-    astrologerName: "Vikash Joshi",
-    emoji: "🔥",
-    bgColor: "#92400E",
-    content:
-      "Avoid placing mirrors directly facing the bed — this is one of the most common Vastu mistakes. Mirrors reflect energy and can disturb sleep and relationships. 🪞",
-    footer: "Vastu Bedroom Tips",
-    likes: 723,
-    comments: 167,
-    shares: 112,
-    createdAt: "2025-10-26T08:00:00Z",
-  },
+const BG_PALETTE = [
+  "#6B21A8",
+  "#1E3A5F",
+  "#92400E",
+  "#065F46",
+  "#9D174D",
+  "#4C1D95",
 ];
+function colorForId(id: string) {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = (hash + id.charCodeAt(i)) % 997;
+  return BG_PALETTE[hash % BG_PALETTE.length]!;
+}
 
 export default function FeedScreen() {
   const router = useRouter();
-  const [posts, setPosts] = useState(
-    MOCK_FEED_POSTS.map((p) => ({ ...p, liked: false })),
-  );
+  const {
+    posts,
+    loading,
+    refreshing,
+    loadingMore,
+    hasMore,
+    error,
+    fetchFeed,
+    loadMore,
+  } = useFeedPosts();
 
-  const toggleLike = (id: string) => {
-    setPosts((prev) =>
-      prev.map((p) =>
-        p.id === id
-          ? {
-              ...p,
-              liked: !p.liked,
-              likes: p.liked ? p.likes - 1 : p.likes + 1,
-            }
-          : p,
-      ),
-    );
-  };
+  useEffect(() => {
+    fetchFeed();
+  }, []);
 
   const goToPost = (postId: string) => {
     router.push({
@@ -94,168 +62,280 @@ export default function FeedScreen() {
     });
   };
 
+  const goToBookService = (post: Post) => {
+    if (!post.basicServiceId) {
+      goToAstrologer(post.astrologerId);
+      return;
+    }
+    router.push({
+      pathname: "/(user)/service/[id]" as any,
+      params: { id: post.basicServiceId, astroId: post.astrologerId },
+    });
+  };
+
+  const renderPost = ({ item: post }: { item: Post }) => {
+    const bgColor = colorForId(post.astrologerId);
+    return (
+      <View style={styles.postCard}>
+        {/* ----- Post Header ----- */}
+        <TouchableOpacity
+          style={styles.postHeader}
+          activeOpacity={0.8}
+          onPress={() => goToAstrologer(post.astrologerId)}
+        >
+          <View style={styles.postAuthorRow}>
+            {/* Light Purple Avatar Icon */}
+            <View style={[styles.postAvatar, { backgroundColor: "#F3E8FF" }]}>
+              <MaterialCommunityIcons
+                name="account"
+                size={24}
+                color="#D946EF"
+              />
+            </View>
+            <View>
+              <Text style={styles.postAuthorName}>
+                {post.astrologerName ?? "Astrologer"}
+              </Text>
+              {/* Subtitle add kiya */}
+              <Text style={styles.postSubtitle}>Vedic</Text>
+            </View>
+          </View>
+
+          <View style={styles.headerRight}>
+            <TouchableOpacity onPress={(e) => e.stopPropagation?.()}>
+              <Text style={styles.followBtnText}>Follow +</Text>
+            </TouchableOpacity>
+            {/* 3-dot menu add kiya */}
+            <TouchableOpacity>
+              <MaterialCommunityIcons
+                name="dots-vertical"
+                size={24}
+                color="#333"
+              />
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+
+        {/* ----- Post Content (Image with Overlay) ----- */}
+        <TouchableOpacity
+          activeOpacity={0.95}
+          onPress={() => goToPost(post.id)}
+        >
+          {post.mediaType === "IMAGE" && post.mediaUrl ? (
+            <ImageBackground
+              source={{ uri: post.mediaUrl }}
+              style={styles.postImage}
+              resizeMode="cover"
+            >
+              {/* Overlay ke andar content */}
+              <View style={styles.imageOverlayContent}>
+                <Text style={styles.overlayMainText}>{post.content}</Text>
+              </View>
+
+              {/* Bottom row inside image (Logo + Text) */}
+              <View style={styles.imageFooterOverlay}>
+                <View style={styles.postLogoSmall}>
+                  <Text style={styles.postLogoAstro}>Astro</Text>
+                  <View style={styles.postLogoBadge}>
+                    <Text style={styles.postLogoBook}>Book</Text>
+                  </View>
+                </View>
+                {/* Screenshot jaisa Bengali text */}
+                <Text style={styles.bottomRightOverlayText}>
+                  মহালয়ার শুভেচ্ছা
+                </Text>
+              </View>
+            </ImageBackground>
+          ) : (
+            // Fallback (agar IMAGE nahi hai toh)
+            <View style={[styles.postImageArea, { backgroundColor: bgColor }]}>
+              <Text style={styles.postContent}>{post.content}</Text>
+              <View style={styles.postFooterRow}>
+                <View style={styles.postLogoSmall}>
+                  <Text style={styles.postLogoAstro}>Astro</Text>
+                  <View style={styles.postLogoBadge}>
+                    <Text style={styles.postLogoBook}>Book</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
+        </TouchableOpacity>
+
+        {/* ----- Post Bottom (Caption & Actions) ----- */}
+        <View style={styles.postBottom}>
+          {/* Caption */}
+          <Text style={styles.captionText} numberOfLines={2}>
+            {post.content}
+          </Text>
+
+          <View style={styles.actionsFooterRow}>
+            {/* Left Side: Icons + Date */}
+            <View style={styles.leftFooterGroup}>
+              <View style={styles.iconRow}>
+                <TouchableOpacity style={styles.iconItem}>
+                  <MaterialCommunityIcons
+                    name="thumb-up-outline"
+                    size={22}
+                    color="#9d0399"
+                  />
+                  <Text style={styles.iconCount}>121</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.iconItem}>
+                  <MaterialCommunityIcons
+                    name="comment-outline"
+                    size={22}
+                    color="#9d0399"
+                  />
+                  <Text style={styles.iconCount}>22</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.iconItem}>
+                  <MaterialCommunityIcons
+                    name="share-outline"
+                    size={22}
+                    color="#9d0399"
+                  />
+                  <Text style={styles.iconCount}>3</Text>
+                </TouchableOpacity>
+              </View>
+              {/* Date neeche le aaye */}
+              <Text style={styles.postDate}>
+                {new Date(post.createdAt).toLocaleDateString("en-IN", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </Text>
+            </View>
+
+            {/* Right Side: Book Now */}
+            <TouchableOpacity
+              style={styles.bookBtn}
+              onPress={() => goToBookService(post)}
+            >
+              <Text style={styles.bookText}>Book Now</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
   return (
     <View style={styles.root}>
       <Header />
-      <ScrollView showsVerticalScrollIndicator={false} style={styles.scroll}>
-        {posts.map((post) => (
-          <View key={post.id} style={styles.postCard}>
-            <LinearGradient
-              colors={[
-                "rgba(255,255,255,0.4)",
-                "#00000050",
-                "rgba(255,255,255,0.4)",
-              ]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={{ height: 2, width: "100%" }}
-            />
 
-            {/* Post Header */}
-            <TouchableOpacity
-              style={styles.postHeader}
-              activeOpacity={0.8}
-              onPress={() => goToAstrologer(post.astrologerId)}
-            >
-              <View style={styles.postAuthorRow}>
-                <View
-                  style={[styles.postAvatar, { backgroundColor: post.bgColor }]}
-                >
-                  <Text style={styles.postAvatarEmoji}>{post.emoji}</Text>
-                </View>
-                <View>
-                  <Text style={styles.postAuthorName}>
-                    {post.astrologerName}
-                  </Text>
-                  <Text style={styles.postTime}>
-                    {new Date(post.createdAt).toLocaleDateString("en-IN", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.postHeaderRight}>
-                <TouchableOpacity
-                  style={styles.followBtn}
-                  onPress={(e) => e.stopPropagation?.()}
-                >
-                  <Text style={styles.followBtnText}>Follow +</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={(e) => e.stopPropagation?.()}>
-                  <MaterialCommunityIcons
-                    name="dots-vertical"
-                    size={28}
-                    color="#555"
-                  />
-                </TouchableOpacity>
-              </View>
-            </TouchableOpacity>
-
-            {/* Post Content */}
-            <TouchableOpacity
-              activeOpacity={0.95}
-              onPress={() => goToPost(post.id)}
-            >
-              <View
-                style={[
-                  styles.postImageArea,
-                  { backgroundColor: post.bgColor },
-                ]}
-              >
-                <Text style={styles.postContent}>{post.content}</Text>
-                <View style={styles.postFooterRow}>
-                  <View style={styles.postLogoSmall}>
-                    <Text style={styles.postLogoAstro}>Astro</Text>
-                    <View style={styles.postLogoBadge}>
-                      <Text style={styles.postLogoBook}>Book</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.postFooterText}>{post.footer}</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-
-            {/* Post Bottom (Updated Icons Here) */}
-            <View style={styles.postBottom}>
-              <View style={styles.actionsRow}>
-                <View style={styles.leftActions}>
-                  <TouchableOpacity
-                    style={styles.actionBtn}
-                    onPress={() => toggleLike(post.id)}
-                  >
-                    <MaterialCommunityIcons
-                      name={post.liked ? "thumb-up" : "thumb-up-outline"}
-                      size={22}
-                      color="#9d0399"
-                    />
-                    <Text style={styles.count}>{post.likes}</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.actionBtn}
-                    onPress={() => goToPost(post.id)}
-                  >
-                    <MaterialCommunityIcons
-                      name="comment-outline"
-                      size={22}
-                      color="#9d0399"
-                    />
-                    <Text style={styles.count}>{post.comments}</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity style={styles.actionBtn}>
-                    <MaterialCommunityIcons
-                      name="share-outline"
-                      size={22}
-                      color="#9d0399"
-                    />
-                    <Text style={styles.count}>{post.shares}</Text>
-                  </TouchableOpacity>
-                </View>
-
-                <TouchableOpacity
-                  style={styles.bookBtn}
-                  onPress={() => goToAstrologer(post.astrologerId)}
-                >
-                  <Text style={styles.bookText}>Book Now</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        ))}
-        <View style={{ height: 32 }} />
-      </ScrollView>
+      {loading ? (
+        <View style={styles.centerFill}>
+          <ActivityIndicator color="#9d0399" size="large" />
+        </View>
+      ) : error ? (
+        <View style={styles.centerFill}>
+          <Text style={styles.emptyText}>{error}</Text>
+        </View>
+      ) : posts.length === 0 ? (
+        <View style={styles.centerFill}>
+          <Text style={styles.emptyText}>Abhi tak koi post nahi hai</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={posts}
+          keyExtractor={(item) => item.id}
+          renderItem={renderPost}
+          refreshing={refreshing}
+          onRefresh={() => fetchFeed(true)}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.4}
+          showsVerticalScrollIndicator={false}
+          ListFooterComponent={
+            loadingMore ? (
+              <ActivityIndicator
+                color="#9d0399"
+                style={{ marginVertical: 20 }}
+              />
+            ) : !hasMore && posts.length > 0 ? (
+              <Text style={styles.endOfFeedText}>
+                Bas itna hi — aur posts nahi hain
+              </Text>
+            ) : null
+          }
+        />
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#fff" },
-  scroll: { flex: 1 },
-  postCard: { backgroundColor: "#FFF", marginTop: 0 },
+  centerFill: { flex: 1, alignItems: "center", justifyContent: "center" },
+  emptyText: { fontSize: 14, color: "#9CA3AF" },
+  endOfFeedText: {
+    textAlign: "center",
+    fontSize: 12,
+    color: "#9CA3AF",
+    paddingVertical: 24,
+  },
+
+  // --- Post Card ---
+  postCard: { backgroundColor: "#FFF", marginBottom: 10 }, // Margin diya taaki cards alag nazar aayein
+
+  // --- Header ---
   postHeader: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 12,
   },
   postAuthorRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   postAvatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
   },
-  postAvatarEmoji: { fontSize: 20 },
   postAuthorName: { fontSize: 15, fontWeight: "700", color: "#0b1d5b" },
-  postTime: { fontSize: 11, color: "#999" },
-  postHeaderRight: { flexDirection: "row", alignItems: "center", gap: 4 },
-  followBtn: {},
-  followBtnText: { color: "#9d0399", fontSize: 12, fontWeight: "600" },
+  postSubtitle: { fontSize: 12, color: "#888", marginTop: 2 }, // "Vedic" text
+  headerRight: { flexDirection: "row", alignItems: "center", gap: 12 },
+  followBtnText: { color: "#9d0399", fontSize: 13, fontWeight: "600" },
+
+  // --- Post Image Content (Overlay) ---
+  postImage: {
+    width: SCREEN_WIDTH,
+    height: 380, // Height badha di
+    justifyContent: "space-between",
+    padding: 24, // Padding for inner contents
+  },
+  imageOverlayContent: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingTop: 20,
+  },
+  overlayMainText: {
+    color: "#FFF",
+    fontSize: 26,
+    fontWeight: "bold",
+    textAlign: "center",
+    lineHeight: 36,
+    textShadowColor: "rgba(0,0,0,0.3)", // Darker text shadow for readability
+    textShadowOffset: { width: 1, height: 2 },
+    textShadowRadius: 4,
+  },
+  imageFooterOverlay: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  bottomRightOverlayText: {
+    color: "#FFF",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+
+  // --- Fallback Image Area (Agar image nahi hai toh) ---
   postImageArea: {
     width: SCREEN_WIDTH,
     minHeight: 320,
@@ -277,32 +357,43 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 20,
   },
+
+  // --- Logo Styles (Astro Book) ---
   postLogoSmall: { flexDirection: "row", alignItems: "center" },
-  postLogoAstro: { fontSize: 13, fontWeight: "800", color: "#FFF" },
+  postLogoAstro: { fontSize: 16, fontWeight: "800", color: "#FFF" },
   postLogoBadge: {
-    backgroundColor: "#FFFFFF30",
-    borderRadius: 3,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    marginLeft: 2,
+    backgroundColor: "#9d0399", // Solid color diya image ke liye
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginLeft: 4,
   },
-  postLogoBook: { fontSize: 13, fontWeight: "800", color: "#FFF" },
-  postFooterText: { color: "#FFFFFFCC", fontSize: 13 },
-  postBottom: { paddingHorizontal: 14, paddingVertical: 10 },
-  actionsRow: {
+  postLogoBook: { fontSize: 16, fontWeight: "800", color: "#FFF" },
+
+  // --- Post Bottom / Footer ---
+  postBottom: { paddingHorizontal: 14, paddingVertical: 12 },
+  captionText: {
+    fontSize: 14,
+    color: "#111",
+    marginBottom: 12,
+    lineHeight: 20,
+  },
+  actionsFooterRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 6,
+    alignItems: "flex-start", // Top align
   },
-  leftActions: { flexDirection: "row", alignItems: "center", gap: 18 },
-  actionBtn: { flexDirection: "row", alignItems: "center", gap: 6 },
-  count: { fontSize: 13, color: "#9d0399" },
+  leftFooterGroup: { flexDirection: "column", alignItems: "flex-start" },
+  iconRow: { flexDirection: "row", gap: 16 },
+  iconItem: { flexDirection: "row", alignItems: "center", gap: 4 },
+  iconCount: { fontSize: 14, color: "#9d0399", fontWeight: "500" },
+  postDate: { fontSize: 12, color: "#999", marginTop: 8 },
   bookBtn: {
     backgroundColor: "#9d0399",
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
     borderRadius: 6,
+    marginTop: 2,
   },
-  bookText: { color: "#fff", fontSize: 12, fontWeight: "600" },
+  bookText: { color: "#fff", fontSize: 13, fontWeight: "600" },
 });

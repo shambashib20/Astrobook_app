@@ -1,9 +1,12 @@
 import Header from "@/components/header";
-import { MOCK_ASTROLOGERS, MOCK_SERVICES, MOCK_SLOTS } from "@/mock/data";
+import { useAstrologerProfile } from "@/features/astrologer/hooks/useAstrologerProfile";
+import { consultationService } from "@/features/consultation/service";
+import type { TimeSlot } from "@/features/consultation/types";
 import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,7 +14,6 @@ import {
   View,
 } from "react-native";
 
-const DAYS_AHEAD = 7;
 const MONTH_LABELS = [
   "Jan",
   "Feb",
@@ -28,29 +30,23 @@ const MONTH_LABELS = [
 ];
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-function getDates() {
-  const dates: Date[] = [];
-  for (let i = 0; i < DAYS_AHEAD; i++) {
-    const d = new Date();
-    d.setDate(d.getDate() + i);
-    dates.push(d);
-  }
-  return dates;
+function displayTime(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
 }
 
-function isWeekend(date: Date) {
-  return date.getDay() === 0 || date.getDay() === 6;
-}
-
-function groupSlots(slots: typeof MOCK_SLOTS) {
-  const morning: typeof MOCK_SLOTS = [];
-  const afternoon: typeof MOCK_SLOTS = [];
-  const evening: typeof MOCK_SLOTS = [];
+function groupSlots(slots: TimeSlot[]) {
+  const morning: TimeSlot[] = [];
+  const afternoon: TimeSlot[] = [];
+  const evening: TimeSlot[] = [];
   slots.forEach((slot) => {
-    const [timePart, period] = slot.time.split(" ");
-    const hour = parseInt(timePart.split(":")[0]);
-    if (period === "AM") morning.push(slot);
-    else if (hour < 5) afternoon.push(slot);
+    const hour = new Date(slot.startTime).getHours();
+    if (hour < 12) morning.push(slot);
+    else if (hour < 17) afternoon.push(slot);
     else evening.push(slot);
   });
   return { morning, afternoon, evening };
@@ -63,46 +59,74 @@ export default function BookSlotScreen() {
     serviceId: string;
   }>();
 
-  const astrologer =
-    MOCK_ASTROLOGERS.find((a) => a.id === astroId) || MOCK_ASTROLOGERS[0];
-  const service =
-    MOCK_SERVICES.find((s) => s.id === serviceId) || MOCK_SERVICES[0];
-  const dates = getDates();
+  const {
+    astrologer,
+    services,
+    loading: profileLoading,
+    fetchProfile,
+  } = useAstrologerProfile(astroId);
+  const service = services.find((s) => s.id === serviceId) ?? null;
 
-  const [selectedDate, setSelectedDate] = useState(0);
-  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  // Hook khud fetch trigger nahi karta — yeh missing tha, isi wajah se
+  // yeh screen hamesha loading pe atki rehti thi
+  useEffect(() => {
+    fetchProfile();
+  }, [astroId]);
 
-  const { morning, afternoon, evening } = groupSlots(MOCK_SLOTS);
+  const [availableDates, setAvailableDates] = useState<string[]>([]);
+  const [datesLoading, setDatesLoading] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
+  const [slots, setSlots] = useState<TimeSlot[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
+
+  // Astrologer ke saare upcoming available dates fetch karo
+  useEffect(() => {
+    if (!astroId) return;
+    setDatesLoading(true);
+    consultationService
+      .getAvailableDates(astroId)
+      .then((dates) => {
+        setAvailableDates(dates);
+        if (dates.length > 0) setSelectedDate(dates[0]!);
+      })
+      .catch(() => setAvailableDates([]))
+      .finally(() => setDatesLoading(false));
+  }, [astroId]);
+
+  // Date change hone pe uss din ke slots fetch karo
+  useEffect(() => {
+    if (!astroId || !serviceId || !selectedDate) return;
+    setSlotsLoading(true);
+    setSelectedSlot(null);
+    consultationService
+      .getSlots({ astrologerId: astroId, serviceId, date: selectedDate })
+      .then(setSlots)
+      .catch(() => setSlots([]))
+      .finally(() => setSlotsLoading(false));
+  }, [astroId, serviceId, selectedDate]);
+
+  const { morning, afternoon, evening } = groupSlots(slots);
 
   const handleProceedToCheckout = () => {
-    if (!selectedSlot) return;
+    if (!selectedSlot || !astrologer || !service) return;
     router.push({
       pathname: "/(user)/checkout" as any,
       params: {
         astroId: astrologer.id,
         serviceId: service.id,
-        date: dates[selectedDate].toISOString(),
-        slot: selectedSlot,
+        scheduledAt: selectedSlot.startTime,
       },
     });
   };
 
-  const handleAddToCart = () => {
-    if (!selectedSlot) return;
-    router.push("/(user)/cart" as any);
-  };
-
-  const renderSlotGroup = (
-    label: string,
-    icon: string,
-    slots: typeof MOCK_SLOTS,
-  ) => {
-    if (slots.length === 0) return null;
-    const availableCount = slots.filter((s) => s.available).length;
+  const renderSlotGroup = (label: string, icon: string, group: TimeSlot[]) => {
+    if (group.length === 0) return null;
+    const availableCount = group.filter((s) => s.available).length;
 
     return (
       <View style={styles.slotGroup}>
-        {/* Group Header */}
         <View style={styles.slotGroupHeader}>
           <Text style={styles.slotGroupIcon}>{icon}</Text>
           <Text style={styles.slotGroupLabel}>{label}</Text>
@@ -125,21 +149,20 @@ export default function BookSlotScreen() {
           </View>
         </View>
 
-        {/* Slots */}
         <View style={styles.slotsGrid}>
-          {slots.map((slot) => {
-            const isSelected = selectedSlot === slot.time;
+          {group.map((slot) => {
+            const isSelected = selectedSlot?.startTime === slot.startTime;
             const isUnavailable = !slot.available;
             return (
               <TouchableOpacity
-                key={slot.time}
+                key={slot.startTime}
                 style={[
                   styles.slotPill,
                   isUnavailable && styles.slotPillUnavailable,
                   isSelected && styles.slotPillActive,
                 ]}
                 disabled={isUnavailable}
-                onPress={() => setSelectedSlot(slot.time)}
+                onPress={() => setSelectedSlot(slot)}
                 activeOpacity={0.7}
               >
                 {isSelected && (
@@ -157,9 +180,8 @@ export default function BookSlotScreen() {
                     isSelected && styles.slotPillTextActive,
                   ]}
                 >
-                  {slot.time}
+                  {displayTime(slot.startTime)}
                 </Text>
-                {isUnavailable && <View style={styles.strikethrough} />}
               </TouchableOpacity>
             );
           })}
@@ -168,31 +190,37 @@ export default function BookSlotScreen() {
     );
   };
 
+  if (profileLoading || !astrologer || !service) {
+    return (
+      <View style={[styles.root, styles.centerFill]}>
+        <ActivityIndicator color="#9d0399" size="large" />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.root}>
       <Header />
 
       {/* ── Service Summary Strip ── */}
       <View style={styles.serviceStrip}>
-        <View
-          style={[styles.stripAvatar, { backgroundColor: astrologer.color }]}
-        >
-          <Text style={{ fontSize: 20 }}>{astrologer.emoji}</Text>
+        <View style={styles.stripAvatar}>
+          <Text style={{ fontSize: 20 }}>{astrologer.meta?.emoji ?? "🔮"}</Text>
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.stripServiceName} numberOfLines={1}>
-            {service.name}
+            {service.title}
           </Text>
           <Text style={styles.stripAstroName}>with {astrologer.name}</Text>
         </View>
         <View style={styles.stripRight}>
           <View style={styles.stripChip}>
             <Text style={styles.stripChipText}>
-              {service.callType === "VIDEO" ? "📹" : "📞"} {service.callType}
+              ⏱ {service.durationMinutes} min
             </Text>
           </View>
           <View style={styles.stripPriceChip}>
-            <Text style={styles.stripPriceText}>₹{service.price}</Text>
+            <Text style={styles.stripPriceText}>₹{service.price ?? "—"}</Text>
           </View>
         </View>
       </View>
@@ -202,172 +230,154 @@ export default function BookSlotScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionTitle}>Select Date</Text>
-            <Text style={styles.sectionSubtitle}>Next 7 days</Text>
           </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.dateRow}
-          >
-            {dates.map((date, index) => {
-              const isSelected = selectedDate === index;
-              const isToday = index === 0;
-              const weekend = isWeekend(date);
-              return (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.dateCard,
-                    weekend && styles.dateCardWeekend,
-                    isSelected && styles.dateCardActive,
-                  ]}
-                  onPress={() => {
-                    setSelectedDate(index);
-                    setSelectedSlot(null);
-                  }}
-                  activeOpacity={0.75}
-                >
-                  <Text
+
+          {datesLoading ? (
+            <ActivityIndicator color="#9d0399" style={{ marginTop: 8 }} />
+          ) : availableDates.length === 0 ? (
+            <Text style={styles.noDatesText}>
+              Is astrologer ne abhi koi availability set nahi ki hai
+            </Text>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.dateRow}
+            >
+              {availableDates.map((dateStr) => {
+                const date = new Date(`${dateStr}T00:00:00`);
+                const isSelected = selectedDate === dateStr;
+                const isToday =
+                  dateStr === new Date().toISOString().split("T")[0];
+                return (
+                  <TouchableOpacity
+                    key={dateStr}
                     style={[
-                      styles.dateDayText,
-                      weekend && !isSelected && styles.dateDayWeekend,
-                      isSelected && styles.dateTextActive,
+                      styles.dateCard,
+                      isSelected && styles.dateCardActive,
                     ]}
+                    onPress={() => setSelectedDate(dateStr)}
+                    activeOpacity={0.75}
                   >
-                    {isToday ? "Today" : DAY_LABELS[date.getDay()]}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.dateNumText,
-                      isSelected && styles.dateTextActive,
-                    ]}
-                  >
-                    {date.getDate()}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.dateMonText,
-                      isSelected && styles.dateTextActive,
-                    ]}
-                  >
-                    {MONTH_LABELS[date.getMonth()]}
-                  </Text>
-                  {isToday && !isSelected && <View style={styles.todayDot} />}
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
+                    <Text
+                      style={[
+                        styles.dateDayText,
+                        isSelected && styles.dateTextActive,
+                      ]}
+                    >
+                      {isToday ? "Today" : DAY_LABELS[date.getDay()]}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.dateNumText,
+                        isSelected && styles.dateTextActive,
+                      ]}
+                    >
+                      {date.getDate()}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.dateMonText,
+                        isSelected && styles.dateTextActive,
+                      ]}
+                    >
+                      {MONTH_LABELS[date.getMonth()]}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          )}
         </View>
 
-        {/* ── Selected Date Pill ── */}
-        <View style={styles.selectedDatePill}>
-          <Feather name="calendar" size={12} color="#7C3AED" />
-          <Text style={styles.selectedDateText}>
-            {dates[selectedDate].toLocaleDateString("en-IN", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            })}
-          </Text>
-        </View>
+        {selectedDate && (
+          <View style={styles.selectedDatePill}>
+            <Feather name="calendar" size={12} color="#7C3AED" />
+            <Text style={styles.selectedDateText}>
+              {new Date(`${selectedDate}T00:00:00`).toLocaleDateString(
+                "en-IN",
+                {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                },
+              )}
+            </Text>
+          </View>
+        )}
 
         {/* ── Time Slots ── */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Select Time</Text>
-            <View style={styles.legendRow}>
-              <View style={styles.legendDot} />
-              <Text style={styles.legendText}>Available</Text>
-              <View style={[styles.legendDot, styles.legendDotUnavailable]} />
-              <Text style={styles.legendText}>Booked</Text>
+        {selectedDate && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>Select Time</Text>
             </View>
+
+            {slotsLoading ? (
+              <ActivityIndicator color="#9d0399" style={{ marginTop: 8 }} />
+            ) : slots.length === 0 ? (
+              <Text style={styles.noDatesText}>
+                Is din koi slot available nahi hai
+              </Text>
+            ) : (
+              <>
+                {renderSlotGroup("Morning", "🌅", morning)}
+                {renderSlotGroup("Afternoon", "☀️", afternoon)}
+                {renderSlotGroup("Evening", "🌙", evening)}
+              </>
+            )}
           </View>
-
-          {renderSlotGroup("Morning", "🌅", morning)}
-          {renderSlotGroup("Afternoon", "☀️", afternoon)}
-          {renderSlotGroup("Evening", "🌙", evening)}
-        </View>
-
-        {/* Duration note */}
-        <View style={styles.durationRow}>
-          <Feather name="clock" size={12} color="#9d0399" />
-          <Text style={styles.durationText}>
-            Session ends {service.durationMins} mins after your selected slot
-          </Text>
-        </View>
+        )}
 
         <View style={{ height: 130 }} />
       </ScrollView>
 
       {/* ── Sticky Bottom ── */}
       <View style={styles.bottomBar}>
-        {/* Selected slot confirmation */}
         {selectedSlot ? (
           <View style={styles.selectedSlotConfirm}>
             <Feather name="check-circle" size={14} color="#9d0399" />
             <Text style={styles.selectedSlotConfirmText}>
-              {dates[selectedDate].toLocaleDateString("en-IN", {
-                day: "numeric",
-                month: "short",
-              })}
+              {selectedDate &&
+                new Date(`${selectedDate}T00:00:00`).toLocaleDateString(
+                  "en-IN",
+                  {
+                    day: "numeric",
+                    month: "short",
+                  },
+                )}
               {" · "}
-              {selectedSlot}
+              {displayTime(selectedSlot.startTime)}
             </Text>
           </View>
         ) : (
           <Text style={styles.noSlotHint}>👆 Pick a date & time slot</Text>
         )}
 
-        <View style={styles.btnRow}>
-          <TouchableOpacity
-            style={[styles.cartBtn, !selectedSlot && styles.btnDisabled]}
-            disabled={!selectedSlot}
-            onPress={handleAddToCart}
-            activeOpacity={0.8}
-          >
-            <Feather
-              name="shopping-cart"
-              size={15}
-              color={selectedSlot ? "#9d0399" : "#CCC"}
-            />
-            <Text
-              style={[
-                styles.cartBtnText,
-                !selectedSlot && styles.btnTextDisabled,
-              ]}
-            >
-              Add to Cart
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
+        <TouchableOpacity
+          style={[styles.proceedBtn, !selectedSlot && styles.btnDisabledFilled]}
+          disabled={!selectedSlot}
+          onPress={handleProceedToCheckout}
+          activeOpacity={0.85}
+        >
+          <Text
             style={[
-              styles.proceedBtn,
-              !selectedSlot && styles.btnDisabledFilled,
+              styles.proceedBtnText,
+              !selectedSlot && styles.btnTextDisabled,
             ]}
-            disabled={!selectedSlot}
-            onPress={handleProceedToCheckout}
-            activeOpacity={0.85}
           >
-            <Text
-              style={[
-                styles.proceedBtnText,
-                !selectedSlot && styles.btnTextDisabled,
-              ]}
-            >
-              Proceed • ₹{service.price}
-            </Text>
-            {selectedSlot && (
-              <Feather
-                name="arrow-right"
-                size={15}
-                color="#FFF"
-                style={{ marginLeft: 4 }}
-              />
-            )}
-          </TouchableOpacity>
-        </View>
+            Proceed • ₹{service.price ?? "—"}
+          </Text>
+          {selectedSlot && (
+            <Feather
+              name="arrow-right"
+              size={15}
+              color="#FFF"
+              style={{ marginLeft: 4 }}
+            />
+          )}
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -375,8 +385,8 @@ export default function BookSlotScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#F9F5FF" },
+  centerFill: { alignItems: "center", justifyContent: "center" },
 
-  // ── Service Strip ──
   serviceStrip: {
     flexDirection: "row",
     backgroundColor: "#FFF",
@@ -398,6 +408,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#F3E8FF",
   },
   stripServiceName: { fontSize: 14, fontWeight: "700", color: "#1A1A2E" },
   stripAstroName: {
@@ -424,7 +435,6 @@ const styles = StyleSheet.create({
   },
   stripPriceText: { fontSize: 12, fontWeight: "800", color: "#9d0399" },
 
-  // ── Sections ──
   section: { paddingHorizontal: 16, paddingTop: 20, gap: 14 },
   sectionHeaderRow: {
     flexDirection: "row",
@@ -432,9 +442,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   sectionTitle: { fontSize: 15, fontWeight: "800", color: "#1A1A2E" },
-  sectionSubtitle: { fontSize: 11, color: "#9CA3AF" },
+  noDatesText: { fontSize: 13, color: "#9CA3AF" },
 
-  // ── Date Cards ──
   dateRow: { gap: 8, paddingVertical: 4, paddingRight: 4 },
   dateCard: {
     alignItems: "center",
@@ -445,11 +454,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "#EDE9FF",
     minWidth: 60,
-    position: "relative",
-  },
-  dateCardWeekend: {
-    backgroundColor: "#FDF4FF",
-    borderColor: "#E9D5FF",
   },
   dateCardActive: {
     backgroundColor: "#9d0399",
@@ -466,20 +470,10 @@ const styles = StyleSheet.create({
     color: "#9CA3AF",
     marginBottom: 2,
   },
-  dateDayWeekend: { color: "#9d0399" },
   dateNumText: { fontSize: 20, fontWeight: "800", color: "#1A1A2E" },
   dateMonText: { fontSize: 10, color: "#9CA3AF", marginTop: 1 },
   dateTextActive: { color: "#FFF" },
-  todayDot: {
-    position: "absolute",
-    bottom: 5,
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: "#9d0399",
-  },
 
-  // ── Selected Date Pill ──
   selectedDatePill: {
     flexDirection: "row",
     alignItems: "center",
@@ -496,13 +490,8 @@ const styles = StyleSheet.create({
   },
   selectedDateText: { fontSize: 12, color: "#7C3AED", fontWeight: "600" },
 
-  // ── Slot Groups ──
   slotGroup: { gap: 10, marginBottom: 6 },
-  slotGroupHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 7,
-  },
+  slotGroupHeader: { flexDirection: "row", alignItems: "center", gap: 7 },
   slotGroupIcon: { fontSize: 15 },
   slotGroupLabel: {
     fontSize: 13,
@@ -529,7 +518,6 @@ const styles = StyleSheet.create({
   },
   unavailableBadgeText: { fontSize: 10, color: "#DC2626", fontWeight: "700" },
 
-  // ── Slot Pills ──
   slotsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   slotPill: {
     flexDirection: "row",
@@ -540,20 +528,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF",
     borderWidth: 1.5,
     borderColor: "#EDE9FF",
-    elevation: 1,
-    shadowColor: "#9d0399",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    position: "relative",
-    overflow: "hidden",
   },
-  slotPillUnavailable: {
-    backgroundColor: "#F9FAFB",
-    borderColor: "#F3F4F6",
-    elevation: 0,
-    shadowOpacity: 0,
-  },
+  slotPillUnavailable: { backgroundColor: "#F9FAFB", borderColor: "#F3F4F6" },
   slotPillActive: {
     backgroundColor: "#9d0399",
     borderColor: "#9d0399",
@@ -566,43 +542,7 @@ const styles = StyleSheet.create({
   slotPillText: { fontSize: 13, fontWeight: "600", color: "#1A1A2E" },
   slotPillTextUnavailable: { color: "#C4C4C4" },
   slotPillTextActive: { color: "#FFF" },
-  strikethrough: {
-    position: "absolute",
-    left: 10,
-    right: 10,
-    height: 1.5,
-    backgroundColor: "#D1D5DB",
-    top: "50%",
-  },
 
-  // ── Duration Note ──
-  durationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginHorizontal: 16,
-    marginTop: 16,
-    backgroundColor: "#FFF7FF",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#F3E8FF",
-  },
-  durationText: { fontSize: 12, color: "#7C3AED", fontWeight: "500" },
-
-  // ── Legend ──
-  legendRow: { flexDirection: "row", alignItems: "center", gap: 5 },
-  legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#9d0399",
-  },
-  legendDotUnavailable: { backgroundColor: "#D1D5DB" },
-  legendText: { fontSize: 10, color: "#9CA3AF", marginRight: 4 },
-
-  // ── Bottom Bar ──
   bottomBar: {
     position: "absolute",
     bottom: 0,
@@ -640,20 +580,7 @@ const styles = StyleSheet.create({
   },
   noSlotHint: { fontSize: 12, color: "#9CA3AF", textAlign: "center" },
 
-  btnRow: { flexDirection: "row", gap: 8 },
-  cartBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    borderWidth: 1.5,
-    borderColor: "#9d0399",
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-  },
-  cartBtnText: { color: "#9d0399", fontSize: 13, fontWeight: "700" },
   proceedBtn: {
-    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -667,11 +594,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
   },
   proceedBtnText: { color: "#FFF", fontSize: 14, fontWeight: "800" },
-  btnDisabled: {
-    borderColor: "#E5E7EB",
-    backgroundColor: "transparent",
-    elevation: 0,
-  },
   btnDisabledFilled: {
     backgroundColor: "#E5E7EB",
     elevation: 0,

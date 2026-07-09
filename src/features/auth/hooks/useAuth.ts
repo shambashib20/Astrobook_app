@@ -4,12 +4,12 @@ import { useState } from "react";
 import { Alert } from "react-native";
 import { authService } from "../services/auth.service";
 
-// ─── Helper — role ke hisaab se redirect ─────────────────────────────────────
+// ─── Helper — login/onboarding ke baad hamesha feed pe ───────────────────────
+// Role se farak nahi padta — astrologer apni profile se explicitly
+// Dashboard button dabaake (astrologer) layout mein jaata hai.
 
-function redirectByRole(role: string, router: any) {
-  router.replace(
-    role === "astrologer" ? "/(astrologer)/dashboard" : "/(user)/feed",
-  );
+function redirectByRole(_role: string, router: any) {
+  router.replace("/(user)/feed");
 }
 
 // ─── useOtpLogin ──────────────────────────────────────────────────────────────
@@ -93,6 +93,7 @@ export function useGoogleLogin() {
       const {
         GoogleSignin,
       } = require("@react-native-google-signin/google-signin");
+      await GoogleSignin.signOut(); // ← yeh add karo
       await GoogleSignin.hasPlayServices();
       const result = await GoogleSignin.signIn();
       const idToken = result.data?.idToken;
@@ -107,6 +108,9 @@ export function useGoogleLogin() {
         redirectByRole(data.user.role, router);
       }
     } catch (err: any) {
+      console.log("Google login error:", JSON.stringify(err));
+      console.log("Error code:", err.code);
+      console.log("Error message:", err.message);
       if (err.code !== "SIGN_IN_CANCELLED") {
         Alert.alert("Error", "Google login fail hua");
       }

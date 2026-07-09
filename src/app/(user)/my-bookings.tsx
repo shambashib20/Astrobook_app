@@ -1,8 +1,14 @@
 import Header from "@/components/header";
+import { useMyAppointments } from "@/features/consultation/hooks/useAppointments";
+import { consultationService } from "@/features/consultation/service";
+import type { AppointmentDetailed } from "@/features/consultation/types";
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,81 +16,74 @@ import {
   View,
 } from "react-native";
 
-// Mock data — wire karna baad mein API se
-const MOCK_BOOKINGS = {
-  upcoming: [
-    {
-      id: "1",
-      serviceName: "Couples Harmony",
-      astrologerName: "Astro Book",
-      time: "10:00 AM",
-      date: "9th Dec 2025, Tue",
-      emoji: "💑",
-      rating: 4,
-      color: "#4C1D95",
-    },
-    {
-      id: "2",
-      serviceName: "Kundli Analysis",
-      astrologerName: "Pt. Rajesh Sharma",
-      time: "11:30 AM",
-      date: "10th Dec 2025, Wed",
-      emoji: "🔮",
-      rating: 0,
-      color: "#1E3A5F",
-    },
-  ],
-  completed: [
-    {
-      id: "3",
-      serviceName: "Couples Harmony",
-      astrologerName: "Astro Book",
-      time: "10:00 AM",
-      date: "9th Dec 2025, Tue",
-      emoji: "💑",
-      rating: 4,
-      color: "#4C1D95",
-      completedOn: "9th Dec 2025, Tue",
-    },
-  ],
-  cancelled: [],
-};
-
-function StarRating({ rating, size = 14 }: { rating: number; size?: number }) {
-  return (
-    <View style={{ flexDirection: "row", gap: 2 }}>
-      {[1, 2, 3, 4, 5].map((i) => (
-        <Text
-          key={i}
-          style={{ fontSize: size, color: i <= rating ? "#F59E0B" : "#E5E7EB" }}
-        >
-          ★
-        </Text>
-      ))}
-    </View>
-  );
+function formatDateTime(iso: string) {
+  const d = new Date(iso);
+  const date = d.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    weekday: "short",
+  });
+  const time = d.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+  return { date, time };
 }
 
-type Booking = {
-  id: string;
-  serviceName: string;
-  astrologerName: string;
-  time: string;
-  date: string;
-  emoji: string;
-  rating: number;
-  color: string;
-  completedOn?: string;
+const STATUS_STYLES: Record<
+  string,
+  { bg: string; border: string; text: string; label: string }
+> = {
+  pending: {
+    bg: "#FFFBEB",
+    border: "#FDE68A",
+    text: "#B45309",
+    label: "Pending",
+  },
+  confirmed: {
+    bg: "#F0FDF4",
+    border: "#BBF7D0",
+    text: "#15803D",
+    label: "Confirmed",
+  },
+  ongoing: {
+    bg: "#EFF6FF",
+    border: "#BFDBFE",
+    text: "#1D4ED8",
+    label: "Ongoing",
+  },
+  completed: {
+    bg: "#F3F4F6",
+    border: "#E5E7EB",
+    text: "#4B5563",
+    label: "Completed",
+  },
+  cancelled: {
+    bg: "#FEF2F2",
+    border: "#FECACA",
+    text: "#DC2626",
+    label: "Cancelled",
+  },
 };
 
 function BookingCard({
   item,
-  type,
+  onCancel,
+  cancelling,
 }: {
-  item: Booking;
-  type: "upcoming" | "completed" | "cancelled";
+  item: AppointmentDetailed;
+  onCancel: (id: string) => void;
+  cancelling: boolean;
 }) {
   const router = useRouter();
+  const { date, time } = formatDateTime(item.scheduledAt);
+  const statusStyle = STATUS_STYLES[item.status] ?? STATUS_STYLES.pending!;
+  const canCancel = item.status === "pending" || item.status === "confirmed";
+  // "confirmed" ya "ongoing" dono se join ho sakta hai — session screen khud
+  // decide karega ki abhi time hua hai ya nahi (waiting countdown dikhayega)
+  const canJoin = item.status === "confirmed" || item.status === "ongoing";
 
   return (
     <TouchableOpacity
@@ -92,78 +91,106 @@ function BookingCard({
       activeOpacity={0.88}
       onPress={() =>
         router.push({
-          pathname: "/(user)/booking-detail" as any,
-          params: { id: item.id },
+          pathname: "/(user)/booking-confirmation" as any,
+          params: { appointmentId: item.id },
         })
       }
     >
       <View style={styles.cardInner}>
-        {/* Emoji thumbnail */}
-        <View style={[styles.thumbnail, { backgroundColor: item.color }]}>
-          <Text style={{ fontSize: 28 }}>{item.emoji}</Text>
+        <View style={styles.thumbnail}>
+          <Text style={{ fontSize: 28 }}>
+            {item.service.isBasic ? "🔮" : "✨"}
+          </Text>
         </View>
 
-        {/* Info */}
         <View style={styles.cardInfo}>
           <View style={styles.cardTopRow}>
             <Text style={styles.cardTitle} numberOfLines={1}>
-              {item.serviceName}
+              {item.service.title}
             </Text>
             <Feather name="chevron-right" size={18} color="#9CA3AF" />
           </View>
 
-          <Text style={styles.cardAstro}>by {item.astrologerName}</Text>
-
-          {type === "completed" && item.completedOn && (
-            <View style={styles.completedBadge}>
-              <Text style={styles.completedBadgeText}>Completed On</Text>
-            </View>
+          {item.astrologerName && (
+            <Text style={styles.cardAstro}>with {item.astrologerName}</Text>
           )}
+
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: statusStyle.bg, borderColor: statusStyle.border },
+            ]}
+          >
+            <Text style={[styles.statusBadgeText, { color: statusStyle.text }]}>
+              {statusStyle.label}
+            </Text>
+          </View>
 
           <View style={styles.cardMeta}>
             <Feather name="clock" size={11} color="#9d0399" />
-            <Text style={styles.cardMetaText}>{item.time}</Text>
+            <Text style={styles.cardMetaText}>{time}</Text>
           </View>
           <View style={styles.cardMeta}>
             <Feather name="calendar" size={11} color="#9d0399" />
-            <Text style={styles.cardMetaText}>{item.date}</Text>
+            <Text style={styles.cardMetaText}>{date}</Text>
           </View>
-
-          {type === "upcoming" && (
-            <TouchableOpacity style={styles.rescheduleRow}>
-              <Text style={styles.rescheduleText}>Reschedule</Text>
-              <Feather name="info" size={11} color="#9d0399" />
-            </TouchableOpacity>
-          )}
         </View>
       </View>
 
-      {/* Rating row */}
-      <View style={styles.ratingRow}>
-        <StarRating rating={item.rating} />
-        <TouchableOpacity>
-          <Text style={styles.writeReviewText}>Write a review</Text>
-        </TouchableOpacity>
-      </View>
+      {(canJoin || canCancel) && (
+        <View style={styles.actionsRow}>
+          {canJoin && (
+            <TouchableOpacity
+              style={styles.joinSessionBtn}
+              onPress={(e) => {
+                e.stopPropagation?.();
+                router.push({
+                  pathname: "/(user)/session/[appointmentId]" as any,
+                  params: { appointmentId: item.id },
+                });
+              }}
+            >
+              <Feather name="video" size={13} color="#FFF" />
+              <Text style={styles.joinSessionBtnText}>Join Session</Text>
+            </TouchableOpacity>
+          )}
+          {canCancel && (
+            <TouchableOpacity
+              style={styles.cancelBtn}
+              disabled={cancelling}
+              onPress={(e) => {
+                e.stopPropagation?.();
+                onCancel(item.id);
+              }}
+            >
+              {cancelling ? (
+                <ActivityIndicator size="small" color="#DC2626" />
+              ) : (
+                <Text style={styles.cancelBtnText}>Cancel Booking</Text>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
     </TouchableOpacity>
   );
 }
 
 function SectionBlock({
   title,
-  count,
   items,
-  type,
+  onCancel,
+  cancellingId,
 }: {
   title: string;
-  count: number;
-  items: Booking[];
-  type: "upcoming" | "completed" | "cancelled";
+  items: AppointmentDetailed[];
+  onCancel: (id: string) => void;
+  cancellingId: string | null;
 }) {
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>
-        {title} <Text style={styles.sectionCount}>({count})</Text>
+        {title} <Text style={styles.sectionCount}>({items.length})</Text>
       </Text>
 
       {items.length === 0 ? (
@@ -174,7 +201,12 @@ function SectionBlock({
         </View>
       ) : (
         items.map((item) => (
-          <BookingCard key={item.id} item={item} type={type} />
+          <BookingCard
+            key={item.id}
+            item={item}
+            onCancel={onCancel}
+            cancelling={cancellingId === item.id}
+          />
         ))
       )}
     </View>
@@ -189,81 +221,136 @@ const TABS = [
 
 export default function MyBookingsScreen() {
   const [activeTab, setActiveTab] = useState("consultations");
+  const { appointments, loading, refreshing, fetchAppointments } =
+    useMyAppointments();
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchAppointments();
+  }, []);
+
+  const handleCancel = (id: string) => {
+    Alert.alert(
+      "Booking Cancel Karein?",
+      "Kya tum sach mein yeh booking cancel karna chahte ho?",
+      [
+        { text: "Nahi", style: "cancel" },
+        {
+          text: "Haan, Cancel Karo",
+          style: "destructive",
+          onPress: async () => {
+            setCancellingId(id);
+            try {
+              await consultationService.cancelAppointment(id);
+              await fetchAppointments();
+            } catch (err: any) {
+              Alert.alert(
+                "Error",
+                err?.response?.data?.message ||
+                  "Booking cancel nahi ho payi",
+              );
+            } finally {
+              setCancellingId(null);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  // "ongoing" ko "Upcoming" section ke saath hi dikha rahe hain (upar) —
+  // is UI mein alag se "Ongoing" tab/section nahi tha, aur ongoing bhi
+  // effectively ek "abhi hone wali / ho rahi" booking hi hai
+  const upcomingCombined = [...appointments.ongoing, ...appointments.upcoming];
 
   return (
     <View style={styles.root}>
       <Header />
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.content}
-      >
-        {/* Page Title */}
-        <View style={styles.pageTitleRow}>
-          <View style={styles.pageTitleBadge}>
-            <Text style={styles.pageTitleText}>My bookings</Text>
-          </View>
+      {loading ? (
+        <View style={styles.centerFill}>
+          <ActivityIndicator color="#9d0399" size="large" />
         </View>
+      ) : (
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.content}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => fetchAppointments(true)}
+              tintColor="#9d0399"
+            />
+          }
+        >
+          {/* Page Title */}
+          <View style={styles.pageTitleRow}>
+            <View style={styles.pageTitleBadge}>
+              <Text style={styles.pageTitleText}>My bookings</Text>
+            </View>
+          </View>
 
-        {/* Tabs */}
-        <View style={styles.tabRow}>
-          {TABS.map((tab) => (
-            <TouchableOpacity
-              key={tab.key}
-              style={[
-                styles.tab,
-                activeTab === tab.key && styles.tabActive,
-                !tab.enabled && styles.tabDisabled,
-              ]}
-              onPress={() => tab.enabled && setActiveTab(tab.key)}
-              disabled={!tab.enabled}
-              activeOpacity={tab.enabled ? 0.8 : 1}
-            >
-              <Text
+          {/* Tabs */}
+          <View style={styles.tabRow}>
+            {TABS.map((tab) => (
+              <TouchableOpacity
+                key={tab.key}
                 style={[
-                  styles.tabText,
-                  activeTab === tab.key && styles.tabTextActive,
-                  !tab.enabled && styles.tabTextDisabled,
+                  styles.tab,
+                  activeTab === tab.key && styles.tabActive,
+                  !tab.enabled && styles.tabDisabled,
                 ]}
+                onPress={() => tab.enabled && setActiveTab(tab.key)}
+                disabled={!tab.enabled}
+                activeOpacity={tab.enabled ? 0.8 : 1}
               >
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Content */}
-        {activeTab === "consultations" && (
-          <View>
-            <SectionBlock
-              title="Upcoming"
-              count={MOCK_BOOKINGS.upcoming.length}
-              items={MOCK_BOOKINGS.upcoming}
-              type="upcoming"
-            />
-            <SectionBlock
-              title="Completed"
-              count={MOCK_BOOKINGS.completed.length}
-              items={MOCK_BOOKINGS.completed}
-              type="completed"
-            />
-            <SectionBlock
-              title="Cancelled"
-              count={MOCK_BOOKINGS.cancelled.length}
-              items={MOCK_BOOKINGS.cancelled}
-              type="cancelled"
-            />
+                <Text
+                  style={[
+                    styles.tabText,
+                    activeTab === tab.key && styles.tabTextActive,
+                    !tab.enabled && styles.tabTextDisabled,
+                  ]}
+                >
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
-        )}
 
-        <View style={{ height: 40 }} />
-      </ScrollView>
+          {/* Content */}
+          {activeTab === "consultations" && (
+            <View>
+              <SectionBlock
+                title="Upcoming"
+                items={upcomingCombined}
+                onCancel={handleCancel}
+                cancellingId={cancellingId}
+              />
+              <SectionBlock
+                title="Completed"
+                items={appointments.completed}
+                onCancel={handleCancel}
+                cancellingId={cancellingId}
+              />
+              <SectionBlock
+                title="Cancelled"
+                items={appointments.cancelled}
+                onCancel={handleCancel}
+                cancellingId={cancellingId}
+              />
+            </View>
+          )}
+
+          <View style={{ height: 40 }} />
+        </ScrollView>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#F9F5FF" },
+  centerFill: { flex: 1, alignItems: "center", justifyContent: "center" },
   content: { paddingBottom: 32 },
 
   pageTitleRow: { paddingHorizontal: 16, paddingTop: 20, marginBottom: 16 },
@@ -273,8 +360,8 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   pageTitleText: {
-    color: "#ffffffff",
-    fontSize: 35,
+    color: "#1A1A2E",
+    fontSize: 28,
     fontWeight: "900",
   },
 
@@ -341,6 +428,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
+    backgroundColor: "#F3E8FF",
   },
   cardInfo: { flex: 1 },
   cardTopRow: {
@@ -356,15 +444,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cardAstro: { fontSize: 12, color: "#6B7280", marginBottom: 4 },
-  completedBadge: {
-    backgroundColor: "#DCFCE7",
+  statusBadge: {
     borderRadius: 4,
     paddingHorizontal: 7,
     paddingVertical: 2,
     alignSelf: "flex-start",
     marginBottom: 4,
+    borderWidth: 1,
   },
-  completedBadgeText: { fontSize: 10, color: "#15803D", fontWeight: "700" },
+  statusBadgeText: { fontSize: 10, fontWeight: "700" },
   cardMeta: {
     flexDirection: "row",
     alignItems: "center",
@@ -372,29 +460,32 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   cardMetaText: { fontSize: 11, color: "#6B7280" },
-  rescheduleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginTop: 2,
-  },
-  rescheduleText: { fontSize: 11, color: "#9d0399", fontWeight: "600" },
 
-  // Rating row
-  ratingRow: {
+  actionsRow: {
     flexDirection: "row",
+    justifyContent: "flex-end",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderTopWidth: 1,
     borderTopColor: "#F3F4F6",
     backgroundColor: "#FAFAFA",
   },
-  writeReviewText: {
+  joinSessionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "#9d0399",
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  joinSessionBtnText: { fontSize: 12, color: "#FFF", fontWeight: "700" },
+  cancelBtn: { paddingVertical: 2, paddingHorizontal: 4 },
+  cancelBtnText: {
     fontSize: 12,
-    color: "#9d0399",
-    fontWeight: "600",
-    textDecorationLine: "underline",
+    color: "#DC2626",
+    fontWeight: "700",
   },
 });

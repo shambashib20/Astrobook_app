@@ -31,12 +31,11 @@ class AuthService {
     return res.data;
   }
 
-  async onboard(payload: OnboardPayload): Promise<AuthUser> {
+  async onboard(payload: OnboardPayload): Promise<void> {
     const res = await apiClient.post<{ user: AuthUser }>(
       "/users/onboarding",
       payload,
     );
-    return res.data.user;
   }
 
   async getMe(): Promise<AuthUser> {

@@ -1,11 +1,11 @@
 import AstroGradient from "@/assets/images/astro-gradient.svg";
-import { useOnboarding } from "@/features/auth/hooks/useAuth";
 import AstroLogo from "@/assets/images/logo-white.svg";
+import { useOnboarding } from "@/features/auth/hooks/useAuth";
+import { useAuthStore } from "@/features/auth/store/auth.store";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -32,9 +32,10 @@ const INTERESTS = [
 ];
 
 export default function OnboardingScreen() {
+  const { user } = useAuthStore();
   const router = useRouter();
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(user?.email ?? "");
   const [dob, setDob] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
@@ -353,4 +354,3 @@ const styles = StyleSheet.create({
   skipBtn: { alignItems: "center", paddingVertical: 10 },
   skipText: { color: "#C4B5FD", fontSize: 14 },
 });
-

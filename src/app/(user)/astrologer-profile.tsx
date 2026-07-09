@@ -1,12 +1,16 @@
 import Header from "@/components/header";
-import { MOCK_ASTROLOGERS, MOCK_POSTS, MOCK_SERVICES } from "@/mock/data";
+import { useAstrologerProfile } from "@/features/astrologer/hooks/useAstrologerProfile";
+import { useUser } from "@/features/auth/store/auth.store";
+import { useAstrologerPosts } from "@/features/posts/hooks/useFeed";
 import { Feather } from "@expo/vector-icons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Dimensions,
   FlatList,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -42,19 +46,55 @@ function StarRating({ rating }: { rating: number }) {
 export default function AstrologerProfileScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const currentUser = useUser();
+  const isOwnProfile = !!currentUser && currentUser.id === id;
 
-  const astrologer =
-    MOCK_ASTROLOGERS.find((a) => a.id === id) || MOCK_ASTROLOGERS[0];
-  const consultations = MOCK_SERVICES.filter(
-    (s) => s.astrologerId === astrologer.id,
-  );
-  const posts = MOCK_POSTS.filter((p) => p.astrologerId === astrologer.id);
+  const {
+    astrologer,
+    basicService,
+    normalServices,
+    loading,
+    error,
+    fetchProfile,
+  } = useAstrologerProfile(id);
+
+  const { posts, loading: postsLoading, fetchPosts } = useAstrologerPosts(id);
+
+  useEffect(() => {
+    fetchProfile();
+    fetchPosts();
+  }, [id]);
 
   const flatListRef = useRef<FlatList>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
+  if (loading || !astrologer) {
+    return (
+      <View style={styles.root}>
+        <Header />
+        <View style={styles.centerFill}>
+          {error ? (
+            <Text style={styles.emptyText}>{error}</Text>
+          ) : (
+            <ActivityIndicator color="#9d0399" size="large" />
+          )}
+        </View>
+      </View>
+    );
+  }
+
+  // meta abhi optional hai (astrologer ne profile complete nahi ki ho sakti)
+  const meta = astrologer.meta;
+  const displayName = astrologer.name ?? "Astrologer";
+  const speciality = meta?.speciality ?? "Astrologer";
+  const languages = meta?.languages ?? "—";
+  const experience = meta?.exp ?? "New";
+  const rating = meta?.rating ?? 0;
+  const reviews = meta?.reviews ?? 0;
+  const bio = meta?.about;
+
   const scrollToNext = () => {
-    if (activeIndex < consultations.length - 1) {
+    if (activeIndex < normalServices.length - 1) {
       const next = activeIndex + 1;
       flatListRef.current?.scrollToIndex({ index: next, animated: true });
       setActiveIndex(next);
@@ -75,17 +115,14 @@ export default function AstrologerProfileScreen() {
     setActiveIndex(index);
   };
 
-  const goToService = (serviceId: string) => {
+  // NOTE: pehle yeh seedha book-slot pe le jaata tha. Ab har "Book" click
+  // (header Basic CTA ho ya consultancy card) pehle service/[id].tsx (detail
+  // page) kholega — book-slot pe navigate karna sirf wahan se hoga.
+  const goToServiceDetail = (serviceId: string) => {
+    if (isOwnProfile) return; // safety net — header CTA already hidden for self
     router.push({
       pathname: "/(user)/service/[id]" as any,
       params: { id: serviceId, astroId: astrologer.id },
-    });
-  };
-
-  const goToAstrologerProfile = () => {
-    router.push({
-      pathname: "/(user)/astrologer-profile" as any,
-      params: { id: astrologer.id },
     });
   };
 
@@ -116,77 +153,50 @@ export default function AstrologerProfileScreen() {
 
             {/* Info */}
             <View style={styles.infoColumn}>
-              <Text style={styles.name}>{astrologer.name}</Text>
-              <Text style={styles.speciality}>{astrologer.speciality}</Text>
-              <Text style={styles.language}>{astrologer.languages}</Text>
-              <Text style={styles.exp}>Exp: {astrologer.experience}</Text>
+              <Text style={styles.name}>{displayName}</Text>
+              <Text style={styles.speciality}>{speciality}</Text>
+              <Text style={styles.language}>{languages}</Text>
+              <Text style={styles.exp}>Exp: {experience}</Text>
 
               <View style={styles.ratingRow}>
-                <StarRating rating={astrologer.rating} />
-                <Text style={styles.reviewCount}>
-                  {astrologer.reviews} reviews
-                </Text>
+                <StarRating rating={rating} />
+                <Text style={styles.reviewCount}>{reviews} reviews</Text>
               </View>
 
-              <TouchableOpacity
-                style={styles.bookBtnWrapper}
-                onPress={goToAstrologerProfile}
-              >
-                <View style={styles.bookPriceBox}>
-                  <Text style={styles.bookPriceText}>₹{astrologer.price}</Text>
-                </View>
-                <View style={styles.bookActionBox}>
-                  <Text style={styles.bookActionText}>Book Now</Text>
-                </View>
-              </TouchableOpacity>
+              {isOwnProfile ? (
+                <Text style={styles.noBasicText}>
+                  Yeh tumhara apna profile hai
+                </Text>
+              ) : basicService ? (
+                <TouchableOpacity
+                  style={styles.bookBtnWrapper}
+                  onPress={() => goToServiceDetail(basicService.id)}
+                >
+                  <View style={styles.bookPriceBox}>
+                    <Text style={styles.bookPriceText}>
+                      ₹{basicService.price ?? "—"}
+                    </Text>
+                  </View>
+                  <View style={styles.bookActionBox}>
+                    <Text style={styles.bookActionText}>Book Now</Text>
+                  </View>
+                </TouchableOpacity>
+              ) : (
+                <Text style={styles.noBasicText}>
+                  Booking abhi available nahi hai
+                </Text>
+              )}
             </View>
           </View>
 
           {/* Bio */}
           <View style={styles.bioContainer}>
             <Text style={styles.bioText}>
-              {astrologer.bio || "Lorem ipsum dolor sit amet..."}
-              <Text style={styles.seeMoreLink}> See more...</Text>
+              {bio || "Is astrologer ne abhi apni bio add nahi ki hai."}
+              {bio ? (
+                <Text style={styles.seeMoreLink}> See more...</Text>
+              ) : null}
             </Text>
-          </View>
-
-          {/* Featured Post */}
-          <View style={styles.featuredPostContainer}>
-            <TouchableOpacity
-              style={[
-                styles.postSquareCard,
-                { backgroundColor: astrologer.color || "#4C1D95" },
-              ]}
-              activeOpacity={0.88}
-            >
-              <View style={styles.postTopRow}>
-                <View style={styles.postLogoSmall}>
-                  <Text style={styles.postLogoAstro}>Astro</Text>
-                  <View style={styles.postLogoBadge}>
-                    <Text style={styles.postLogoBook}>Book</Text>
-                  </View>
-                </View>
-                <Text style={styles.postFooterText}>
-                  Book Your Consultation
-                </Text>
-              </View>
-
-              <View style={styles.postMiddleContent}>
-                <Text style={styles.postEmoji}>✨</Text>
-                <Text style={styles.postText} numberOfLines={4}>
-                  Book a consultation with {astrologer.name} for expert
-                  astrological guidance.
-                </Text>
-              </View>
-
-              <View style={styles.postBottomRow}>
-                <View style={styles.postStatsRow}>
-                  <Text style={styles.postStat}>👍 245</Text>
-                  <Text style={styles.postStat}>💬 45</Text>
-                  <Text style={styles.postStat}>↗ 120</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
           </View>
         </View>
 
@@ -196,7 +206,7 @@ export default function AstrologerProfileScreen() {
             <Text style={styles.sectionTitle}>Consultations</Text>
           </View>
 
-          {consultations.length > 0 ? (
+          {normalServices.length > 0 ? (
             <View style={styles.carouselContainer}>
               <TouchableOpacity
                 style={[
@@ -212,7 +222,7 @@ export default function AstrologerProfileScreen() {
 
               <FlatList
                 ref={flatListRef}
-                data={consultations}
+                data={normalServices}
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 keyExtractor={(item) => item.id}
@@ -227,22 +237,29 @@ export default function AstrologerProfileScreen() {
                   <TouchableOpacity
                     style={styles.consultCard}
                     activeOpacity={0.8}
-                    onPress={() => goToService(item.id)}
+                    onPress={() => goToServiceDetail(item.id)}
                   >
                     <View style={styles.consultImageArea}>
                       <Text style={styles.consultImageEmoji}>
-                        {astrologer.emoji}
+                        {meta?.emoji ?? "🔮"}
                       </Text>
                     </View>
                     <View style={styles.consultContent}>
                       <Text style={styles.consultName} numberOfLines={1}>
-                        {item.name}
+                        {item.title}
                       </Text>
                       <View style={styles.consultBottomRow}>
-                        <Text style={styles.consultPrice}>₹{item.price}</Text>
-                        <TouchableOpacity style={styles.consultBookBtn}>
-                          <Text style={styles.consultBookText}>Book Now</Text>
-                        </TouchableOpacity>
+                        <Text style={styles.consultPrice}>
+                          ₹{item.price ?? "—"}
+                        </Text>
+                        {!isOwnProfile && (
+                          <TouchableOpacity
+                            style={styles.consultBookBtn}
+                            onPress={() => goToServiceDetail(item.id)}
+                          >
+                            <Text style={styles.consultBookText}>Book Now</Text>
+                          </TouchableOpacity>
+                        )}
                       </View>
                     </View>
                   </TouchableOpacity>
@@ -253,11 +270,11 @@ export default function AstrologerProfileScreen() {
                 style={[
                   styles.arrowBtn,
                   styles.arrowRight,
-                  activeIndex === consultations.length - 1 &&
+                  activeIndex === normalServices.length - 1 &&
                     styles.arrowDisabled,
                 ]}
                 onPress={scrollToNext}
-                disabled={activeIndex === consultations.length - 1}
+                disabled={activeIndex === normalServices.length - 1}
               >
                 <Feather name="chevron-right" size={22} color="#9d0399" />
               </TouchableOpacity>
@@ -268,15 +285,63 @@ export default function AstrologerProfileScreen() {
             </View>
           )}
 
-          {consultations.length > 1 && (
+          {normalServices.length > 1 && (
             <View style={styles.dotsRow}>
-              {consultations.map((_, i) => (
+              {normalServices.map((_, i) => (
                 <View
                   key={i}
                   style={[styles.dot, i === activeIndex && styles.dotActive]}
                 />
               ))}
             </View>
+          )}
+        </View>
+
+        {/* Posts Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Posts by {displayName}</Text>
+          </View>
+
+          {postsLoading ? (
+            <ActivityIndicator color="#9d0399" style={{ marginTop: 12 }} />
+          ) : posts.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>Koi post nahi hai abhi</Text>
+            </View>
+          ) : (
+            posts.map((post) => (
+              <TouchableOpacity
+                key={post.id}
+                style={styles.postListCard}
+                activeOpacity={0.9}
+                onPress={() =>
+                  router.push({
+                    pathname: "/(user)/post/[id]" as any,
+                    params: { id: post.id },
+                  })
+                }
+              >
+                {post.mediaType === "IMAGE" && post.mediaUrl && (
+                  <Image
+                    source={{ uri: post.mediaUrl }}
+                    style={styles.postListImage}
+                  />
+                )}
+                <View style={styles.postListContent}>
+                  <Text style={styles.postListText} numberOfLines={3}>
+                    {post.content}
+                  </Text>
+                  <Text style={styles.postListDate}>
+                    {new Date(post.createdAt).toLocaleDateString("en-IN", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))
           )}
         </View>
 
@@ -289,6 +354,8 @@ export default function AstrologerProfileScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#F9F5FF" },
   scrollContent: { paddingBottom: 32 },
+  centerFill: { flex: 1, alignItems: "center", justifyContent: "center" },
+  noBasicText: { fontSize: 12, color: "#9CA3AF", marginTop: 8 },
 
   headerCard: {
     backgroundColor: "#FFF",
@@ -476,4 +543,18 @@ const styles = StyleSheet.create({
 
   emptyContainer: { paddingVertical: 16, alignItems: "center" },
   emptyText: { fontSize: 13, color: "#9CA3AF" },
+
+  postListCard: {
+    backgroundColor: "#FFF",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#EDE9FF",
+    overflow: "hidden",
+    marginBottom: 12,
+    elevation: 1,
+  },
+  postListImage: { width: "100%", height: 160 },
+  postListContent: { padding: 14, gap: 6 },
+  postListText: { fontSize: 13, color: "#374151", lineHeight: 19 },
+  postListDate: { fontSize: 11, color: "#9CA3AF" },
 });
