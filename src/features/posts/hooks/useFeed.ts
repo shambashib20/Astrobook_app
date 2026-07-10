@@ -105,6 +105,12 @@ export function useFeedPosts() {
     }
   };
 
+  // Single post ko locally update karo (jaise like/unlike ke baad) — bina
+  // poora feed refetch kiye
+  const updatePost = (updated: Post) => {
+    setPosts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+  };
+
   return {
     posts,
     loading,
@@ -114,6 +120,7 @@ export function useFeedPosts() {
     error,
     fetchFeed,
     loadMore,
+    updatePost,
   };
 }
 

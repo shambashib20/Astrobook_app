@@ -30,8 +30,16 @@ const CONTROLS = [
     icon: "📹",
     label: "Sessions",
     sub: "Bookings dekho, join karo",
-    href: "/(user)/my-bookings",
+    href: "/(astrologer)/sessions",
     color: "#15803D",
+  },
+  {
+    key: "transactions",
+    icon: "💰",
+    label: "Transactions",
+    sub: "Apni kamai dekho",
+    href: "/(astrologer)/transactions",
+    color: "#B45309",
   },
   {
     key: "services",

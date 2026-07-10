@@ -4,6 +4,7 @@ import {
   useSetAvailability,
 } from "@/features/consultation/hooks/useAvailability";
 import type { AvailabilityWindow } from "@/features/consultation/types";
+import { Feather } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -201,8 +202,8 @@ export default function AvailabilityScreen() {
     <SafeAreaView style={styles.root} edges={["top"]}>
       {/* ── Header ── */}
       <ScreenHeader
-        title="📅 My Availability"
-        subtitle="Users will book in these hours"
+        title="My Availability"
+        subtitle="Users apni inhi hours mein book karenge"
       />
 
       <ScrollView
@@ -217,10 +218,12 @@ export default function AvailabilityScreen() {
           />
         ) : groupedByDate.length === 0 ? (
           <View style={styles.emptyCard}>
-            <Text style={styles.emptyEmoji}>🕐</Text>
+            <View style={styles.emptyIconCircle}>
+              <Feather name="calendar" size={30} color="#9d0399" />
+            </View>
             <Text style={styles.emptyText}>Koi availability set nahi hai</Text>
             <Text style={styles.emptySubtext}>
-              "+ Add Slot" se apna pehla time window add karo
+              Neeche "Add Slot" se apna pehla time window add karo
             </Text>
           </View>
         ) : (
@@ -233,7 +236,10 @@ export default function AvailabilityScreen() {
                   onPress={() => toggleDay(group.date)}
                   activeOpacity={0.7}
                 >
-                  <View>
+                  <View style={styles.dayHeaderIconBox}>
+                    <Feather name="calendar" size={16} color="#9d0399" />
+                  </View>
+                  <View style={{ flex: 1 }}>
                     <Text style={styles.dayHeaderDate}>
                       {displayDate(group.date)}
                     </Text>
@@ -242,23 +248,32 @@ export default function AvailabilityScreen() {
                       {group.windows.length > 1 ? "s" : ""}
                     </Text>
                   </View>
-                  <Text style={styles.dayHeaderChevron}>
-                    {isExpanded ? "▲" : "▼"}
-                  </Text>
+                  <Feather
+                    name={isExpanded ? "chevron-up" : "chevron-down"}
+                    size={18}
+                    color="#9CA3AF"
+                  />
                 </TouchableOpacity>
 
-                {isExpanded &&
-                  group.windows.map((win) => (
-                    <View key={win.id} style={styles.slotRow}>
-                      <Text style={styles.slotTime}>
-                        🕐 {displayTime(win.startTime)} →{" "}
-                        {displayTime(win.endTime)}
-                      </Text>
-                      <TouchableOpacity onPress={() => confirmDelete(win)}>
-                        <Text style={styles.deleteBtn}>🗑️</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ))}
+                {isExpanded && (
+                  <View style={styles.slotsWrap}>
+                    {group.windows.map((win) => (
+                      <View key={win.id} style={styles.slotPill}>
+                        <Feather name="clock" size={12} color="#6B21A8" />
+                        <Text style={styles.slotTime}>
+                          {displayTime(win.startTime)} –{" "}
+                          {displayTime(win.endTime)}
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() => confirmDelete(win)}
+                          hitSlop={8}
+                        >
+                          <Feather name="trash-2" size={14} color="#DC2626" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                )}
               </View>
             );
           })
@@ -268,8 +283,13 @@ export default function AvailabilityScreen() {
       </ScrollView>
 
       {/* ── Add Slot FAB ── */}
-      <TouchableOpacity style={styles.addBtn} onPress={openAddModal}>
-        <Text style={styles.addBtnText}>+ Add Slot</Text>
+      <TouchableOpacity
+        style={styles.addBtn}
+        onPress={openAddModal}
+        activeOpacity={0.85}
+      >
+        <Feather name="plus" size={18} color="#FFF" />
+        <Text style={styles.addBtnText}>Add Slot</Text>
       </TouchableOpacity>
 
       {/* ── Add Availability Modal ── */}
@@ -283,8 +303,11 @@ export default function AvailabilityScreen() {
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Add Availability</Text>
-              <TouchableOpacity onPress={() => setShowAddModal(false)}>
-                <Text style={styles.modalClose}>✕</Text>
+              <TouchableOpacity
+                onPress={() => setShowAddModal(false)}
+                hitSlop={8}
+              >
+                <Feather name="x" size={22} color="#6B7280" />
               </TouchableOpacity>
             </View>
 
@@ -386,16 +409,6 @@ export default function AvailabilityScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#F9F5FF" },
 
-  header: {
-    backgroundColor: "#0b1d5b",
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-  },
-  headerTitle: { fontSize: 20, fontWeight: "800", color: "#FFF" },
-  headerSubtitle: { fontSize: 13, color: "#C4CBEB", marginTop: 4 },
-
   content: { padding: 16, gap: 12 },
 
   emptyCard: {
@@ -407,7 +420,15 @@ const styles = StyleSheet.create({
     borderColor: "#EDE9FF",
     marginTop: 20,
   },
-  emptyEmoji: { fontSize: 40, marginBottom: 12 },
+  emptyIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#F3E8FF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 14,
+  },
   emptyText: {
     fontSize: 15,
     fontWeight: "700",
@@ -430,34 +451,53 @@ const styles = StyleSheet.create({
   },
   dayHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    padding: 16,
+    gap: 12,
+    padding: 14,
   },
-  dayHeaderDate: { fontSize: 15, fontWeight: "700", color: "#1A1A2E" },
+  dayHeaderIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: "#F3E8FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dayHeaderDate: { fontSize: 14.5, fontWeight: "700", color: "#1A1A2E" },
   dayHeaderCount: { fontSize: 12, color: "#9CA3AF", marginTop: 2 },
-  dayHeaderChevron: { fontSize: 12, color: "#9d0399" },
 
-  slotRow: {
+  slotsWrap: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#F5F0FF",
+    flexWrap: "wrap",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+    paddingTop: 2,
   },
-  slotTime: { fontSize: 14, fontWeight: "600", color: "#7C3AED" },
-  deleteBtn: { fontSize: 16 },
+  slotPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#F9F5FF",
+    borderWidth: 1,
+    borderColor: "#EDE9FF",
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  slotTime: { fontSize: 12.5, fontWeight: "600", color: "#6B21A8" },
 
   addBtn: {
     position: "absolute",
     bottom: 24,
     alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
     backgroundColor: "#9d0399",
     borderRadius: 14,
-    paddingHorizontal: 28,
-    paddingVertical: 16,
+    paddingHorizontal: 26,
+    paddingVertical: 15,
     elevation: 4,
     shadowColor: "#9d0399",
     shadowOffset: { width: 0, height: 4 },
@@ -485,7 +525,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   modalTitle: { fontSize: 18, fontWeight: "800", color: "#1A1A2E" },
-  modalClose: { fontSize: 18, color: "#9CA3AF", padding: 4 },
 
   fieldLabel: {
     fontSize: 13,

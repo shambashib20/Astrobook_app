@@ -1,5 +1,6 @@
 import { apiClient } from "@/services/apiClient";
 import type {
+  Comment,
   CreatePostPayload,
   ImageKitAuthToken,
   Post,
@@ -62,6 +63,33 @@ class PostsService {
       `${this.base}/upload-token`,
     );
     return res.data;
+  }
+
+  async likePost(id: string): Promise<void> {
+    await apiClient.post(`${this.base}/${id}/like`);
+  }
+
+  async unlikePost(id: string): Promise<void> {
+    await apiClient.delete(`${this.base}/${id}/like`);
+  }
+
+  async getComments(id: string): Promise<Comment[]> {
+    const res = await apiClient.get<{ comments: Comment[] }>(
+      `${this.base}/${id}/comments`,
+    );
+    return res.data.comments;
+  }
+
+  async addComment(id: string, content: string): Promise<Comment> {
+    const res = await apiClient.post<{ comment: Comment }>(
+      `${this.base}/${id}/comments`,
+      { content },
+    );
+    return res.data.comment;
+  }
+
+  async deleteComment(commentId: string): Promise<void> {
+    await apiClient.delete(`${this.base}/comments/${commentId}`);
   }
 }
 

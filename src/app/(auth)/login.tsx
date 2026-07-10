@@ -19,6 +19,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -58,7 +59,6 @@ GoogleSignin.configure({
 export default function LoginScreen() {
   const router = useRouter();
   const [phone, setPhone] = useState("");
-  // sending state hook se aata hai
   const [remember, setRemember] = useState(false);
   const [selectedCode, setSelectedCode] = useState(COUNTRY_CODES[0]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -100,127 +100,132 @@ export default function LoginScreen() {
         style={StyleSheet.absoluteFill}
       />
 
-      <View style={styles.container}>
-        {/* White Card */}
-        <View style={styles.card}>
-          <AstroLogo width={260} height={120} />
+      <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* White Card */}
+          <View style={styles.card}>
+            <AstroLogo width={260} height={120} />
 
-          {/* Phone Input */}
-          <View style={styles.phoneRow}>
+            {/* Phone Input */}
+            <View style={styles.phoneRow}>
+              <TouchableOpacity
+                style={styles.codeBtn}
+                onPress={() => setShowDropdown(true)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.codeBtnText}>
+                  {selectedCode.flag} {selectedCode.code}
+                </Text>
+                <Text style={styles.codeArrow}>▾</Text>
+              </TouchableOpacity>
+
+              {/* Divider */}
+              <View style={styles.codeDivider} />
+
+              <TextInput
+                placeholder="Phone number"
+                style={styles.phoneInput}
+                keyboardType="phone-pad"
+                placeholderTextColor="#919191"
+                value={phone}
+                onChangeText={setPhone}
+                maxLength={10}
+              />
+            </View>
+            {/* Send OTP Button */}
             <TouchableOpacity
-              style={styles.codeBtn}
-              onPress={() => setShowDropdown(true)}
-              activeOpacity={0.8}
+              style={[styles.otpBtn, otpSending && { opacity: 0.7 }]}
+              onPress={handleSendOTP}
+              disabled={otpSending}
+              activeOpacity={0.85}
             >
-              <Text style={styles.codeBtnText}>
-                {selectedCode.flag} {selectedCode.code}
+              <Text style={styles.otpBtnText}>
+                {otpSending ? "Sending..." : "Send OTP"}
               </Text>
-              <Text style={styles.codeArrow}>▾</Text>
             </TouchableOpacity>
 
-            {/* Divider */}
-            <View style={styles.codeDivider} />
-
-            <TextInput
-              placeholder="Phone number"
-              style={styles.phoneInput}
-              keyboardType="phone-pad"
-              placeholderTextColor="#919191"
-              value={phone}
-              onChangeText={setPhone}
-              maxLength={10}
-            />
-          </View>
-          {/* Send OTP Button */}
-          <TouchableOpacity
-            style={[styles.otpBtn, otpSending && { opacity: 0.7 }]}
-            onPress={handleSendOTP}
-            disabled={otpSending}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.otpBtnText}>
-              {otpSending ? "Sending..." : "Send OTP"}
-            </Text>
-          </TouchableOpacity>
-
-          {/* Remember Me */}
-          <View style={styles.rememberRow}>
-            <Checkbox
-              value={remember}
-              onValueChange={setRemember}
-              color={remember ? "#9d0399" : undefined}
-              style={styles.checkbox}
-            />
-            <Text style={styles.rememberText}>Remember Me</Text>
-          </View>
-
-          {/* Google Sign In */}
-          <TouchableOpacity
-            style={styles.googleBtn}
-            activeOpacity={0.8}
-            onPress={handleGoogleLogin}
-          >
-            <View style={styles.googleInner}>
-              <GoogleLogo width={16} height={16} />
-              <Text style={styles.googleText}>Sign in with Google</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* Video Slider */}
-        <View style={styles.sliderSection}>
-          <FlatList
-            ref={flatListRef}
-            data={VIDEOS}
-            horizontal
-            pagingEnabled={false}
-            snapToInterval={SCREEN_WIDTH * 0.62}
-            decelerationRate="fast"
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.sliderContent}
-            onMomentumScrollEnd={onSlideChange}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item, index }) => (
-              <TouchableOpacity
-                style={[
-                  styles.videoCard,
-                  index === activeSlide && styles.videoCardActive,
-                  { backgroundColor: item.color },
-                ]}
-                activeOpacity={0.9}
-              >
-                <Text style={styles.videoEmoji}>{item.emoji}</Text>
-                <Text style={styles.videoTitle}>{item.title}</Text>
-                <View style={styles.playBtn}>
-                  <Text style={styles.playIcon}>▶</Text>
-                </View>
-              </TouchableOpacity>
-            )}
-          />
-          <View style={styles.dotsRow}>
-            {VIDEOS.map((_, i) => (
-              <View
-                key={i}
-                style={[styles.dot, i === activeSlide && styles.dotActive]}
+            {/* Remember Me */}
+            <View style={styles.rememberRow}>
+              <Checkbox
+                value={remember}
+                onValueChange={setRemember}
+                color={remember ? "#9d0399" : undefined}
+                style={styles.checkbox}
               />
+              <Text style={styles.rememberText}>Remember Me</Text>
+            </View>
+
+            {/* Google Sign In */}
+            <TouchableOpacity
+              style={styles.googleBtn}
+              activeOpacity={0.8}
+              onPress={handleGoogleLogin}
+            >
+              <View style={styles.googleInner}>
+                <GoogleLogo width={16} height={16} />
+                <Text style={styles.googleText}>Sign in with Google</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* Video Slider */}
+          <View style={styles.sliderSection}>
+            <FlatList
+              ref={flatListRef}
+              data={VIDEOS}
+              horizontal
+              pagingEnabled={false}
+              snapToInterval={SCREEN_WIDTH * 0.62}
+              decelerationRate="fast"
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.sliderContent}
+              onMomentumScrollEnd={onSlideChange}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item, index }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.videoCard,
+                    index === activeSlide && styles.videoCardActive,
+                    { backgroundColor: item.color },
+                  ]}
+                  activeOpacity={0.9}
+                >
+                  <Text style={styles.videoEmoji}>{item.emoji}</Text>
+                  <Text style={styles.videoTitle}>{item.title}</Text>
+                  <View style={styles.playBtn}>
+                    <Text style={styles.playIcon}>▶</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+            />
+            <View style={styles.dotsRow}>
+              {VIDEOS.map((_, i) => (
+                <View
+                  key={i}
+                  style={[styles.dot, i === activeSlide && styles.dotActive]}
+                />
+              ))}
+            </View>
+          </View>
+
+          {/* Footer */}
+          <View style={styles.footerLinks}>
+            {links.map((item, i) => (
+              <React.Fragment key={item.label}>
+                <TouchableOpacity onPress={() => openLink(item.url)}>
+                  <Text style={styles.footerLink}>{item.label}</Text>
+                </TouchableOpacity>
+                {i < links.length - 1 && (
+                  <Text style={styles.footerSep}> | </Text>
+                )}
+              </React.Fragment>
             ))}
           </View>
-        </View>
-
-        {/* Footer */}
-        <View style={styles.footerLinks}>
-          {links.map((item, i) => (
-            <React.Fragment key={item.label}>
-              <TouchableOpacity onPress={() => openLink(item.url)}>
-                <Text style={styles.footerLink}>{item.label}</Text>
-              </TouchableOpacity>
-              {i < links.length - 1 && (
-                <Text style={styles.footerSep}> | </Text>
-              )}
-            </React.Fragment>
-          ))}
-        </View>
-      </View>
+        </ScrollView>
+      </SafeAreaView>
 
       {/* Country Code Dropdown Modal */}
       <Modal
@@ -265,11 +270,12 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#121943" },
+  safeArea: { flex: 1 },
   container: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: 20,
-    paddingTop: 50,
-    paddingBottom: 50,
+    paddingVertical: 24,
+    justifyContent: "space-evenly",
     flexDirection: "column",
     gap: 20,
   },

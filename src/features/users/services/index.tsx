@@ -34,6 +34,13 @@ class UsersServiceApi {
     const res = await apiClient.patch<UserProfile>("/users/me", dto);
     return res as unknown as UserProfile;
   }
+
+  async registerPushToken(
+    expoPushToken: string,
+    platform?: "ios" | "android",
+  ): Promise<void> {
+    await apiClient.post("/users/me/push-token", { expoPushToken, platform });
+  }
 }
 
 export const usersService = new UsersServiceApi();

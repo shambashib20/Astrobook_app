@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Alert } from "react-native";
 import { postsService } from "../services/posts.service";
-import type { CreatePostPayload, Post } from "../types/post.types";
+import type { Comment, CreatePostPayload, Post } from "../types/post.types";
 
 // ─── useCreatePost ────────────────────────────────────────────────────────────
 
@@ -72,6 +72,7 @@ export function useImageKitUpload() {
     imageUri: string,
     fileName: string,
     folder: string = "/astrobook/posts",
+    mimeType: string = "image/jpeg", // video ke liye "video/mp4" pass karo
   ): Promise<string | null> => {
     setUploading(true);
     try {
@@ -108,7 +109,7 @@ export function useImageKitUpload() {
         const formData = new FormData();
         formData.append("file", {
           uri: imageUri,
-          type: "image/jpeg",
+          type: mimeType,
           name: fileName,
         } as any);
         formData.append("fileName", fileName);
@@ -135,4 +136,70 @@ export function useImageKitUpload() {
   };
 
   return { uploadImage, uploading, progress };
+}
+
+// ─── useLikePost ──────────────────────────────────────────────────────────────
+// Optimistic update — turant UI update ho jaata hai, backend fail ho toh revert
+
+export function useLikePost() {
+  const toggleLike = async (
+    post: Post,
+    onUpdate: (updated: Post) => void,
+  ) => {
+    const optimistic: Post = {
+      ...post,
+      isLikedByMe: !post.isLikedByMe,
+      likesCount: post.isLikedByMe ? post.likesCount - 1 : post.likesCount + 1,
+    };
+    onUpdate(optimistic);
+    try {
+      if (post.isLikedByMe) {
+        await postsService.unlikePost(post.id);
+      } else {
+        await postsService.likePost(post.id);
+      }
+    } catch {
+      onUpdate(post); // revert on fail
+    }
+  };
+
+  return { toggleLike };
+}
+
+// ─── useComments ──────────────────────────────────────────────────────────────
+
+export function useComments(postId: string | undefined) {
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [posting, setPosting] = useState(false);
+
+  const fetchComments = async () => {
+    if (!postId) return;
+    setLoading(true);
+    try {
+      const data = await postsService.getComments(postId);
+      setComments(data);
+    } catch {
+      // silent — comments section sirf khaali dikhega
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addComment = async (content: string): Promise<boolean> => {
+    if (!postId || !content.trim()) return false;
+    setPosting(true);
+    try {
+      const comment = await postsService.addComment(postId, content.trim());
+      setComments((prev) => [...prev, comment]);
+      return true;
+    } catch (err: any) {
+      Alert.alert("Error", err?.response?.data?.message || "Comment nahi ho paya");
+      return false;
+    } finally {
+      setPosting(false);
+    }
+  };
+
+  return { comments, loading, posting, fetchComments, addComment };
 }

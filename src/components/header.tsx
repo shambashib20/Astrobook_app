@@ -2,9 +2,10 @@ import AstroLogo from "@/assets/images/astro-icon.svg";
 import Feather from "@expo/vector-icons/Feather";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import type { ReactNode } from "react";
 import { StatusBar, StyleSheet, TouchableOpacity, View } from "react-native";
 
-export default function Header() {
+export default function Header({ rightSlot }: { rightSlot?: ReactNode }) {
   const router = useRouter();
 
   return (
@@ -15,6 +16,7 @@ export default function Header() {
           <AstroLogo width={160} height={40} />
         </View>
         <View style={styles.actionsRow}>
+          {rightSlot}
           {/* Bookmarks — saved/favourites */}
           <TouchableOpacity style={styles.iconBtn}>
             <Feather name="bookmark" size={22} color="#9d0399" />

@@ -1,4 +1,5 @@
 import Header from "@/components/header";
+import { useUser } from "@/features/auth/store/auth.store";
 import { useMyAppointments } from "@/features/consultation/hooks/useAppointments";
 import { consultationService } from "@/features/consultation/service";
 import type { AppointmentDetailed } from "@/features/consultation/types";
@@ -78,12 +79,15 @@ function BookingCard({
   cancelling: boolean;
 }) {
   const router = useRouter();
+  const user = useUser();
   const { date, time } = formatDateTime(item.scheduledAt);
   const statusStyle = STATUS_STYLES[item.status] ?? STATUS_STYLES.pending!;
   const canCancel = item.status === "pending" || item.status === "confirmed";
-  // "confirmed" ya "ongoing" dono se join ho sakta hai — session screen khud
-  // decide karega ki abhi time hua hai ya nahi (waiting countdown dikhayega)
   const canJoin = item.status === "confirmed" || item.status === "ongoing";
+  // Astrologer isi shared screen se apni sessions bhi dekhta hai — usse
+  // apna khud ka naam nahi, CLIENT ka naam dikhna chahiye
+  const isViewerAstrologer = user?.id === item.astrologerId;
+  const otherPartyName = isViewerAstrologer ? item.userName : item.astrologerName;
 
   return (
     <TouchableOpacity
@@ -111,8 +115,11 @@ function BookingCard({
             <Feather name="chevron-right" size={18} color="#9CA3AF" />
           </View>
 
-          {item.astrologerName && (
-            <Text style={styles.cardAstro}>with {item.astrologerName}</Text>
+          {otherPartyName && (
+            <Text style={styles.cardAstro}>
+              {isViewerAstrologer ? "Client: " : "with "}
+              {otherPartyName}
+            </Text>
           )}
 
           <View

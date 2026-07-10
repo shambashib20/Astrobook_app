@@ -1,19 +1,20 @@
 import AstroGradient from "@/assets/images/astro-gradient.svg";
-import { Alert } from "react-native";
-import { useOtpLogin } from "@/features/auth/hooks/useAuth";
 import AstroLogo from "@/assets/images/astro-icon.svg";
+import { useOtpLogin } from "@/features/auth/hooks/useAuth";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Dimensions,
   FlatList,
   Linking,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -116,142 +117,148 @@ export default function OtpScreen() {
         style={StyleSheet.absoluteFill}
       />
 
-      <View style={styles.container}>
-        {/* Card */}
-        <View style={styles.card}>
-          <AstroLogo width={260} height={100} />
-          {/* Contact info */}
-          {/* <Text style={styles.subtitle}>OTP bheja gaya</Text> */}
-          {/* <Text style={styles.contact}>{contact}</Text> */}
-          {/* Hidden input */}
-          <TextInput
-            ref={inputRef}
-            value={otp}
-            onChangeText={(text) => {
-              if (/^\d*$/.test(text) && text.length <= 6) setOtp(text);
-            }}
-            keyboardType="number-pad"
-            maxLength={6}
-            style={{ position: "absolute", opacity: 0, height: 0 }}
-          />
-          {/* OTP Boxes */}
-          <TouchableOpacity
-            style={styles.otpContainer}
-            activeOpacity={1}
-            onPress={() => inputRef.current?.focus()}
-          >
-            {[...Array(6)].map((_, i) => (
-              <View
-                key={i}
-                style={[
-                  styles.otpBox,
-                  otp[i] ? styles.otpBoxFilled : null,
-                  otp.length === i ? styles.otpBoxActive : null,
-                ]}
-              >
-                <Text style={styles.otpText}>{otp[i] || ""}</Text>
-              </View>
-            ))}
-          </TouchableOpacity>
-          {/* Resend */}
-          <View style={styles.resendRow}>
-            {canResend ? (
-              <TouchableOpacity onPress={handleResend}>
-                <Text style={styles.resendActive}>Resend OTP</Text>
-              </TouchableOpacity>
-            ) : (
-              <Text style={styles.resendTimer}>
-                Resend in <Text style={styles.resendTimerBold}>{timer}s</Text>
-              </Text>
-            )}
-          </View>
-          {/* Verify Button */}
-          <TouchableOpacity
-            style={[
-              styles.submitBtn,
-              (otp.length !== 6 || verifying) && styles.submitBtnDisabled,
-            ]}
-            disabled={otp.length !== 6 || verifying}
-            onPress={handleVerify}
-          >
-            <Text style={styles.submitText}>
-              {verifying ? "Verifying..." : "Verify OTP"}
-            </Text>
-          </TouchableOpacity>
-          {/* Back */}
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => router.back()}
-          >
-            <Text style={styles.backText}>← Change number</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Video Slider */}
-        <View style={styles.sliderSection}>
-          <FlatList
-            ref={flatListRef}
-            data={VIDEOS}
-            horizontal
-            pagingEnabled={false}
-            snapToInterval={SCREEN_WIDTH * 0.62}
-            decelerationRate="fast"
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.sliderContent}
-            onMomentumScrollEnd={onSlideChange}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item, index }) => (
-              <TouchableOpacity
-                style={[
-                  styles.videoCard,
-                  index === activeSlide && styles.videoCardActive,
-                  { backgroundColor: item.color },
-                ]}
-                activeOpacity={0.9}
-              >
-                <Text style={styles.videoEmoji}>{item.emoji}</Text>
-                <Text style={styles.videoTitle}>{item.title}</Text>
-                <View style={styles.playBtn}>
-                  <Text style={styles.playIcon}>▶</Text>
+      <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Card */}
+          <View style={styles.card}>
+            <AstroLogo width={260} height={100} />
+            {/* Contact info */}
+            {/* <Text style={styles.subtitle}>OTP bheja gaya</Text> */}
+            {/* <Text style={styles.contact}>{contact}</Text> */}
+            {/* Hidden input */}
+            <TextInput
+              ref={inputRef}
+              value={otp}
+              onChangeText={(text) => {
+                if (/^\d*$/.test(text) && text.length <= 6) setOtp(text);
+              }}
+              keyboardType="number-pad"
+              maxLength={6}
+              style={{ position: "absolute", opacity: 0, height: 0 }}
+            />
+            {/* OTP Boxes */}
+            <TouchableOpacity
+              style={styles.otpContainer}
+              activeOpacity={1}
+              onPress={() => inputRef.current?.focus()}
+            >
+              {[...Array(6)].map((_, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.otpBox,
+                    otp[i] ? styles.otpBoxFilled : null,
+                    otp.length === i ? styles.otpBoxActive : null,
+                  ]}
+                >
+                  <Text style={styles.otpText}>{otp[i] || ""}</Text>
                 </View>
-              </TouchableOpacity>
-            )}
-          />
-          <View style={styles.dotsRow}>
-            {VIDEOS.map((_, i) => (
-              <View
-                key={i}
-                style={[styles.dot, i === activeSlide && styles.dotActive]}
-              />
+              ))}
+            </TouchableOpacity>
+            {/* Resend */}
+            <View style={styles.resendRow}>
+              {canResend ? (
+                <TouchableOpacity onPress={handleResend}>
+                  <Text style={styles.resendActive}>Resend OTP</Text>
+                </TouchableOpacity>
+              ) : (
+                <Text style={styles.resendTimer}>
+                  Resend in <Text style={styles.resendTimerBold}>{timer}s</Text>
+                </Text>
+              )}
+            </View>
+            {/* Verify Button */}
+            <TouchableOpacity
+              style={[
+                styles.submitBtn,
+                (otp.length !== 6 || verifying) && styles.submitBtnDisabled,
+              ]}
+              disabled={otp.length !== 6 || verifying}
+              onPress={handleVerify}
+            >
+              <Text style={styles.submitText}>
+                {verifying ? "Verifying..." : "Verify OTP"}
+              </Text>
+            </TouchableOpacity>
+            {/* Back */}
+            <TouchableOpacity
+              style={styles.backBtn}
+              onPress={() => router.back()}
+            >
+              <Text style={styles.backText}>← Change number</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Video Slider */}
+          <View style={styles.sliderSection}>
+            <FlatList
+              ref={flatListRef}
+              data={VIDEOS}
+              horizontal
+              pagingEnabled={false}
+              snapToInterval={SCREEN_WIDTH * 0.62}
+              decelerationRate="fast"
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.sliderContent}
+              onMomentumScrollEnd={onSlideChange}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item, index }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.videoCard,
+                    index === activeSlide && styles.videoCardActive,
+                    { backgroundColor: item.color },
+                  ]}
+                  activeOpacity={0.9}
+                >
+                  <Text style={styles.videoEmoji}>{item.emoji}</Text>
+                  <Text style={styles.videoTitle}>{item.title}</Text>
+                  <View style={styles.playBtn}>
+                    <Text style={styles.playIcon}>▶</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+            />
+            <View style={styles.dotsRow}>
+              {VIDEOS.map((_, i) => (
+                <View
+                  key={i}
+                  style={[styles.dot, i === activeSlide && styles.dotActive]}
+                />
+              ))}
+            </View>
+          </View>
+
+          {/* Footer */}
+          <View style={styles.footerLinks}>
+            {links.map((item, i) => (
+              <React.Fragment key={item.label}>
+                <TouchableOpacity onPress={() => openLink(item.url)}>
+                  <Text style={styles.footerLink}>{item.label}</Text>
+                </TouchableOpacity>
+                {i < links.length - 1 && (
+                  <Text style={styles.footerSep}> | </Text>
+                )}
+              </React.Fragment>
             ))}
           </View>
-        </View>
-
-        {/* Footer */}
-        <View style={styles.footerLinks}>
-          {links.map((item, i) => (
-            <React.Fragment key={item.label}>
-              <TouchableOpacity onPress={() => openLink(item.url)}>
-                <Text style={styles.footerLink}>{item.label}</Text>
-              </TouchableOpacity>
-              {i < links.length - 1 && (
-                <Text style={styles.footerSep}> | </Text>
-              )}
-            </React.Fragment>
-          ))}
-        </View>
-      </View>
+        </ScrollView>
+      </SafeAreaView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#121943" },
+  safeArea: { flex: 1 },
   container: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: 20,
-    paddingTop: 50,
-    paddingBottom: 50,
+    paddingVertical: 24,
+    justifyContent: "space-evenly",
     flexDirection: "column",
     gap: 20,
   },
@@ -381,4 +388,3 @@ const styles = StyleSheet.create({
   footerLink: { color: "#E9D5FF", fontSize: 16 },
   footerSep: { color: "#C4B5FD", fontSize: 16 },
 });
-

@@ -25,6 +25,17 @@ export type VerifyPaymentResponse = {
   };
 };
 
+export type Transaction = {
+  id: string;
+  amount: string;
+  status: string;
+  createdAt: string;
+  appointmentId: string;
+  serviceTitle: string;
+  clientName: string;
+  scheduledAt: string;
+};
+
 class PaymentServiceApi {
   private readonly base = "/payments";
 
@@ -33,9 +44,7 @@ class PaymentServiceApi {
   // /astrologers/* karte hain). Isliye yahan `res` ko hi seedha cast kar rahe
   // hain, `res.data.xxx` nahi karna is case mein.
 
-  async createOrder(
-    appointmentId: string,
-  ): Promise<CreatePaymentOrderResponse> {
+  async createOrder(appointmentId: string): Promise<CreatePaymentOrderResponse> {
     const res = await apiClient.post<CreatePaymentOrderResponse>(
       `${this.base}/create-order`,
       { appointmentId },
@@ -51,6 +60,15 @@ class PaymentServiceApi {
       payload,
     );
     return res as unknown as VerifyPaymentResponse;
+  }
+
+  // GET /payments/transactions — yeh normal {success, data} envelope mein
+  // wapas aata hai (create-order/verify jaisa raw nahi hai)
+  async getMyTransactions(): Promise<Transaction[]> {
+    const res = await apiClient.get<{ transactions: Transaction[] }>(
+      `${this.base}/transactions`,
+    );
+    return res.data.transactions;
   }
 }
 

@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   PermissionsAndroid,
   Platform,
   StyleSheet,
@@ -56,11 +57,14 @@ export default function SessionScreen() {
   const { appointmentId } = useLocalSearchParams<{ appointmentId: string }>();
 
   const [screenState, setScreenState] = useState<ScreenState>("loading");
-  const [appointment, setAppointment] =
-    useState<AppointmentWithChildren | null>(null);
+  const [appointment, setAppointment] = useState<AppointmentWithChildren | null>(
+    null,
+  );
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [countdownText, setCountdownText] = useState("");
   const [remoteUid, setRemoteUid] = useState<number | null>(null);
+  const [remoteAudioMuted, setRemoteAudioMuted] = useState(false);
+  const [remoteVideoMuted, setRemoteVideoMuted] = useState(false);
   const [micMuted, setMicMuted] = useState(false);
   const [cameraOff, setCameraOff] = useState(false);
   const [remainingMs, setRemainingMs] = useState(0);
@@ -70,33 +74,33 @@ export default function SessionScreen() {
   const endsAtRef = useRef<number>(0);
   const endingRef = useRef(false); // double-tap/duplicate-end guard
 
-  const isAstrologer = appointment
-    ? user?.id === appointment.astrologerId
-    : false;
+  const isAstrologer = appointment ? user?.id === appointment.astrologerId : false;
   const otherPersonLabel = isAstrologer ? "Client" : "Astrologer";
   const otherPersonName = appointment
     ? isAstrologer
-      ? (appointment.userName ?? "Client")
-      : (appointment.astrologerName ?? "Astrologer")
+      ? appointment.userName ?? "Client"
+      : appointment.astrologerName ?? "Astrologer"
     : "";
 
   // ── Load appointment + countdown-before-join ticker ──────────────────────
   const loadAppointment = useCallback(async () => {
-    if (!appointmentId) return;
+    if (!appointmentId) {
+      setErrorMsg("Session ID missing hai — link galat lagta hai");
+      setScreenState("error");
+      return;
+    }
     try {
       const data = await consultationService.getAppointmentById(appointmentId);
       setAppointment(data);
 
       if (data.status === "completed" || data.status === "cancelled") {
         setScreenState(data.status === "completed" ? "ended" : "error");
-        if (data.status === "cancelled")
-          setErrorMsg("Yeh booking cancel ho chuki hai");
+        if (data.status === "cancelled") setErrorMsg("Yeh booking cancel ho chuki hai");
         return;
       }
 
       endsAtRef.current = new Date(data.endsAt).getTime();
-      const joinOpensAt =
-        new Date(data.scheduledAt).getTime() - JOIN_GRACE_MINUTES * 60000;
+      const joinOpensAt = new Date(data.scheduledAt).getTime() - JOIN_GRACE_MINUTES * 60000;
       const now = Date.now();
 
       if (data.status === "ongoing") {
@@ -121,8 +125,7 @@ export default function SessionScreen() {
   // Pre-join countdown ticker ("Session starts in X minutes")
   useEffect(() => {
     if (screenState !== "waiting_for_time" || !appointment) return;
-    const joinOpensAt =
-      new Date(appointment.scheduledAt).getTime() - JOIN_GRACE_MINUTES * 60000;
+    const joinOpensAt = new Date(appointment.scheduledAt).getTime() - JOIN_GRACE_MINUTES * 60000;
 
     const tick = () => {
       const diff = joinOpensAt - Date.now();
@@ -153,6 +156,15 @@ export default function SessionScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screenState]);
 
+  // Pre-call states (waiting/ready) mein bhi halka background refresh —
+  // agar doosri party pehle join kar chuki ho (status "ongoing" ho jaaye)
+  // ya astrologer/admin ne cancel kar diya ho, toh yeh screen turant update ho
+  useEffect(() => {
+    if (screenState !== "waiting_for_time" && screenState !== "ready_to_join") return;
+    const id = setInterval(loadAppointment, 15000);
+    return () => clearInterval(id);
+  }, [screenState, loadAppointment]);
+
   // Poll appointment status while in-call — doosri party ne end kiya toh pata chale
   useEffect(() => {
     if (screenState !== "in_call") {
@@ -161,8 +173,7 @@ export default function SessionScreen() {
     }
     pollRef.current = setInterval(async () => {
       try {
-        const data =
-          await consultationService.getAppointmentById(appointmentId);
+        const data = await consultationService.getAppointmentById(appointmentId);
         if (data.status === "completed") {
           await teardownAgora();
           setScreenState("ended");
@@ -188,6 +199,8 @@ export default function SessionScreen() {
     }
     engineRef.current = null;
     setRemoteUid(null);
+    setRemoteAudioMuted(false);
+    setRemoteVideoMuted(false);
     if (pollRef.current) clearInterval(pollRef.current);
   }, []);
 
@@ -197,6 +210,31 @@ export default function SessionScreen() {
       teardownAgora();
     };
   }, [teardownAgora]);
+
+  // In-call ke dauran hardware back button galti se dabne se poora session
+  // chhod ke chala jaana easy hai — confirm karke hi jaane do
+  useEffect(() => {
+    if (screenState !== "in_call" || Platform.OS !== "android") return;
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      Alert.alert(
+        "Session Chhodna Hai?",
+        "Agar tum ab call se bahar gaye toh session end nahi hoga, lekin video/audio ruk jaayega. Dobara isi booking se join kar sakte ho.",
+        [
+          { text: "Nahi, wapas jao", style: "cancel" },
+          {
+            text: "Haan, chhodo",
+            style: "destructive",
+            onPress: async () => {
+              await teardownAgora();
+              router.back();
+            },
+          },
+        ],
+      );
+      return true; // default back action rok do
+    });
+    return () => sub.remove();
+  }, [screenState, teardownAgora, router]);
 
   // Android pe manifest mein permission declare karna kaafi nahi hai —
   // "dangerous" permissions (camera/mic) explicitly RUNTIME pe maangni
@@ -248,6 +286,11 @@ export default function SessionScreen() {
       engine.enableAudio();
       engine.enableVideo();
       engine.startPreview();
+      // Video call ke liye by-default loudspeaker chahiye — warna Agora
+      // "Communication" profile default earpiece use karta hai aur audio
+      // "kaam nahi kar raha" jaisa lagta hai (phone kaan se lagana padta)
+      engine.setDefaultAudioRouteToSpeakerphone(true);
+      engine.setEnableSpeakerphone(true);
 
       engine.registerEventHandler({
         onUserJoined: (_connection, uid) => {
@@ -260,6 +303,13 @@ export default function SessionScreen() {
           // NOTE: yeh temporary disconnect bhi ho sakta hai (app background) —
           // session ko turant end nahi karte, status-poll hi asal signal hai
           setRemoteUid(null);
+        },
+        onRemoteAudioStateChanged: (_connection, _uid, state) => {
+          // state === 0 (Stopped) matlab doosri party ne mic mute kiya hai
+          setRemoteAudioMuted(state === 0);
+        },
+        onRemoteVideoStateChanged: (_connection, _uid, state) => {
+          setRemoteVideoMuted(state === 0);
         },
         onError: (err) => {
           console.log("Agora error:", err);
@@ -354,11 +404,7 @@ export default function SessionScreen() {
     );
   }
 
-  if (
-    screenState === "waiting_for_time" ||
-    screenState === "ready_to_join" ||
-    screenState === "joining"
-  ) {
+  if (screenState === "waiting_for_time" || screenState === "ready_to_join" || screenState === "joining") {
     return (
       <View style={styles.root}>
         <Header />
@@ -407,10 +453,18 @@ export default function SessionScreen() {
     <View style={styles.callRoot}>
       {/* Remote video (full screen) */}
       {remoteUid !== null ? (
-        <RtcSurfaceView
-          style={styles.remoteVideo}
-          canvas={{ uid: remoteUid }}
-        />
+        remoteVideoMuted ? (
+          <View style={[styles.remoteVideo, styles.waitingBox]}>
+            <View style={styles.remoteAvatarCircle}>
+              <Feather name="user" size={40} color="#FFF" />
+            </View>
+            <Text style={styles.waitingText}>
+              {otherPersonName} ne camera band kiya hai
+            </Text>
+          </View>
+        ) : (
+          <RtcSurfaceView style={styles.remoteVideo} canvas={{ uid: remoteUid }} />
+        )
       ) : (
         <View style={[styles.remoteVideo, styles.waitingBox]}>
           <ActivityIndicator color="#FFF" size="large" />
@@ -420,14 +474,18 @@ export default function SessionScreen() {
         </View>
       )}
 
+      {/* Doosri party ne mic mute kiya hai — badge */}
+      {remoteUid !== null && remoteAudioMuted && (
+        <View style={styles.remoteMutedBadge}>
+          <Feather name="mic-off" size={12} color="#FFF" />
+          <Text style={styles.remoteMutedBadgeText}>{otherPersonName} muted</Text>
+        </View>
+      )}
+
       {/* Local video (small overlay) */}
       {!cameraOff && (
         <View style={styles.localVideoBox}>
-          <RtcSurfaceView
-            style={{ flex: 1 }}
-            canvas={{ uid: 0 }}
-            zOrderMediaOverlay
-          />
+          <RtcSurfaceView style={{ flex: 1 }} canvas={{ uid: 0 }} zOrderMediaOverlay />
         </View>
       )}
 
@@ -448,10 +506,7 @@ export default function SessionScreen() {
           <Feather name={micMuted ? "mic-off" : "mic"} size={22} color="#FFF" />
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.endCallBtn}
-          onPress={() => handleEndCall(false)}
-        >
+        <TouchableOpacity style={styles.endCallBtn} onPress={() => handleEndCall(false)}>
           <Feather name="phone-off" size={26} color="#FFF" />
         </TouchableOpacity>
 
@@ -459,11 +514,7 @@ export default function SessionScreen() {
           style={[styles.controlBtn, cameraOff && styles.controlBtnActive]}
           onPress={toggleCamera}
         >
-          <Feather
-            name={cameraOff ? "video-off" : "video"}
-            size={22}
-            color="#FFF"
-          />
+          <Feather name={cameraOff ? "video-off" : "video"} size={22} color="#FFF" />
         </TouchableOpacity>
       </View>
     </View>
@@ -472,12 +523,7 @@ export default function SessionScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#F9F5FF" },
-  centerFill: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-  },
+  centerFill: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10 },
 
   errorText: { fontSize: 14, color: "#6B7280", textAlign: "center" },
   primaryBtn: {
@@ -542,6 +588,28 @@ const styles = StyleSheet.create({
   remoteVideo: { flex: 1 },
   waitingBox: { alignItems: "center", justifyContent: "center", gap: 10 },
   waitingText: { color: "#FFF", fontSize: 13 },
+  remoteAvatarCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: "#FFFFFF20",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  remoteMutedBadge: {
+    position: "absolute",
+    top: 100,
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "#00000080",
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  remoteMutedBadgeText: { color: "#FFF", fontSize: 11, fontWeight: "600" },
   localVideoBox: {
     position: "absolute",
     top: 50,

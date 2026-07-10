@@ -1,18 +1,24 @@
 import Header from "@/components/header";
+import { useUser } from "@/features/auth/store/auth.store";
+import { useLikePost } from "@/features/posts/hooks/usePosts";
 import { useFeedPosts } from "@/features/posts/hooks/useFeed";
 import type { Post } from "@/features/posts/types/post.types";
+import { Feather } from "@expo/vector-icons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useRouter } from "expo-router";
-import { useEffect } from "react";
+import { useVideoPlayer, VideoView } from "expo-video";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
   FlatList,
-  ImageBackground,
+  Image,
+  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  ViewToken,
 } from "react-native";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -31,8 +37,56 @@ function colorForId(id: string) {
   return BG_PALETTE[hash % BG_PALETTE.length]!;
 }
 
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+// ── Video post ke andar ka player — apna component hai taaki har video ka
+// apna independent Agora... nahi, expo-video player instance ho, aur
+// visibility ke hisaab se play/pause ho sake ──────────────────────────────
+function FeedVideoPlayer({ post, isVisible }: { post: Post; isVisible: boolean }) {
+  const [muted, setMuted] = useState(true);
+  const player = useVideoPlayer(post.mediaUrl ?? "", (p) => {
+    p.loop = true;
+    p.muted = true;
+  });
+
+  useEffect(() => {
+    player.muted = muted;
+  }, [muted, player]);
+
+  useEffect(() => {
+    if (isVisible) player.play();
+    else player.pause();
+  }, [isVisible, player]);
+
+  return (
+    <TouchableOpacity
+      activeOpacity={1}
+      onPress={() => setMuted((m) => !m)}
+      style={styles.videoWrap}
+    >
+      <VideoView
+        style={styles.postVideo}
+        player={player}
+        contentFit="cover"
+        nativeControls={false}
+      />
+      <View style={styles.muteBadge}>
+        <Feather name={muted ? "volume-x" : "volume-2"} size={14} color="#FFF" />
+      </View>
+    </TouchableOpacity>
+  );
+}
+
 export default function FeedScreen() {
   const router = useRouter();
+  const user = useUser();
+  const { toggleLike } = useLikePost();
   const {
     posts,
     loading,
@@ -42,7 +96,10 @@ export default function FeedScreen() {
     error,
     fetchFeed,
     loadMore,
+    updatePost,
   } = useFeedPosts();
+
+  const [visiblePostId, setVisiblePostId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchFeed();
@@ -73,83 +130,97 @@ export default function FeedScreen() {
     });
   };
 
+  const handleShare = async (post: Post) => {
+    try {
+      await Share.share({
+        message: `${post.astrologerName ?? "Astrobook"} ka post dekho: astrobook://post/${post.id}`,
+      });
+    } catch {
+      // user ne cancel kiya — kuch nahi karna
+    }
+  };
+
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      const firstVideo = viewableItems.find(
+        (v) => (v.item as Post).mediaType === "VIDEO",
+      );
+      setVisiblePostId(firstVideo ? (firstVideo.item as Post).id : null);
+    },
+  ).current;
+
   const renderPost = ({ item: post }: { item: Post }) => {
-    const bgColor = colorForId(post.astrologerId);
+    const bgColor = post.bgColor ?? colorForId(post.astrologerId);
+    const textColor = post.textColor ?? "#FFFFFF";
+
     return (
       <View style={styles.postCard}>
-        {/* ----- Post Header ----- */}
+        {/* Post Header */}
         <TouchableOpacity
           style={styles.postHeader}
           activeOpacity={0.8}
           onPress={() => goToAstrologer(post.astrologerId)}
         >
           <View style={styles.postAuthorRow}>
-            {/* Light Purple Avatar Icon */}
-            <View style={[styles.postAvatar, { backgroundColor: "#F3E8FF" }]}>
-              <MaterialCommunityIcons
-                name="account"
-                size={24}
-                color="#D946EF"
-              />
+            <View style={[styles.postAvatar, { backgroundColor: bgColor }]}>
+              <Text style={styles.postAvatarEmoji}>
+                {post.astrologerAvatar ?? "🔮"}
+              </Text>
             </View>
             <View>
               <Text style={styles.postAuthorName}>
                 {post.astrologerName ?? "Astrologer"}
               </Text>
-              {/* Subtitle add kiya */}
-              <Text style={styles.postSubtitle}>Vedic</Text>
+              <Text style={styles.postTime}>{formatDate(post.createdAt)}</Text>
             </View>
           </View>
-
-          <View style={styles.headerRight}>
-            <TouchableOpacity onPress={(e) => e.stopPropagation?.()}>
-              <Text style={styles.followBtnText}>Follow +</Text>
-            </TouchableOpacity>
-            {/* 3-dot menu add kiya */}
-            <TouchableOpacity>
-              <MaterialCommunityIcons
-                name="dots-vertical"
-                size={24}
-                color="#333"
-              />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={styles.followBtn}
+            onPress={(e) => e.stopPropagation?.()}
+          >
+            <Text style={styles.followBtnText}>Follow +</Text>
+          </TouchableOpacity>
         </TouchableOpacity>
 
-        {/* ----- Post Content (Image with Overlay) ----- */}
-        <TouchableOpacity
-          activeOpacity={0.95}
-          onPress={() => goToPost(post.id)}
-        >
-          {post.mediaType === "IMAGE" && post.mediaUrl ? (
-            <ImageBackground
-              source={{ uri: post.mediaUrl }}
-              style={styles.postImage}
-              resizeMode="cover"
-            >
-              {/* Overlay ke andar content */}
-              <View style={styles.imageOverlayContent}>
-                <Text style={styles.overlayMainText}>{post.content}</Text>
-              </View>
-
-              {/* Bottom row inside image (Logo + Text) */}
-              <View style={styles.imageFooterOverlay}>
-                <View style={styles.postLogoSmall}>
-                  <Text style={styles.postLogoAstro}>Astro</Text>
-                  <View style={styles.postLogoBadge}>
-                    <Text style={styles.postLogoBook}>Book</Text>
-                  </View>
+        {/* Post Content */}
+        <TouchableOpacity activeOpacity={0.95} onPress={() => goToPost(post.id)}>
+          {post.mediaType === "VIDEO" && post.mediaUrl ? (
+            <FeedVideoPlayer post={post} isVisible={visiblePostId === post.id} />
+          ) : post.mediaType === "IMAGE" && post.mediaUrl ? (
+            <View>
+              <Image
+                source={{ uri: post.mediaUrl }}
+                style={styles.postImage}
+                resizeMode="cover"
+              />
+              {/* Optional single draggable text sticker — position % se render */}
+              {post.stickerText && (
+                <View
+                  style={[
+                    styles.stickerChip,
+                    {
+                      backgroundColor: post.stickerBgColor ?? "#00000090",
+                      left: `${Number(post.stickerX ?? 0.5) * 100}%`,
+                      top: `${Number(post.stickerY ?? 0.5) * 100}%`,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.stickerText,
+                      { color: post.stickerTextColor ?? "#FFFFFF" },
+                    ]}
+                  >
+                    {post.stickerText}
+                  </Text>
                 </View>
-                {/* Screenshot jaisa Bengali text */}
-                <Text style={styles.bottomRightOverlayText}>
-                  মহালয়ার শুভেচ্ছা
-                </Text>
-              </View>
-            </ImageBackground>
+              )}
+            </View>
           ) : (
-            // Fallback (agar IMAGE nahi hai toh)
             <View style={[styles.postImageArea, { backgroundColor: bgColor }]}>
-              <Text style={styles.postContent}>{post.content}</Text>
+              <Text style={[styles.postContent, { color: textColor }]}>
+                {post.content}
+              </Text>
               <View style={styles.postFooterRow}>
                 <View style={styles.postLogoSmall}>
                   <Text style={styles.postLogoAstro}>Astro</Text>
@@ -160,55 +231,53 @@ export default function FeedScreen() {
               </View>
             </View>
           )}
+          {post.mediaType !== "TEXT" && (
+            <Text style={styles.imagePostCaption} numberOfLines={2}>
+              {post.content}
+            </Text>
+          )}
         </TouchableOpacity>
 
-        {/* ----- Post Bottom (Caption & Actions) ----- */}
+        {/* Post Bottom — Like / Comment / Share / Book */}
         <View style={styles.postBottom}>
-          {/* Caption */}
-          <Text style={styles.captionText} numberOfLines={2}>
-            {post.content}
-          </Text>
+          <View style={styles.actionsRow}>
+            <View style={styles.leftActions}>
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={() => toggleLike(post, updatePost)}
+              >
+                <MaterialCommunityIcons
+                  name={post.isLikedByMe ? "heart" : "heart-outline"}
+                  size={22}
+                  color={post.isLikedByMe ? "#DC2626" : "#9d0399"}
+                />
+                <Text style={styles.count}>{post.likesCount}</Text>
+              </TouchableOpacity>
 
-          <View style={styles.actionsFooterRow}>
-            {/* Left Side: Icons + Date */}
-            <View style={styles.leftFooterGroup}>
-              <View style={styles.iconRow}>
-                <TouchableOpacity style={styles.iconItem}>
-                  <MaterialCommunityIcons
-                    name="thumb-up-outline"
-                    size={22}
-                    color="#9d0399"
-                  />
-                  <Text style={styles.iconCount}>121</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.iconItem}>
-                  <MaterialCommunityIcons
-                    name="comment-outline"
-                    size={22}
-                    color="#9d0399"
-                  />
-                  <Text style={styles.iconCount}>22</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.iconItem}>
-                  <MaterialCommunityIcons
-                    name="share-outline"
-                    size={22}
-                    color="#9d0399"
-                  />
-                  <Text style={styles.iconCount}>3</Text>
-                </TouchableOpacity>
-              </View>
-              {/* Date neeche le aaye */}
-              <Text style={styles.postDate}>
-                {new Date(post.createdAt).toLocaleDateString("en-IN", {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
-                })}
-              </Text>
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={() => goToPost(post.id)}
+              >
+                <MaterialCommunityIcons
+                  name="comment-outline"
+                  size={22}
+                  color="#9d0399"
+                />
+                <Text style={styles.count}>{post.commentsCount}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={() => handleShare(post)}
+              >
+                <MaterialCommunityIcons
+                  name="share-outline"
+                  size={22}
+                  color="#9d0399"
+                />
+              </TouchableOpacity>
             </View>
 
-            {/* Right Side: Book Now */}
             <TouchableOpacity
               style={styles.bookBtn}
               onPress={() => goToBookService(post)}
@@ -223,7 +292,18 @@ export default function FeedScreen() {
 
   return (
     <View style={styles.root}>
-      <Header />
+      <Header
+        rightSlot={
+          user?.isAstrologer ? (
+            <TouchableOpacity
+              style={styles.addPostBtn}
+              onPress={() => router.push("/(astrologer)/posts" as any)}
+            >
+              <Feather name="plus-circle" size={26} color="#9d0399" />
+            </TouchableOpacity>
+          ) : undefined
+        }
+      />
 
       {loading ? (
         <View style={styles.centerFill}>
@@ -247,6 +327,8 @@ export default function FeedScreen() {
           onEndReached={loadMore}
           onEndReachedThreshold={0.4}
           showsVerticalScrollIndicator={false}
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={{ itemVisiblePercentThreshold: 60 }}
           ListFooterComponent={
             loadingMore ? (
               <ActivityIndicator
@@ -276,74 +358,68 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
   },
 
-  // --- Post Card ---
-  postCard: { backgroundColor: "#FFF", marginBottom: 10 }, // Margin diya taaki cards alag nazar aayein
+  addPostBtn: { padding: 4 },
 
-  // --- Header ---
+  postCard: { backgroundColor: "#FFF", marginTop: 0 },
   postHeader: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 10,
   },
   postAuthorRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   postAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
   },
+  postAvatarEmoji: { fontSize: 20 },
   postAuthorName: { fontSize: 15, fontWeight: "700", color: "#0b1d5b" },
-  postSubtitle: { fontSize: 12, color: "#888", marginTop: 2 }, // "Vedic" text
-  headerRight: { flexDirection: "row", alignItems: "center", gap: 12 },
-  followBtnText: { color: "#9d0399", fontSize: 13, fontWeight: "600" },
+  postTime: { fontSize: 11, color: "#999" },
+  followBtnText: { color: "#9d0399", fontSize: 12, fontWeight: "600" },
+  followBtn: {},
 
-  // --- Post Image Content (Overlay) ---
-  postImage: {
-    width: SCREEN_WIDTH,
-    height: 380, // Height badha di
-    justifyContent: "space-between",
-    padding: 24, // Padding for inner contents
-  },
-  imageOverlayContent: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingTop: 20,
-  },
-  overlayMainText: {
-    color: "#FFF",
-    fontSize: 26,
-    fontWeight: "bold",
-    textAlign: "center",
-    lineHeight: 36,
-    textShadowColor: "rgba(0,0,0,0.3)", // Darker text shadow for readability
-    textShadowOffset: { width: 1, height: 2 },
-    textShadowRadius: 4,
-  },
-  imageFooterOverlay: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  bottomRightOverlayText: {
-    color: "#FFF",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-
-  // --- Fallback Image Area (Agar image nahi hai toh) ---
   postImageArea: {
     width: SCREEN_WIDTH,
     minHeight: 320,
     padding: 24,
     justifyContent: "space-between",
   },
+  postImage: { width: SCREEN_WIDTH, height: 320 },
+
+  // Video
+  videoWrap: { width: SCREEN_WIDTH, height: 380, backgroundColor: "#000" },
+  postVideo: { width: "100%", height: "100%" },
+  muteBadge: {
+    position: "absolute",
+    bottom: 12,
+    right: 12,
+    backgroundColor: "#00000080",
+    borderRadius: 16,
+    padding: 8,
+  },
+
+  // Sticker (single, draggable, position stored as %)
+  stickerChip: {
+    position: "absolute",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    maxWidth: SCREEN_WIDTH * 0.7,
+    transform: [{ translateX: -20 }, { translateY: -14 }],
+  },
+  stickerText: { fontSize: 14, fontWeight: "700" },
+
+  imagePostCaption: {
+    fontSize: 14,
+    color: "#374151",
+    paddingHorizontal: 14,
+    paddingTop: 8,
+  },
   postContent: {
-    color: "#FFF",
     fontSize: 16,
     lineHeight: 26,
     fontWeight: "500",
@@ -357,43 +433,31 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 20,
   },
-
-  // --- Logo Styles (Astro Book) ---
   postLogoSmall: { flexDirection: "row", alignItems: "center" },
-  postLogoAstro: { fontSize: 16, fontWeight: "800", color: "#FFF" },
+  postLogoAstro: { fontSize: 13, fontWeight: "800", color: "#FFF" },
   postLogoBadge: {
-    backgroundColor: "#9d0399", // Solid color diya image ke liye
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    marginLeft: 4,
+    backgroundColor: "#FFFFFF30",
+    borderRadius: 3,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    marginLeft: 2,
   },
-  postLogoBook: { fontSize: 16, fontWeight: "800", color: "#FFF" },
-
-  // --- Post Bottom / Footer ---
-  postBottom: { paddingHorizontal: 14, paddingVertical: 12 },
-  captionText: {
-    fontSize: 14,
-    color: "#111",
-    marginBottom: 12,
-    lineHeight: 20,
-  },
-  actionsFooterRow: {
+  postLogoBook: { fontSize: 13, fontWeight: "800", color: "#FFF" },
+  postBottom: { paddingHorizontal: 14, paddingVertical: 10 },
+  actionsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start", // Top align
+    alignItems: "center",
+    marginTop: 6,
   },
-  leftFooterGroup: { flexDirection: "column", alignItems: "flex-start" },
-  iconRow: { flexDirection: "row", gap: 16 },
-  iconItem: { flexDirection: "row", alignItems: "center", gap: 4 },
-  iconCount: { fontSize: 14, color: "#9d0399", fontWeight: "500" },
-  postDate: { fontSize: 12, color: "#999", marginTop: 8 },
+  leftActions: { flexDirection: "row", alignItems: "center", gap: 18 },
+  actionBtn: { flexDirection: "row", alignItems: "center", gap: 6 },
+  count: { fontSize: 13, color: "#9d0399" },
   bookBtn: {
     backgroundColor: "#9d0399",
-    paddingHorizontal: 20,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
     borderRadius: 6,
-    marginTop: 2,
   },
-  bookText: { color: "#fff", fontSize: 13, fontWeight: "600" },
+  bookText: { color: "#fff", fontSize: 12, fontWeight: "600" },
 });
