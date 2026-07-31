@@ -6,6 +6,7 @@ import { GoogleSignin } from "@react-native-google-signin/google-signin";
 
 import Checkbox from "expo-checkbox";
 import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import React, { useRef, useState } from "react";
 import {
   Dimensions,
@@ -94,6 +95,7 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.root}>
+      <StatusBar style="light" />
       <AstroGradient
         width="100%"
         height="100%"
@@ -274,8 +276,9 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     paddingHorizontal: 20,
-    paddingVertical: 24,
-    justifyContent: "space-evenly",
+    paddingTop: 24,
+    paddingBottom: 40,
+    justifyContent: "flex-start",
     flexDirection: "column",
     gap: 20,
   },
@@ -408,7 +411,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 6,
     alignItems: "center",
-    marginTop: "auto",
   },
   footerLink: { color: "#E9D5FF", fontSize: 16 },
   footerSep: { color: "#C4B5FD", fontSize: 16 },

@@ -3,7 +3,9 @@ import type { BrowsedService } from "@/features/consultation/types";
 import { useCategoryPosts } from "@/features/posts/hooks/useFeed";
 import type { Post } from "@/features/posts/types/post.types";
 import { Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -14,8 +16,15 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// Astrobook ka signature "cosmic" navy — login/otp/onboarding mein already
+// establish hai. Har category hero isi navy mein blend hota hai neeche se,
+// taaki poora app ek hi visual identity share kare, sirf ek flat solid
+// color block na ho.
+const COSMIC_NAVY = "#121943";
 
 const CATEGORY_META: Record<
   string,
@@ -113,6 +122,17 @@ const CATEGORY_META: Record<
   },
 };
 
+// Hero ke andar chhote decorative "stars" — fixed positions, lightweight
+// (koi extra asset/library nahi chahiye), sirf cosmic feel dene ke liye.
+const STAR_DOTS = [
+  { top: "24%", left: "12%", size: 3, opacity: 0.9 },
+  { top: "34%", left: "85%", size: 2, opacity: 0.6 },
+  { top: "20%", left: "70%", size: 2, opacity: 0.7 },
+  { top: "58%", left: "8%", size: 2, opacity: 0.5 },
+  { top: "68%", left: "90%", size: 3, opacity: 0.8 },
+  { top: "16%", left: "45%", size: 2, opacity: 0.5 },
+];
+
 const BG_PALETTE = [
   "#6B21A8",
   "#1E3A5F",
@@ -129,6 +149,7 @@ function colorForId(id: string) {
 
 export default function CategoryScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { category, label } = useLocalSearchParams<{
     category: string;
     label: string;
@@ -164,6 +185,16 @@ export default function CategoryScreen() {
     }
   }, [category]);
 
+  const isEmpty =
+    !postsLoading &&
+    !servicesLoading &&
+    posts.length === 0 &&
+    services.length === 0;
+
+  const otherCategories = Object.entries(CATEGORY_META)
+    .filter(([key]) => key !== category)
+    .slice(0, 8);
+
   const renderPostItem = ({ item }: { item: Post }) => (
     <TouchableOpacity
       style={[
@@ -194,6 +225,7 @@ export default function CategoryScreen() {
 
   return (
     <View style={styles.root}>
+      <StatusBar style="light" />
       <FlatList
         data={posts}
         keyExtractor={(item) => item.id}
@@ -201,30 +233,64 @@ export default function CategoryScreen() {
         showsVerticalScrollIndicator={false}
         onEndReached={loadMorePosts}
         onEndReachedThreshold={0.4}
+
         ListHeaderComponent={
           <View>
-            {/* Hero Section */}
-            <View style={[styles.hero, { backgroundColor: meta.color }]}>
+              {/* ── Hero — cosmic gradient, brand navy mein blend hoti hai.
+                  Gradient khud full-bleed hai (status bar ke peeche bhi jaata
+                  hai, immersive look), lekin andar ka content (back button,
+                  badge) insets.top se safe distance rakhta hai — warna status
+                  bar icons ke saath overlap/cramped lagta hai. ── */}
+            <LinearGradient
+              colors={[meta.color, COSMIC_NAVY]}
+              style={[styles.hero, { paddingTop: insets.top + 50 }]}
+            >
+              {STAR_DOTS.map((star, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.star,
+                    {
+                      top: star.top as any,
+                      left: star.left as any,
+                      width: star.size,
+                      height: star.size,
+                      opacity: star.opacity,
+                    },
+                  ]}
+                />
+              ))}
               <TouchableOpacity
-                style={styles.backBtn}
+                style={[styles.backBtn, { top: insets.top + 12 }]}
                 onPress={() => router.back()}
+                hitSlop={8}
               >
                 <Feather name="arrow-left" size={22} color="#FFF" />
               </TouchableOpacity>
-              <Text style={styles.heroEmoji}>{meta.emoji}</Text>
+              <View style={styles.emojiBadge}>
+                <Text style={styles.heroEmoji}>{meta.emoji}</Text>
+              </View>
               <Text style={styles.heroTitle}>{label}</Text>
               <Text style={styles.heroDesc}>{meta.description}</Text>
-            </View>
+            </LinearGradient>
 
-            {/* Consultancies Section */}
+            {/* ── Consultancies Section ── */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Consultancies</Text>
               {servicesLoading ? (
                 <ActivityIndicator color="#9d0399" style={{ marginTop: 12 }} />
               ) : services.length === 0 ? (
-                <Text style={styles.emptyText}>
-                  Is category mein abhi koi consultancy nahi hai
-                </Text>
+                <View style={styles.emptyBox}>
+                  <View style={styles.emptyIconCircle}>
+                    <Feather name="users" size={20} color="#9d0399" />
+                  </View>
+                  <Text style={styles.emptyTitle}>
+                    Abhi koi consultancy nahi
+                  </Text>
+                  <Text style={styles.emptySubtext}>
+                    Is category ke astrologers jaldi add honge
+                  </Text>
+                </View>
               ) : (
                 <FlatList
                   data={services}
@@ -277,27 +343,77 @@ export default function CategoryScreen() {
               )}
             </View>
 
+            {/* ── Recent Posts Section ── */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Recent Posts</Text>
               {postsLoading && posts.length === 0 && (
                 <ActivityIndicator color="#9d0399" style={{ marginTop: 12 }} />
               )}
               {!postsLoading && posts.length === 0 && (
-                <Text style={styles.emptyText}>Koi post nahi mila</Text>
+                <View style={styles.emptyBox}>
+                  <View style={styles.emptyIconCircle}>
+                    <Feather name="file-text" size={20} color="#9d0399" />
+                  </View>
+                  <Text style={styles.emptyTitle}>Koi post nahi mila</Text>
+                  <Text style={styles.emptySubtext}>
+                    Astrologers is category mein post karenge toh yahan dikhega
+                  </Text>
+                </View>
               )}
             </View>
+
+            {/* ── Empty hone par khaali space ki jagah "aur explore karo"
+                genuinely useful section — dead-end feel nahi hoga ── */}
+            {isEmpty && otherCategories.length > 0 && (
+              <View style={styles.exploreMoreSection}>
+                <Text style={styles.sectionTitle}>Aur bhi explore karo</Text>
+                <View style={styles.categoryChips}>
+                  {otherCategories.map(([key, cat]) => (
+                    <TouchableOpacity
+                      key={key}
+                      style={styles.categoryChip}
+                      activeOpacity={0.85}
+                      onPress={() =>
+                        router.push({
+                          pathname: "/(user)/explore/[category]" as any,
+                          params: {
+                            category: key,
+                            label: key
+                              .split("-")
+                              .map((w) => w[0]?.toUpperCase() + w.slice(1))
+                              .join(" "),
+                          },
+                        })
+                      }
+                    >
+                      <Text style={styles.categoryChipEmoji}>{cat.emoji}</Text>
+                      <Text style={styles.categoryChipText}>
+                        {key
+                          .split("-")
+                          .map((w) => w[0]?.toUpperCase() + w.slice(1))
+                          .join(" ")}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
           </View>
         }
         renderItem={renderPostItem}
         numColumns={1}
-        contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
+        contentContainerStyle={{
+          // paddingHorizontal: 16,
+          gap: 12,
+          paddingBottom: insets.bottom + 16,
+        }}
         ListFooterComponent={
           postsLoadingMore ? (
             <ActivityIndicator color="#9d0399" style={{ marginVertical: 20 }} />
           ) : !postsHasMore && posts.length > 0 ? (
             <Text style={styles.endText}>Bas itna hi</Text>
           ) : (
-            <View style={{ height: 32 }} />
+            <View style={{ height: 8 }} />
           )
         }
       />
@@ -316,25 +432,39 @@ const styles = StyleSheet.create({
   },
 
   hero: {
-    paddingTop: 60,
-    paddingBottom: 28,
+    paddingBottom: 32,
     paddingHorizontal: 20,
     alignItems: "center",
     gap: 6,
+    overflow: "hidden",
+  },
+  star: {
+    position: "absolute",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 4,
   },
   backBtn: {
     position: "absolute",
-    top: 60,
+    top: 16,
     left: 16,
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "rgba(0,0,0,0.25)",
+    backgroundColor: "rgba(255,255,255,0.15)",
     alignItems: "center",
     justifyContent: "center",
   },
-  heroEmoji: { fontSize: 40 },
-  heroTitle: { fontSize: 22, fontWeight: "800", color: "#FFF", marginTop: 4 },
+  emojiBadge: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 12,
+  },
+  heroEmoji: { fontSize: 32 },
+  heroTitle: { fontSize: 22, fontWeight: "800", color: "#FFF", marginTop: 6 },
   heroDesc: {
     fontSize: 13,
     color: "rgba(255,255,255,0.85)",
@@ -351,11 +481,39 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
+  emptyBox: {
+    alignItems: "center",
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+    backgroundColor: "#FFF",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#F0E6FF",
+    gap: 4,
+  },
+  emptyIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#F9F5FF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 6,
+  },
+  emptyTitle: { fontSize: 13.5, fontWeight: "700", color: "#374151" },
+  emptySubtext: {
+    fontSize: 12,
+    color: "#9CA3AF",
+    textAlign: "center",
+    lineHeight: 17,
+  },
+
   horizontalList: { gap: 10, paddingBottom: 4 },
   postCard: {
     borderRadius: 14,
-    padding: 14,
-    minHeight: 130,
+  padding: 14,
+  minHeight: 130,
+  marginHorizontal: 16,   // 👈 add
   },
   postCardHeader: {
     flexDirection: "row",
@@ -408,4 +566,24 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   bookBtnText: { color: "#FFF", fontSize: 11, fontWeight: "700" },
+
+  exploreMoreSection: { paddingTop: 24, paddingHorizontal: 16 },
+  categoryChips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  categoryChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#FFF",
+    borderWidth: 1,
+    borderColor: "#EDE9FF",
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  categoryChipEmoji: { fontSize: 14 },
+  categoryChipText: { fontSize: 12.5, fontWeight: "600", color: "#4A4468" },
 });

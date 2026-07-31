@@ -2,6 +2,7 @@ import AstroGradient from "@/assets/images/astro-gradient.svg";
 import AstroLogo from "@/assets/images/astro-icon.svg";
 import { useOtpLogin } from "@/features/auth/hooks/useAuth";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Dimensions,
@@ -17,6 +18,20 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// OTP boxes ko flexible banaya — fixed 52px 6 boxes chhoti screens (~360dp)
+// pe overflow/cramped ho sakte the. Ab available card-width ke hisaab se
+// size calculate hota hai, max 52px tak (bade screens pe zyada bade nahi honge).
+const OTP_BOX_GAP = 8;
+const OTP_BOXES_COUNT = 6;
+const CARD_HORIZONTAL_PADDING = 20; // card style se match
+const OTP_CONTAINER_HORIZONTAL_PADDING = 4; // otpContainer style se match
+const AVAILABLE_OTP_WIDTH =
+  SCREEN_WIDTH * 0.96 -
+  CARD_HORIZONTAL_PADDING * 2 -
+  OTP_CONTAINER_HORIZONTAL_PADDING * 2 -
+  OTP_BOX_GAP * (OTP_BOXES_COUNT - 1);
+const OTP_BOX_SIZE = Math.min(52, AVAILABLE_OTP_WIDTH / OTP_BOXES_COUNT);
 
 const VIDEOS = [
   {
@@ -111,6 +126,7 @@ export default function OtpScreen() {
 
   return (
     <View style={styles.root}>
+      <StatusBar style="light" />
       <AstroGradient
         width="100%"
         height="100%"
@@ -128,28 +144,37 @@ export default function OtpScreen() {
             {/* Contact info */}
             {/* <Text style={styles.subtitle}>OTP bheja gaya</Text> */}
             {/* <Text style={styles.contact}>{contact}</Text> */}
-            {/* Hidden input */}
-            <TextInput
-              ref={inputRef}
-              value={otp}
-              onChangeText={(text) => {
-                if (/^\d*$/.test(text) && text.length <= 6) setOtp(text);
-              }}
-              keyboardType="number-pad"
-              maxLength={6}
-              style={{ position: "absolute", opacity: 0, height: 0 }}
-            />
-            {/* OTP Boxes */}
+            {/* OTP Boxes — hidden input isi ke andar overlay hota hai */}
             <TouchableOpacity
               style={styles.otpContainer}
               activeOpacity={1}
               onPress={() => inputRef.current?.focus()}
             >
+              {/*
+                Hidden input: pehle height:0 tha jo kai Android OEM skins
+                (Vivo Funtouch jaisi) pe keyboard reliably trigger nahi
+                karta tha. Ab poore otpContainer ko cover karta hai
+                (real width/height, sirf opacity:0 se invisible) — isse
+                focus() call se keyboard consistently khulta hai.
+              */}
+              <TextInput
+                ref={inputRef}
+                value={otp}
+                onChangeText={(text) => {
+                  if (/^\d*$/.test(text) && text.length <= 6) setOtp(text);
+                }}
+                keyboardType="number-pad"
+                maxLength={6}
+                autoComplete="sms-otp"
+                textContentType="oneTimeCode"
+                style={styles.hiddenOtpInput}
+              />
               {[...Array(6)].map((_, i) => (
                 <View
                   key={i}
                   style={[
                     styles.otpBox,
+                    { width: OTP_BOX_SIZE, height: OTP_BOX_SIZE },
                     otp[i] ? styles.otpBoxFilled : null,
                     otp.length === i ? styles.otpBoxActive : null,
                   ]}
@@ -257,8 +282,9 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     paddingHorizontal: 20,
-    paddingVertical: 24,
-    justifyContent: "space-evenly",
+    paddingTop: 24,
+    paddingBottom: 40,
+    justifyContent: "flex-start",
     flexDirection: "column",
     gap: 20,
   },
@@ -290,14 +316,22 @@ const styles = StyleSheet.create({
   },
   otpContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
     width: "100%",
     marginVertical: 12,
     paddingHorizontal: 4,
+    gap: OTP_BOX_GAP,
+    position: "relative",
+  },
+  hiddenOtpInput: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    opacity: 0,
   },
   otpBox: {
-    width: 52,
-    height: 52,
     borderWidth: 2,
     borderColor: "#D1D5DB",
     borderRadius: 10,
@@ -383,7 +417,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 6,
     alignItems: "center",
-    marginTop: "auto",
   },
   footerLink: { color: "#E9D5FF", fontSize: 16 },
   footerSep: { color: "#C4B5FD", fontSize: 16 },

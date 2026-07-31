@@ -1,8 +1,18 @@
 import { useAuthStore } from "@/features/auth/store/auth.store";
 import { usePushNotifications } from "@/features/notifications/hooks/usePushNotifications";
 import { Slot, useRouter } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+
+// Native splash (Astrobook logo, navy background) ko turant auto-hide nahi
+// hone dena — Instagram/FB jaisa seedha "logo → app" transition chahiye,
+// beech mein koi spinner screen nahi dikhni chahiye. Yeh call module-load
+// pe hi hona chahiye (component render se pehle), warna race ho sakta hai.
+SplashScreen.preventAutoHideAsync().catch(() => {
+  // Splash pehle se hi hidden ho sakta hai (fast-refresh, etc.) — safe to ignore
+});
 
 export default function RootLayout() {
   const router = useRouter();
@@ -36,21 +46,35 @@ export default function RootLayout() {
     init();
   }, []);
 
+  useEffect(() => {
+    // Redirect commit ho chuka — ab native splash hatao, seedha destination
+    // screen dikhega (spinner wala phase kabhi visible hi nahi hota).
+    if (ready) {
+      SplashScreen.hideAsync();
+    }
+  }, [ready]);
+
   // Init chal raha hai ya redirect abhi commit nahi hua — kuch mat dikhao
   if (!ready) {
     return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: "#121943",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <ActivityIndicator color="#9d0399" size="large" />
-      </View>
+      <SafeAreaProvider>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "#121943",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <ActivityIndicator color="#9d0399" size="large" />
+        </View>
+      </SafeAreaProvider>
     );
   }
 
-  return <Slot />;
+  return (
+    <SafeAreaProvider>
+      <Slot />
+    </SafeAreaProvider>
+  );
 }

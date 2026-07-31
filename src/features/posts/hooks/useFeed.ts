@@ -222,14 +222,17 @@ export function usePost(id: string | undefined) {
     setLoading(true);
     setError(null);
     try {
-      const [detail, all] = await Promise.all([
-        postsService.getById(id),
-        postsService.getAll(10, 0),
-      ]);
+      const detail = await postsService.getById(id);
       const enrichedDetail = (await enrichWithAstrologers([detail]))[0]!;
-      const related = all.posts.filter((p) => p.id !== id).slice(0, 6);
-      const enrichedRelated = await enrichWithAstrologers(related);
       setPost(enrichedDetail);
+
+      // "More posts by same astrologer" — pehle generic getAll se aa raha
+      // tha (random posts), ab specifically usi astrologer ke posts
+      const sameAstrologer = await postsService.getByAstrologer(
+        detail.astrologerId,
+      );
+      const related = sameAstrologer.filter((p) => p.id !== id).slice(0, 6);
+      const enrichedRelated = await enrichWithAstrologers(related);
       setRelatedPosts(enrichedRelated);
     } catch (err: any) {
       setError(err?.response?.data?.message || "Post load nahi hua");

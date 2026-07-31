@@ -4,6 +4,7 @@ import { useOnboarding } from "@/features/auth/hooks/useAuth";
 import { useAuthStore } from "@/features/auth/store/auth.store";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -15,6 +16,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const INTERESTS = [
   { label: "Numerology", emoji: "🔢" },
@@ -70,6 +72,7 @@ export default function OnboardingScreen() {
 
   return (
     <View style={styles.root}>
+      <StatusBar style="light" />
       {/* Same gradient as login screen */}
       <AstroGradient
         width="100%"
@@ -77,157 +80,162 @@ export default function OnboardingScreen() {
         style={StyleSheet.absoluteFill}
       />
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+      <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
-          {/* Logo */}
-          <View style={styles.logoRow}>
-            <AstroLogo width={220} height={90} />
-          </View>
+          <ScrollView
+            contentContainerStyle={styles.content}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Logo */}
+            <View style={styles.logoRow}>
+              <AstroLogo width={220} height={90} />
+            </View>
 
-          {/* Header */}
-          {/* <View style={styles.header}>
+            {/* Header */}
+            {/* <View style={styles.header}>
             <Text style={styles.title}>Welcome! 🌟</Text>
             <Text style={styles.subtitle}>
               Tell us about your self, for better cosmic insights
             </Text>
           </View> */}
 
-          {/* Form Card */}
-          <View style={styles.card}>
-            <Text style={styles.cardHeading}>Your Profile</Text>
+            {/* Form Card */}
+            <View style={styles.card}>
+              <Text style={styles.cardHeading}>Your Profile</Text>
 
-            {/* Name */}
-            <View style={styles.field}>
-              <Text style={styles.label}>Full Name *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your full name"
-                placeholderTextColor="#9CA3AF"
-                value={name}
-                onChangeText={setName}
-                autoCapitalize="words"
-              />
-            </View>
+              {/* Name */}
+              <View style={styles.field}>
+                <Text style={styles.label}>Full Name *</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your full name"
+                  placeholderTextColor="#9CA3AF"
+                  value={name}
+                  onChangeText={setName}
+                  autoCapitalize="words"
+                />
+              </View>
 
-            {/* Email */}
-            <View style={styles.field}>
-              <Text style={styles.label}>Email Address</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="your@email.com"
-                placeholderTextColor="#9CA3AF"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
+              {/* Email */}
+              <View style={styles.field}>
+                <Text style={styles.label}>Email Address</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="your@email.com"
+                  placeholderTextColor="#9CA3AF"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
 
-            {/* DOB */}
-            <View style={[styles.field, { marginBottom: 0 }]}>
-              <Text style={styles.label}>Date of Birth</Text>
-              <TouchableOpacity
-                style={styles.dateBtn}
-                onPress={() => setShowDatePicker(true)}
-                activeOpacity={0.8}
-              >
-                <Text
-                  style={[styles.dateBtnText, !dob && styles.datePlaceholder]}
+              {/* DOB */}
+              <View style={[styles.field, { marginBottom: 0 }]}>
+                <Text style={styles.label}>Date of Birth</Text>
+                <TouchableOpacity
+                  style={styles.dateBtn}
+                  onPress={() => setShowDatePicker(true)}
+                  activeOpacity={0.8}
                 >
-                  {dob ? formatDate(dob) : "Select your date of birth"}
-                </Text>
-                <Text style={styles.calendarIcon}>📅</Text>
-              </TouchableOpacity>
-              <Text style={styles.fieldHint}>
-                Optional — better cosmic insights ke liye
-              </Text>
-            </View>
-          </View>
-
-          {/* Date Picker */}
-          {showDatePicker && (
-            <DateTimePicker
-              value={dob || new Date(2000, 0, 1)}
-              mode="date"
-              display={Platform.OS === "ios" ? "spinner" : "default"}
-              onChange={handleDateChange}
-              maximumDate={new Date()}
-              minimumDate={new Date(1940, 0, 1)}
-            />
-          )}
-
-          {/* Interests */}
-          <View style={styles.interestsCard}>
-            <Text style={styles.interestsTitle}>✨ Your Interests</Text>
-            <Text style={styles.interestsSubtitle}>
-              Jo topics mein curious ho, woh choose karo
-            </Text>
-            <View style={styles.chips}>
-              {INTERESTS.map((item) => {
-                const active = selected.includes(item.label);
-                return (
-                  <TouchableOpacity
-                    key={item.label}
-                    style={[styles.chip, active && styles.chipActive]}
-                    onPress={() => toggleInterest(item.label)}
-                    activeOpacity={0.8}
+                  <Text
+                    style={[styles.dateBtnText, !dob && styles.datePlaceholder]}
                   >
-                    <Text style={styles.chipEmoji}>{item.emoji}</Text>
-                    <Text
-                      style={[styles.chipText, active && styles.chipTextActive]}
-                    >
-                      {item.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+                    {dob ? formatDate(dob) : "Select your date of birth"}
+                  </Text>
+                  <Text style={styles.calendarIcon}>📅</Text>
+                </TouchableOpacity>
+                <Text style={styles.fieldHint}>
+                  Optional — better cosmic insights ke liye
+                </Text>
+              </View>
             </View>
 
-            {selected.length > 0 && (
-              <Text style={styles.selectedCount}>
-                {selected.length} interest{selected.length > 1 ? "s" : ""}{" "}
-                selected ✨
-              </Text>
+            {/* Date Picker */}
+            {showDatePicker && (
+              <DateTimePicker
+                value={dob || new Date(2000, 0, 1)}
+                mode="date"
+                display={Platform.OS === "ios" ? "spinner" : "default"}
+                onChange={handleDateChange}
+                maximumDate={new Date()}
+                minimumDate={new Date(1940, 0, 1)}
+              />
             )}
-          </View>
 
-          {/* Submit */}
-          <TouchableOpacity
-            style={[styles.btn, loading && styles.btnLoading]}
-            disabled={loading}
-            onPress={handleComplete}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.btnText}>
-              {loading ? "Setting up..." : "Start My Journey 🚀"}
-            </Text>
-          </TouchableOpacity>
+            {/* Interests */}
+            <View style={styles.interestsCard}>
+              <Text style={styles.interestsTitle}>✨ Your Interests</Text>
+              <Text style={styles.interestsSubtitle}>
+                Jo topics mein curious ho, woh choose karo
+              </Text>
+              <View style={styles.chips}>
+                {INTERESTS.map((item) => {
+                  const active = selected.includes(item.label);
+                  return (
+                    <TouchableOpacity
+                      key={item.label}
+                      style={[styles.chip, active && styles.chipActive]}
+                      onPress={() => toggleInterest(item.label)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.chipEmoji}>{item.emoji}</Text>
+                      <Text
+                        style={[
+                          styles.chipText,
+                          active && styles.chipTextActive,
+                        ]}
+                      >
+                        {item.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
 
-          {/* Skip */}
-          <TouchableOpacity
-            style={styles.skipBtn}
-            onPress={() => router.replace("/(user)/feed" as any)}
-          >
-            <Text style={styles.skipText}>Skip for now</Text>
-          </TouchableOpacity>
+              {selected.length > 0 && (
+                <Text style={styles.selectedCount}>
+                  {selected.length} interest{selected.length > 1 ? "s" : ""}{" "}
+                  selected ✨
+                </Text>
+              )}
+            </View>
 
-          <View style={{ height: 40 }} />
-        </ScrollView>
-      </KeyboardAvoidingView>
+            {/* Submit */}
+            <TouchableOpacity
+              style={[styles.btn, loading && styles.btnLoading]}
+              disabled={loading}
+              onPress={handleComplete}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.btnText}>
+                {loading ? "Setting up..." : "Start My Journey 🚀"}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Skip */}
+            <TouchableOpacity
+              style={styles.skipBtn}
+              onPress={() => router.replace("/(user)/feed" as any)}
+            >
+              <Text style={styles.skipText}>Skip for now</Text>
+            </TouchableOpacity>
+
+            <View style={{ height: 40 }} />
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#121943" },
-  content: { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 32 },
+  content: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 32 },
 
   logoRow: { alignItems: "center", marginBottom: 20 },
 

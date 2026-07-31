@@ -1,15 +1,14 @@
 import { Feather } from "@expo/vector-icons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { Stack } from "expo-router";
+import { Tabs } from "expo-router";
 import { useEffect, useRef } from "react";
 import {
-  Animated,
-  Dimensions,
-  StyleSheet,
-  TouchableOpacity,
-  View,
+    Animated,
+    Dimensions,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const TAB_COUNT = 5;
@@ -44,7 +43,6 @@ const TABS = [
 ];
 
 function CustomTabBar({ state, navigation }: any) {
-  const insets = useSafeAreaInsets();
   const dotX = useRef(new Animated.Value(state.index * TAB_WIDTH)).current;
 
   useEffect(() => {
@@ -57,12 +55,7 @@ function CustomTabBar({ state, navigation }: any) {
   }, [state.index]);
 
   return (
-    <View
-      style={[
-        styles.tabBar,
-        { height: 56 + insets.bottom, paddingBottom: 8 + insets.bottom },
-      ]}
-    >
+    <View style={styles.tabBar}>
       {/* Animated dot */}
       <Animated.View
         style={[styles.dot, { transform: [{ translateX: dotX }] }]}
@@ -80,7 +73,16 @@ function CustomTabBar({ state, navigation }: any) {
             style={styles.tabItem}
             activeOpacity={1}
             onPress={() => {
-              if (!isFocused) navigation.navigate(route.name);
+              // Same tab dubara press ho toh uska internal stack root pe pop
+              // karo (standard tab-bar behavior) — warna sirf switch karo.
+              if (!isFocused) {
+                navigation.navigate(route.name);
+              } else {
+                navigation.emit({
+                  type: "tabPress",
+                  target: route.key,
+                });
+              }
             }}
           >
             {tab?.icon(color)}
@@ -91,24 +93,18 @@ function CustomTabBar({ state, navigation }: any) {
   );
 }
 
-export default function UserLayout() {
+export default function TabsLayout() {
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(tabs)" />
- 
-      <Stack.Screen name="astrologer-profile" />
-      <Stack.Screen name="service/[id]" />
-      <Stack.Screen name="book-slot" />
-      <Stack.Screen name="cart-slot-picker" />
-      <Stack.Screen name="cart" />
-      <Stack.Screen name="checkout" />
-      <Stack.Screen name="booking-confirmation" />
-      <Stack.Screen name="payment-failed" />
-      <Stack.Screen name="my-bookings" />
-      <Stack.Screen name="post/[id]" />
-      <Stack.Screen name="edit-profile" />
-      <Stack.Screen name="session/[appointmentId]" />
-    </Stack>
+    <Tabs
+      tabBar={(props) => <CustomTabBar {...props} />}
+      screenOptions={{ headerShown: false }}
+    >
+      <Tabs.Screen name="feed" />
+      <Tabs.Screen name="explore" />
+      <Tabs.Screen name="astroverse" />
+      <Tabs.Screen name="astrologers" />
+      <Tabs.Screen name="profile" />
+    </Tabs>
   );
 }
 
@@ -116,7 +112,9 @@ const styles = StyleSheet.create({
   tabBar: {
     flexDirection: "row",
     backgroundColor: "#fff1ff",
-    paddingTop: 5,
+    height: 64,
+    paddingBottom: 8,
+    paddingTop: 10,
     elevation: 12,
     shadowColor: "#9d0399",
     shadowOffset: { width: 0, height: -2 },

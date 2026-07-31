@@ -1,7 +1,7 @@
 import Header from "@/components/header";
 import { useUser } from "@/features/auth/store/auth.store";
-import { useLikePost } from "@/features/posts/hooks/usePosts";
 import { useFeedPosts } from "@/features/posts/hooks/useFeed";
+import { useLikePost } from "@/features/posts/hooks/usePosts";
 import type { Post } from "@/features/posts/types/post.types";
 import { Feather } from "@expo/vector-icons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
