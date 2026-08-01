@@ -1,20 +1,21 @@
 import { useAuthStore } from "@/features/auth/store/auth.store";
 import { usePushNotifications } from "@/features/notifications/hooks/usePushNotifications";
+import { queryClient } from "@/lib/queryClient";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { Slot, useRouter } from "expo-router";
-import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
-// Native splash (Astrobook logo, navy background) ko turant auto-hide nahi
-// hone dena — Instagram/FB jaisa seedha "logo → app" transition chahiye,
-// beech mein koi spinner screen nahi dikhni chahiye. Yeh call module-load
-// pe hi hona chahiye (component render se pehle), warna race ho sakta hai.
-SplashScreen.preventAutoHideAsync().catch(() => {
-  // Splash pehle se hi hidden ho sakta hai (fast-refresh, etc.) — safe to ignore
-});
-
 export default function RootLayout() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AppGate />
+    </QueryClientProvider>
+  );
+}
+
+function AppGate() {
   const router = useRouter();
   const { restoreSession, user } = useAuthStore();
   // Apna khud ka gate — store ka `isLoading` restoreSession() ke ANDAR hi
@@ -46,18 +47,10 @@ export default function RootLayout() {
     init();
   }, []);
 
-  useEffect(() => {
-    // Redirect commit ho chuka — ab native splash hatao, seedha destination
-    // screen dikhega (spinner wala phase kabhi visible hi nahi hota).
-    if (ready) {
-      SplashScreen.hideAsync();
-    }
-  }, [ready]);
-
   // Init chal raha hai ya redirect abhi commit nahi hua — kuch mat dikhao
   if (!ready) {
     return (
-      <SafeAreaProvider>
+ <SafeAreaProvider>
         <View
           style={{
             flex: 1,
@@ -72,9 +65,5 @@ export default function RootLayout() {
     );
   }
 
-  return (
-    <SafeAreaProvider>
-      <Slot />
-    </SafeAreaProvider>
-  );
+  return <Slot />;
 }

@@ -9,8 +9,13 @@ export type OnboardPayload = {
 };
 
 class AuthService {
-  async getOtp(phone: string): Promise<void> {
-    await apiClient.post("/auth/send-otp", { phone }, { withToken: false });
+  async getOtp(phone: string): Promise<{ debugOtp?: string }> {
+    const res = await apiClient.post<{ debugOtp?: string }>(
+      "/auth/send-otp",
+      { phone },
+      { withToken: false },
+    );
+    return { debugOtp: res.data?.debugOtp };
   }
 
   async verifyOtp(phone: string, otp: string): Promise<AuthResult> {

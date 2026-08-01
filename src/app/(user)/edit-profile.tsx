@@ -1,14 +1,18 @@
 import ScreenHeader from "@/components/ScreenHeader";
 import { useAuthStore } from "@/features/auth/store/auth.store";
+import { useImageKitUpload } from "@/features/posts/hooks/usePosts";
 import {
   useMyProfile,
   useUpdateProfile,
 } from "@/features/users/hooks/useProfile";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
+  Image,
   Platform,
   ScrollView,
   StyleSheet,
@@ -48,7 +52,11 @@ export default function EditProfileScreen() {
   const { updateUser } = useAuthStore();
   const { profile, loading: loadingProfile, fetchProfile } = useMyProfile();
   const { updateProfile, loading: saving } = useUpdateProfile((updated) => {
-    updateUser({ name: updated.name });
+    updateUser({
+      name: updated.name,
+      avatarUrl: updated.avatarUrl,
+      bio: updated.bio,
+    });
     router.back();
   });
 
@@ -56,6 +64,9 @@ export default function EditProfileScreen() {
   const [dob, setDob] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [interests, setInterests] = useState<string[]>([]);
+  const [bio, setBio] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const { uploadImage, uploading: avatarUploading } = useImageKitUpload();
 
   useEffect(() => {
     fetchProfile();
@@ -66,6 +77,8 @@ export default function EditProfileScreen() {
     setName(profile.name ?? "");
     setDob(profile.dateOfBirth ? new Date(profile.dateOfBirth) : null);
     setInterests(profile.interests ?? []);
+    setBio(profile.bio ?? "");
+    setAvatarUrl(profile.avatarUrl ?? null);
   }, [profile]);
 
   const toggleInterest = (interest: string) => {
@@ -76,12 +89,40 @@ export default function EditProfileScreen() {
     );
   };
 
+  const pickAvatar = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"] as any,
+      quality: 0.8,
+      allowsEditing: true,
+      aspect: [1, 1],
+    });
+    if (result.canceled || !result.assets[0]) return;
+
+    const uri = result.assets[0].uri;
+    const prevUrl = avatarUrl;
+    setAvatarUrl(uri); // turant preview dikhao, upload background mein
+
+    const url = await uploadImage(
+      uri,
+      `avatar_${Date.now()}.jpg`,
+      "/astrobook/avatars",
+    );
+    if (url) {
+      setAvatarUrl(url);
+    } else {
+      Alert.alert("Error", "Photo upload nahi hui, dobara try karo");
+      setAvatarUrl(prevUrl);
+    }
+  };
+
   const handleSave = async () => {
     if (!name.trim()) return;
     await updateProfile({
       name: name.trim(),
       dateOfBirth: dob ? toApiDate(dob) : undefined,
       interests,
+      bio: bio.trim(),
+      ...(avatarUrl && avatarUrl.startsWith("http") ? { avatarUrl } : {}),
     });
   };
 
@@ -100,6 +141,28 @@ export default function EditProfileScreen() {
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
         >
+          <TouchableOpacity
+            style={styles.avatarWrapper}
+            onPress={pickAvatar}
+            disabled={avatarUploading}
+          >
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatarImg} />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Text style={styles.avatarPlaceholderText}>👤</Text>
+              </View>
+            )}
+            <View style={styles.avatarEditBadge}>
+              {avatarUploading ? (
+                <ActivityIndicator size="small" color="#FFF" />
+              ) : (
+                <Text style={styles.avatarEditIcon}>📷</Text>
+              )}
+            </View>
+          </TouchableOpacity>
+          <Text style={styles.avatarHint}>Photo change karne ke liye tap karo</Text>
+
           <Text style={styles.fieldLabel}>Name</Text>
           <TextInput
             style={styles.input}
@@ -109,6 +172,19 @@ export default function EditProfileScreen() {
             onChangeText={setName}
             maxLength={255}
           />
+
+          <Text style={styles.fieldLabel}>Bio</Text>
+          <TextInput
+            style={[styles.input, styles.bioInput]}
+            placeholder="Apne baare mein kuch likho..."
+            placeholderTextColor="#9CA3AF"
+            value={bio}
+            onChangeText={setBio}
+            maxLength={500}
+            multiline
+            textAlignVertical="top"
+          />
+          <Text style={styles.charCount}>{bio.length}/500</Text>
 
           <Text style={styles.fieldLabel}>Date of Birth</Text>
           <TouchableOpacity
@@ -185,6 +261,54 @@ const styles = StyleSheet.create({
   content: { padding: 20, gap: 12 },
 
   fieldLabel: { fontSize: 13, fontWeight: "700", color: "#374151" },
+
+  avatarWrapper: {
+    alignSelf: "center",
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  avatarImg: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: "#EDE9FF",
+  },
+  avatarPlaceholder: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: "#EDE9FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarPlaceholderText: { fontSize: 36 },
+  avatarEditBadge: {
+    position: "absolute",
+    right: -2,
+    bottom: -2,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "#9d0399",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#F9F5FF",
+  },
+  avatarEditIcon: { fontSize: 13 },
+  avatarHint: {
+    alignSelf: "center",
+    fontSize: 12,
+    color: "#9CA3AF",
+    marginBottom: 8,
+  },
+  bioInput: { minHeight: 90 },
+  charCount: {
+    alignSelf: "flex-end",
+    fontSize: 11,
+    color: "#9CA3AF",
+    marginTop: -6,
+  },
   input: {
     backgroundColor: "#FFF",
     borderRadius: 12,

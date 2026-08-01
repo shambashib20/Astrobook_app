@@ -13,6 +13,8 @@ export type AuthUser = {
   role: "user" | "astrologer" | "admin";
   isOnboarded: boolean;
   isAstrologer: boolean; // ← added
+  avatarUrl: string | null;
+  bio: string | null;
 };
 
 export type AuthResult = {

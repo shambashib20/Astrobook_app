@@ -19,16 +19,22 @@ export function useOtpLogin() {
   const loginSuccess = useAuthStore((s) => s.loginSuccess);
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  // Test/staging servers pe jahan SMS deliver nahi ho raha, server
+  // SHOW_OTP_IN_RESPONSE=true hone par yeh field bhejta hai — screen isko
+  // dikha dega taaki manually enter kiya ja sake. Production mein hamesha
+  // undefined rahega.
+  const [debugOtp, setDebugOtp] = useState<string | undefined>(undefined);
 
   const sendOtp = async (phone: string) => {
     if (!phone.trim() || phone.trim().length < 10) {
       Alert.alert("Error", "Valid phone number daalo");
-      return false;
+      return { success: false } as const;
     }
     setSending(true);
     try {
-      await authService.getOtp(phone);
-      return true;
+      const { debugOtp } = await authService.getOtp(phone);
+      setDebugOtp(debugOtp);
+      return { success: true, debugOtp } as const;
     } catch (err: any) {
       if (err?.response?.status === 429) {
         Alert.alert(
@@ -38,7 +44,7 @@ export function useOtpLogin() {
       } else {
         Alert.alert("Error", err?.response?.data?.message || "OTP nahi gaya");
       }
-      return false;
+      return { success: false } as const;
     } finally {
       setSending(false);
     }
@@ -70,13 +76,14 @@ export function useOtpLogin() {
 
   const resendOtp = async (phone: string) => {
     try {
-      await authService.getOtp(phone);
+      const { debugOtp } = await authService.getOtp(phone);
+      setDebugOtp(debugOtp);
     } catch {
       Alert.alert("Error", "Resend nahi hua, dobara try karo");
     }
   };
 
-  return { sendOtp, verifyOtp, resendOtp, sending, verifying };
+  return { sendOtp, verifyOtp, resendOtp, sending, verifying, debugOtp };
 }
 
 // ─── useGoogleLogin ───────────────────────────────────────────────────────────

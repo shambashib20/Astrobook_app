@@ -2,7 +2,6 @@ import AstroGradient from "@/assets/images/astro-gradient.svg";
 import AstroLogo from "@/assets/images/astro-icon.svg";
 import { useOtpLogin } from "@/features/auth/hooks/useAuth";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Dimensions,
@@ -18,20 +17,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-
-// OTP boxes ko flexible banaya — fixed 52px 6 boxes chhoti screens (~360dp)
-// pe overflow/cramped ho sakte the. Ab available card-width ke hisaab se
-// size calculate hota hai, max 52px tak (bade screens pe zyada bade nahi honge).
-const OTP_BOX_GAP = 8;
-const OTP_BOXES_COUNT = 6;
-const CARD_HORIZONTAL_PADDING = 20; // card style se match
-const OTP_CONTAINER_HORIZONTAL_PADDING = 4; // otpContainer style se match
-const AVAILABLE_OTP_WIDTH =
-  SCREEN_WIDTH * 0.96 -
-  CARD_HORIZONTAL_PADDING * 2 -
-  OTP_CONTAINER_HORIZONTAL_PADDING * 2 -
-  OTP_BOX_GAP * (OTP_BOXES_COUNT - 1);
-const OTP_BOX_SIZE = Math.min(52, AVAILABLE_OTP_WIDTH / OTP_BOXES_COUNT);
 
 const VIDEOS = [
   {
@@ -56,10 +41,21 @@ const RESEND_TIMEOUT = 30;
 
 export default function OtpScreen() {
   const router = useRouter();
-  const { contact } = useLocalSearchParams<{ contact: string }>();
+  const { contact, debugOtp: debugOtpParam } = useLocalSearchParams<{
+    contact: string;
+    debugOtp?: string;
+  }>();
 
   const [otp, setOtp] = useState("");
-  const { verifyOtp, resendOtp, verifying } = useOtpLogin();
+  const { verifyOtp, resendOtp, verifying, debugOtp: debugOtpFromResend } =
+    useOtpLogin();
+  // Test/staging servers pe (jahan SMS actually deliver nahi ho raha)
+  // server SHOW_OTP_IN_RESPONSE=true karne par OTP wapas bhejta hai — yahan
+  // dikha dete hain taaki manually enter kiya ja sake. Resend hone par naya
+  // value hook se update ho jaata hai, warna login screen se aaya hua
+  // starting value use hota hai. Production mein dono hamesha undefined
+  // rahenge, isliye yeh block kabhi render hi nahi hoga.
+  const debugOtp = debugOtpFromResend ?? debugOtpParam;
   const [activeSlide, setActiveSlide] = useState(0);
   const [timer, setTimer] = useState(RESEND_TIMEOUT);
   const [canResend, setCanResend] = useState(false);
@@ -126,7 +122,6 @@ export default function OtpScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar style="light" />
       <AstroGradient
         width="100%"
         height="100%"
@@ -144,37 +139,28 @@ export default function OtpScreen() {
             {/* Contact info */}
             {/* <Text style={styles.subtitle}>OTP bheja gaya</Text> */}
             {/* <Text style={styles.contact}>{contact}</Text> */}
-            {/* OTP Boxes — hidden input isi ke andar overlay hota hai */}
+            {/* Hidden input */}
+            <TextInput
+              ref={inputRef}
+              value={otp}
+              onChangeText={(text) => {
+                if (/^\d*$/.test(text) && text.length <= 6) setOtp(text);
+              }}
+              keyboardType="number-pad"
+              maxLength={6}
+              style={{ position: "absolute", opacity: 0, height: 0 }}
+            />
+            {/* OTP Boxes */}
             <TouchableOpacity
               style={styles.otpContainer}
               activeOpacity={1}
               onPress={() => inputRef.current?.focus()}
             >
-              {/*
-                Hidden input: pehle height:0 tha jo kai Android OEM skins
-                (Vivo Funtouch jaisi) pe keyboard reliably trigger nahi
-                karta tha. Ab poore otpContainer ko cover karta hai
-                (real width/height, sirf opacity:0 se invisible) — isse
-                focus() call se keyboard consistently khulta hai.
-              */}
-              <TextInput
-                ref={inputRef}
-                value={otp}
-                onChangeText={(text) => {
-                  if (/^\d*$/.test(text) && text.length <= 6) setOtp(text);
-                }}
-                keyboardType="number-pad"
-                maxLength={6}
-                autoComplete="sms-otp"
-                textContentType="oneTimeCode"
-                style={styles.hiddenOtpInput}
-              />
               {[...Array(6)].map((_, i) => (
                 <View
                   key={i}
                   style={[
                     styles.otpBox,
-                    { width: OTP_BOX_SIZE, height: OTP_BOX_SIZE },
                     otp[i] ? styles.otpBoxFilled : null,
                     otp.length === i ? styles.otpBoxActive : null,
                   ]}
@@ -183,6 +169,20 @@ export default function OtpScreen() {
                 </View>
               ))}
             </TouchableOpacity>
+            {/* Dev/test helper — jab SMS delivery band ho, server-generated
+                OTP yahan dikh jaata hai. Tap karne se input mein bhar bhi
+                jaata hai. Production mein debugOtp hamesha undefined hoga,
+                isliye yeh block kabhi render nahi hoga. */}
+            {debugOtp ? (
+              <TouchableOpacity
+                style={styles.debugOtpBox}
+                onPress={() => setOtp(debugOtp)}
+              >
+                <Text style={styles.debugOtpText}>
+                  🔐 Test OTP: {debugOtp} (tap to fill)
+                </Text>
+              </TouchableOpacity>
+            ) : null}
             {/* Resend */}
             <View style={styles.resendRow}>
               {canResend ? (
@@ -282,9 +282,8 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 40,
-    justifyContent: "flex-start",
+    paddingVertical: 24,
+    justifyContent: "space-evenly",
     flexDirection: "column",
     gap: 20,
   },
@@ -316,22 +315,14 @@ const styles = StyleSheet.create({
   },
   otpContainer: {
     flexDirection: "row",
-    justifyContent: "center",
+    justifyContent: "space-between",
     width: "100%",
     marginVertical: 12,
     paddingHorizontal: 4,
-    gap: OTP_BOX_GAP,
-    position: "relative",
-  },
-  hiddenOtpInput: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    opacity: 0,
   },
   otpBox: {
+    width: 52,
+    height: 52,
     borderWidth: 2,
     borderColor: "#D1D5DB",
     borderRadius: 10,
@@ -342,6 +333,21 @@ const styles = StyleSheet.create({
   otpBoxActive: {
     borderColor: "#9d0399",
     backgroundColor: "#FAF0FF",
+  },
+  debugOtpBox: {
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    backgroundColor: "#FFF4CC",
+    borderWidth: 1,
+    borderColor: "#E0B400",
+    alignSelf: "center",
+  },
+  debugOtpText: {
+    color: "#7A5B00",
+    fontSize: 13,
+    fontWeight: "600",
   },
   otpBoxFilled: {
     borderColor: "#9d0399",
@@ -417,6 +423,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 6,
     alignItems: "center",
+    marginTop: "auto",
   },
   footerLink: { color: "#E9D5FF", fontSize: 16 },
   footerSep: { color: "#C4B5FD", fontSize: 16 },

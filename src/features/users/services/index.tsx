@@ -11,6 +11,7 @@ export type UserProfile = {
   isOnboarded: boolean;
   isAstrologer: boolean;
   avatarUrl: string | null;
+  bio: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -19,6 +20,8 @@ export type UpdateProfilePayload = {
   name?: string;
   dateOfBirth?: string; // YYYY-MM-DD
   interests?: string[];
+  avatarUrl?: string;
+  bio?: string;
 };
 
 class UsersServiceApi {

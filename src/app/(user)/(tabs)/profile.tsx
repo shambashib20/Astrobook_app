@@ -1,11 +1,13 @@
 import Header from "@/components/header";
-import { useLogout } from "@/features/auth/hooks/useAuth";
 import { AstrologerProfileView } from "@/features/astrologer/components/AstrologerProfileView";
+import { useLogout } from "@/features/auth/hooks/useAuth";
 import { useAuthStore, useUser } from "@/features/auth/store/auth.store";
+import { useMyProfile } from "@/features/users/hooks/useProfile";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -24,7 +26,14 @@ const MENU_ITEMS = [
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const user = useUser();
+  // isAstrologer ka gate abhi bhi Zustand se — yeh session-level fact hai,
+  // login ke time hi pata chal jaata hai, isliye query load hone ka wait
+  // nahi karna padta (flicker-free branch decision).
+  const sessionUser = useUser();
+  // Baaki sab display data (name/avatar/bio/phone) ab useMyProfile() se —
+  // yehi cache Edit Profile screen bhi use karti hai, isliye dono hamesha
+  // sync rehte hain, koi manual wiring nahi chahiye.
+  const { profile, loading: profileLoading } = useMyProfile();
   const { handleLogout } = useLogout();
   const [loggingOut, setLoggingOut] = useState(false);
   const { isLoading } = useAuthStore();
@@ -35,9 +44,11 @@ export default function ProfileScreen() {
   }
 
   // Astrologer hai — same route, alag view (koi redirect nahi)
-  if (user?.isAstrologer) {
+  if (sessionUser?.isAstrologer) {
     return <AstrologerProfileView />;
   }
+
+  const user = profile ?? sessionUser;
 
   const onLogout = async () => {
     setLoggingOut(true);
@@ -53,12 +64,20 @@ export default function ProfileScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.profileCard}>
-          <View style={styles.avatarCircle}>
-            <Text style={styles.avatarEmoji}>👤</Text>
-          </View>
+          {user?.avatarUrl ? (
+            <Image
+              source={{ uri: user.avatarUrl }}
+              style={styles.avatarImg}
+            />
+          ) : (
+            <View style={styles.avatarCircle}>
+              <Text style={styles.avatarEmoji}>👤</Text>
+            </View>
+          )}
           <Text style={styles.name}>{user?.name ?? "User"}</Text>
           {user?.phone ? <Text style={styles.phone}>{user.phone}</Text> : null}
           {user?.email ? <Text style={styles.email}>{user.email}</Text> : null}
+          {user?.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
           <TouchableOpacity
             style={styles.editBtn}
             onPress={() => router.push("/(user)/edit-profile" as any)}
@@ -132,6 +151,22 @@ const styles = StyleSheet.create({
     borderColor: "#9d0399",
   },
   avatarEmoji: { fontSize: 36 },
+  avatarImg: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: "#9d0399",
+    backgroundColor: "#F3E8FF",
+  },
+  bio: {
+    fontSize: 13,
+    color: "#4A4468",
+    textAlign: "center",
+    marginBottom: 12,
+    paddingHorizontal: 8,
+  },
   name: { fontSize: 20, fontWeight: "800", color: "#1A1A2E", marginBottom: 4 },
   phone: { fontSize: 14, color: "#666", marginBottom: 2 },
   email: { fontSize: 13, color: "#999", marginBottom: 16 },

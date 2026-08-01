@@ -1,55 +1,56 @@
-import { useState } from "react";
+import { queryKeys } from "@/lib/queryClient";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Alert } from "react-native";
 import type { UpdateProfilePayload, UserProfile } from "../services";
 import { usersService } from "../services";
 
 // ─── useMyProfile ────────────────────────────────────────────────────────────
-// Full profile fetch (dateOfBirth/interests bhi milte hain, jo slim
-// AuthUser mein nahi hain) — Edit Profile screen ke initial load ke liye.
+// React Query se — yeh cache poore app mein SHARED hai. Jahan bhi
+// useMyProfile() call hoga (Edit Profile, Profile tab, kahin bhi), sabko
+// wahi ek cached value milegi, aur jab bhi mutation (updateProfile) succeed
+// hoti hai, cache update hote hi yeh SAB jagah automatically re-render ho
+// jaate hain — koi manual "yahan bhi update karo" wiring nahi chahiye.
 
 export function useMyProfile() {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(false);
+  const query = useQuery({
+    queryKey: queryKeys.profile.me,
+    queryFn: () => usersService.getMe(),
+  });
 
-  const fetchProfile = async () => {
-    setLoading(true);
-    try {
-      const data = await usersService.getMe();
-      setProfile(data);
-    } catch (err: any) {
-      Alert.alert(
-        "Error",
-        err?.response?.data?.message || "Profile load nahi hua",
-      );
-    } finally {
-      setLoading(false);
-    }
+  return {
+    profile: query.data ?? null,
+    loading: query.isLoading,
+    // Purane call-sites `fetchProfile()` explicitly call karte the — ab
+    // sirf ek manual refetch trigger karta hai (auto-fetch already hota
+    // hai mount pe), backward-compatible rakha hai.
+    fetchProfile: () => query.refetch(),
   };
-
-  return { profile, loading, fetchProfile };
 }
 
 // ─── useUpdateProfile ────────────────────────────────────────────────────────
 
 export function useUpdateProfile(onSuccess?: (user: UserProfile) => void) {
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
 
-  const updateProfile = async (dto: UpdateProfilePayload) => {
-    setLoading(true);
-    try {
-      const user = await usersService.updateProfile(dto);
+  const mutation = useMutation({
+    mutationFn: (dto: UpdateProfilePayload) => usersService.updateProfile(dto),
+    onSuccess: (user) => {
+      // Cache mein turant naya data daal do — profile.tsx, edit-profile.tsx,
+      // header, jahan bhi useMyProfile() use ho raha hai sab turant refresh.
+      queryClient.setQueryData(queryKeys.profile.me, user);
       onSuccess?.(user);
-      return user;
-    } catch (err: any) {
+    },
+    onError: (err: any) => {
       const msg =
         err?.response?.data?.message ||
         err?.response?.data?.error?.[0]?.message ||
         "Profile update nahi hui";
       Alert.alert("Error", msg);
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+  });
 
-  return { updateProfile, loading };
+  return {
+    updateProfile: (dto: UpdateProfilePayload) => mutation.mutateAsync(dto).catch(() => undefined),
+    loading: mutation.isPending,
+  };
 }
