@@ -115,7 +115,7 @@ class ApiClient {
 
     // Seedha axios use karo — instance nahi (infinite loop avoid)
     const res = await axios.post(
-      `${process.env.EXPO_PUBLIC_API_URL}/auth/refresh`,
+      `${process.env.EXPO_PUBLIC_API_URL}/api/v1/auth/refresh`,
       { refreshToken },
     );
 

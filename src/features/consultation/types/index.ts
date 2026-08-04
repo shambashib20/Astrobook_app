@@ -1,7 +1,33 @@
 // ─── Consultation Service ───────────────────────────────────────────────────
 // Koi Premium/Elite tier nahi — sirf ek auto-created "Basic" consultancy
 // (platform banata hai upgrade-to-astrologer ke waqt, koi image nahi) +
-// astrologer ki apni "normal" services (image + tags ke saath).
+// astrologer ki apni "normal" services (image + tags ke saath). Har service
+// (Basic ho ya normal) ke saath fixed 5 duration variants aate hain — sirf
+// price editable hai, duration fixed (VARIANT_DURATIONS).
+
+export const VARIANT_DURATIONS = [10, 30, 45, 60, 90] as const;
+export type VariantDurationMinutes = (typeof VARIANT_DURATIONS)[number];
+
+export const VARIANT_DURATION_LABELS: Record<VariantDurationMinutes, string> =
+  {
+    10: "10 min",
+    30: "30 min",
+    45: "45 min",
+    60: "1 hr",
+    90: "1.5 hr",
+  };
+
+// Matches `consultation_service_variants` table
+export type ConsultationServiceVariant = {
+  id: string;
+  serviceId: string;
+  durationMinutes: number;
+  // numeric column → drizzle returns as string over JSON
+  price: string;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
 
 export const DURATION_OPTIONS = [15, 30, 45, 60, 90, 120] as const;
 export type DurationMinutes = (typeof DURATION_OPTIONS)[number];
@@ -27,6 +53,9 @@ export const SERVICE_TAGS = [
 export type ServiceTagId = (typeof SERVICE_TAGS)[number]["id"];
 
 // Matches `consultation_services` table (server/src/core/database/schema/consultation.ts)
+// `durationMinutes`/`price` yahan sirf backward-compat "mirror" hain (30-min
+// variant ka snapshot — browse/cart card listings ke liye) — asli source of
+// truth `variants` array hai.
 export type ConsultationService = {
   id: string;
   astrologerId: string;
@@ -42,6 +71,9 @@ export type ConsultationService = {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  // 5 fixed duration variants — jab bhi service getMyServices/
+  // getAstrologerServices se aati hai tab attach hoti hai
+  variants?: ConsultationServiceVariant[];
 };
 
 // Explore category detail page ke liye — kisi bhi astrologer ki service,
@@ -58,19 +90,24 @@ export type BrowsedService = {
   tags: string[];
 };
 
-// Nayi "normal" service banate waqt — cover image zaroori
+// Nayi "normal" service banate waqt — cover image zaroori. Duration/price ab
+// is level pe nahi liya jaata — service create hote hi 5 fixed variants
+// (VARIANT_DURATIONS) default prices ke saath auto-create ho jaate hain.
 export type CreateServicePayload = {
   title: string;
   shortDescription: string;
   coverImage: string;
   about: string;
-  durationMinutes: DurationMinutes;
-  price?: number;
   tags: string[];
 };
 
 // Existing service edit karte waqt (Basic ho ya normal) — sab optional
 export type UpdateServicePayload = Partial<CreateServicePayload>;
+
+// Ek variant ka price edit karna — duration fixed hai isliye sirf price
+export type UpdateServiceVariantPayload = {
+  price: number;
+};
 
 // ─── Availability Window ────────────────────────────────────────────────────
 // Matches `availability_windows` table
@@ -105,6 +142,9 @@ export type TimeSlot = {
 export type GetSlotsQuery = {
   astrologerId: string;
   serviceId: string;
+  // Konsa duration variant — slot length isi se decide hoti hai. Diya na ho
+  // toh service ka default (30-min) variant use ho jaata hai.
+  variantId?: string;
   date: string; // YYYY-MM-DD
 };
 
@@ -124,11 +164,14 @@ export type Appointment = {
   astrologerId: string;
   userId: string;
   serviceId: string;
+  variantId: string | null;
   parentId: string | null;
   bundleStatus: "in_progress" | "paused" | "completed" | null;
   scheduledAt: string; // ISO
   endsAt: string; // ISO
   durationMinutes: number;
+  // Booking waqt ka price snapshot (variant se)
+  price: string | null;
   agoraChannel: string | null;
   agoraToken: string | null;
   status: AppointmentStatus;
@@ -140,6 +183,9 @@ export type Appointment = {
 export type InitiateBookingPayload = {
   astrologerId: string;
   serviceId: string;
+  // Konsa duration/price variant book karna hai — na diya ho toh service ka
+  // default (30-min) variant use ho jaata hai
+  variantId?: string;
   scheduledAt: string; // ISO datetime with offset
   notes?: string;
 };
@@ -167,6 +213,8 @@ export type AppointmentDetailed = {
   scheduledAt: string; // ISO
   endsAt: string; // ISO
   durationMinutes: number;
+  // Booking waqt ka price snapshot
+  price: string | null;
   status: AppointmentStatus;
   bundleStatus: "in_progress" | "paused" | "completed" | null;
   parentId: string | null;

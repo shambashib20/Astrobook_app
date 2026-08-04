@@ -65,6 +65,9 @@ export default function CartScreen() {
         cartItemId: item.id,
         astroId: item.astrologerId,
         serviceId: item.serviceId,
+        // Slot length isi variant ke duration se generate honi chahiye —
+        // warna 90-min wala item bhi default 30-min slots dikha dega
+        variantId: item.variantId ?? undefined,
       },
     });
   };

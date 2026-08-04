@@ -24,6 +24,9 @@ export const queryKeys = {
   profile: {
     me: ["profile", "me"] as const,
   },
+  astrologerApplication: {
+    status: ["astrologerApplication", "status"] as const,
+  },
   astrologer: {
     detail: (id: string) => ["astrologer", id] as const,
     services: (id: string) => ["astrologer", id, "services"] as const,
@@ -41,4 +44,3 @@ export const queryKeys = {
     mine: ["bookings", "mine"] as const,
   },
 };
-

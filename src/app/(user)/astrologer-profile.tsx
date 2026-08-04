@@ -1,9 +1,9 @@
 import Header from "@/components/header";
+import UserAvatar from "@/components/UserAvatar";
 import { useAstrologerProfile } from "@/features/astrologer/hooks/useAstrologerProfile";
 import { useUser } from "@/features/auth/store/auth.store";
 import { useAstrologerPosts } from "@/features/posts/hooks/useFeed";
 import { Feather } from "@expo/vector-icons";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -140,10 +140,11 @@ export default function AstrologerProfileScreen() {
             {/* Avatar & Follow */}
             <View style={styles.profileSidebar}>
               <View style={styles.avatarContainer}>
-                <MaterialCommunityIcons
-                  name="account"
-                  size={68}
-                  color="#e8d5f5"
+                <UserAvatar
+                  uri={astrologer.avatarUrl}
+                  name={astrologer.name}
+                  id={astrologer.id}
+                  size={144}
                 />
               </View>
               <TouchableOpacity>

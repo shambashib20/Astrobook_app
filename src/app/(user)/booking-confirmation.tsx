@@ -207,7 +207,7 @@ export default function BookingConfirmationScreen() {
           <View style={styles.priceRow}>
             <Text style={styles.totalLabel}>Total Amount</Text>
             <Text style={styles.totalValue}>
-              ₹ {appointment.service.price ?? "—"}
+              ₹ {appointment.price ?? appointment.service.price ?? "—"}
             </Text>
           </View>
         </View>

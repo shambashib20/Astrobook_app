@@ -17,6 +17,8 @@ export type AstrologerProfile = {
   id: string;
   name: string;
   phone: string | null;
+  // Real uploaded profile photo — pehle backend isko strip kar deta tha
+  avatarUrl: string | null;
   interests: string[] | null;
   meta: AstrologerMeta | null;
   isOnboarded: boolean;

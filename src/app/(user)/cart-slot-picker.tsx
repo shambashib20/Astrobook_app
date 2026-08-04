@@ -30,10 +30,11 @@ function displayTime(iso: string) {
 
 export default function CartSlotPickerScreen() {
   const router = useRouter();
-  const { cartItemId, astroId, serviceId } = useLocalSearchParams<{
+  const { cartItemId, astroId, serviceId, variantId } = useLocalSearchParams<{
     cartItemId: string;
     astroId: string;
     serviceId: string;
+    variantId?: string;
   }>();
 
   const [availableDates, setAvailableDates] = useState<string[]>([]);
@@ -63,11 +64,11 @@ export default function CartSlotPickerScreen() {
     setSlotsLoading(true);
     setSelectedSlot(null);
     consultationService
-      .getSlots({ astrologerId: astroId, serviceId, date: selectedDate })
+      .getSlots({ astrologerId: astroId, serviceId, variantId, date: selectedDate })
       .then(setSlots)
       .catch(() => setSlots([]))
       .finally(() => setSlotsLoading(false));
-  }, [astroId, serviceId, selectedDate]);
+  }, [astroId, serviceId, variantId, selectedDate]);
 
   const handleConfirm = async () => {
     if (!selectedSlot || !cartItemId) return;

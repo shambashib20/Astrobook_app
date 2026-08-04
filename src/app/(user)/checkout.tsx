@@ -2,6 +2,7 @@ import Header from "@/components/header";
 import { useAstrologerProfile } from "@/features/astrologer/hooks/useAstrologerProfile";
 import { useUser } from "@/features/auth/store/auth.store";
 import { consultationService } from "@/features/consultation/service";
+import type { ConsultationServiceVariant } from "@/features/consultation/types";
 import { paymentService } from "@/features/payment/service";
 import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -19,10 +20,11 @@ import RazorpayCheckout from "react-native-razorpay";
 export default function CheckoutScreen() {
   const router = useRouter();
   const user = useUser();
-  const { astroId, serviceId, scheduledAt, retryAppointmentId } =
+  const { astroId, serviceId, variantId, scheduledAt, retryAppointmentId } =
     useLocalSearchParams<{
       astroId: string;
       serviceId: string;
+      variantId?: string;
       scheduledAt: string;
       retryAppointmentId?: string;
     }>();
@@ -39,6 +41,24 @@ export default function CheckoutScreen() {
   useEffect(() => {
     fetchProfile();
   }, [astroId]);
+
+  // Konsa duration/price variant book ho raha hai — order summary card isi
+  // se duration/price dikhata hai
+  const [variant, setVariant] = useState<ConsultationServiceVariant | null>(
+    null,
+  );
+  useEffect(() => {
+    if (!serviceId) return;
+    consultationService
+      .getServiceVariants(serviceId)
+      .then((variants) => {
+        const match = variantId
+          ? variants.find((v) => v.id === variantId)
+          : variants.find((v) => v.isDefault);
+        setVariant(match ?? variants[0] ?? null);
+      })
+      .catch(() => setVariant(null));
+  }, [serviceId, variantId]);
 
   const [placing, setPlacing] = useState(false);
   // Ek baar appointment ban jaaye (pending), usko yahan store karte hain —
@@ -66,6 +86,7 @@ export default function CheckoutScreen() {
         const appointment = await consultationService.initiateBooking({
           astrologerId: astroId,
           serviceId,
+          variantId: variant?.id,
           scheduledAt,
         });
         appointmentId = appointment.id;
@@ -119,6 +140,7 @@ export default function CheckoutScreen() {
           reason: message,
           astroId,
           serviceId,
+          variantId: variant?.id,
           scheduledAt,
         },
       });
@@ -159,7 +181,7 @@ export default function CheckoutScreen() {
               <View style={styles.orderChipsRow}>
                 <View style={styles.chip}>
                   <Text style={styles.chipText}>
-                    ⏱ {service.durationMinutes} min
+                    ⏱ {variant?.durationMinutes ?? service.durationMinutes} min
                   </Text>
                 </View>
               </View>
@@ -206,7 +228,7 @@ export default function CheckoutScreen() {
 
           <View style={styles.priceRow}>
             <Text style={styles.totalLabel}>Total Amount</Text>
-            <Text style={styles.totalValue}>₹ {service.price ?? "—"}</Text>
+            <Text style={styles.totalValue}>₹ {variant?.price ?? service.price ?? "—"}</Text>
           </View>
         </View>
 
@@ -234,7 +256,7 @@ export default function CheckoutScreen() {
             <ActivityIndicator size="small" color="#FFF" />
           ) : (
             <Text style={styles.paymentBtnText}>
-              Pay Now • ₹{service.price ?? "—"}
+              Pay Now • ₹{variant?.price ?? service.price ?? "—"}
             </Text>
           )}
         </TouchableOpacity>

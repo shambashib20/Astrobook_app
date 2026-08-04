@@ -5,15 +5,16 @@ import type { Post } from "../types/post.types";
 
 const PAGE_SIZE = 10;
 
-// Backend `posts` table sirf astrologerId store karta hai, astrologer ka
-// naam/emoji join karke nahi deta — isliye yahan client-side enrich karte
-// hain astrologers list se. Cache module-level rakha hai taaki infinite
-// scroll ke har page pe same astrologer dobara fetch na ho.
-// Basic consultancy ka id bhi yahin cache hota hai — Feed ke "Book Now"
-// button ke liye (kyunki post.linkedServiceId abhi kabhi set nahi hota).
+// Backend ab `posts` feed/detail query mein `users` table join karke
+// astrologerName + astrologerAvatar (real photo URL) seedha bhej deta hai —
+// yeh function ab SIRF basicServiceId ke liye zaroori hai (Feed ke "Book
+// Now" button ke liye, kyunki post.linkedServiceId kabhi set nahi hota).
+// Naam/avatar ko yahan se overwrite NAHI karna — backend ka data hi sahi/
+// fresh hai, cache wala emoji purana tha aur real photo ko clobber kar
+// deta tha.
 const astrologerCache = new Map<
   string,
-  { name: string; emoji?: string; basicServiceId: string | null }
+  { name: string; basicServiceId: string | null }
 >();
 
 async function enrichWithAstrologers(posts: Post[]): Promise<Post[]> {
@@ -35,15 +36,16 @@ async function enrichWithAstrologers(posts: Post[]): Promise<Post[]> {
       const basic = services?.find((s) => s.isBasic) ?? null;
       astrologerCache.set(uniqueIds[i]!, {
         name: a?.name ?? "Astrologer",
-        emoji: a?.meta?.emoji,
         basicServiceId: basic?.id ?? null,
       });
     });
   }
   return posts.map((p) => ({
     ...p,
-    astrologerName: astrologerCache.get(p.astrologerId)?.name ?? "Astrologer",
-    astrologerAvatar: astrologerCache.get(p.astrologerId)?.emoji,
+    // Backend se already aaya naam/avatar hi priority — cache sirf fallback
+    astrologerName:
+      p.astrologerName ?? astrologerCache.get(p.astrologerId)?.name ?? "Astrologer",
+    astrologerAvatar: p.astrologerAvatar,
     basicServiceId: astrologerCache.get(p.astrologerId)?.basicServiceId ?? null,
   }));
 }

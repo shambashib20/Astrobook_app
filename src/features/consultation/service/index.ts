@@ -6,6 +6,7 @@ import type {
   BrowsedService,
   CancelAppointmentPayload,
   ConsultationService as ConsultationServiceType,
+  ConsultationServiceVariant,
   CreateAvailabilityPayload,
   CreateServicePayload,
   GetSlotsQuery,
@@ -14,6 +15,7 @@ import type {
   ScheduleResponse,
   TimeSlot,
   UpdateServicePayload,
+  UpdateServiceVariantPayload,
 } from "../types";
 
 class ConsultationServiceApi {
@@ -51,6 +53,27 @@ class ConsultationServiceApi {
 
   async deleteService(id: string): Promise<void> {
     await apiClient.delete(`${this.base}/services/${id}`);
+  }
+
+  // ── Astrologer: Service Variants ─────────────────────────────────────────
+
+  async getServiceVariants(serviceId: string): Promise<ConsultationServiceVariant[]> {
+    const res = await apiClient.get<{ variants: ConsultationServiceVariant[] }>(
+      `${this.base}/services/${serviceId}/variants`,
+    );
+    return res.data.variants;
+  }
+
+  async updateServiceVariant(
+    serviceId: string,
+    variantId: string,
+    dto: UpdateServiceVariantPayload,
+  ): Promise<ConsultationServiceVariant> {
+    const res = await apiClient.patch<{ variant: ConsultationServiceVariant }>(
+      `${this.base}/services/${serviceId}/variants/${variantId}`,
+      dto,
+    );
+    return res.data.variant;
   }
 
   // ── Astrologer: Availability ─────────────────────────────────────────────

@@ -3,16 +3,19 @@ import { useImageKitUpload } from "@/features/posts/hooks/usePosts";
 import {
   useCreateService,
   useMyServices,
+  useServiceVariants,
   useUpdateService,
+  useUpdateServiceVariant,
 } from "@/features/consultation/hooks/useConsultancyServices";
 import {
-  DURATION_OPTIONS,
   SERVICE_TAGS,
+  VARIANT_DURATION_LABELS,
+  VARIANT_DURATIONS,
   type ConsultationService,
-  type DurationMinutes,
+  type ConsultationServiceVariant,
 } from "@/features/consultation/types";
 import * as ImagePicker from "expo-image-picker";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -39,12 +42,16 @@ const emptyForm = {
   title: "",
   shortDescription: "",
   about: "",
-  duration: 30 as DurationMinutes,
-  price: "",
   coverImage: null as string | null,
   coverImageUrl: null as string | null,
   tags: [] as string[],
 };
+
+// 30-min variant ka price hi card pe "starting from" ke tarah dikhta hai
+function defaultVariantPrice(service: ConsultationService): string | null {
+  const def = service.variants?.find((v) => v.isDefault);
+  return def?.price ?? service.price ?? null;
+}
 
 export default function ServicesScreen() {
   const [activeKind, setActiveKind] = useState<ServiceKind>("consultancy");
@@ -60,62 +67,74 @@ export default function ServicesScreen() {
   const basicService = services.find((s) => s.isBasic) ?? null;
   const normalServices = services.filter((s) => !s.isBasic);
 
+  // ── Ek hi unified Edit modal — details (title/desc/about/cover/tags) AND
+  // niche 5 duration+price rows, dono same form mein. Basic ho ya normal,
+  // dono isi flow se edit hote hain.
   const [showComposer, setShowComposer] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  // null = naya service create ho raha hai; kisi service pe set hone ka
+  // matlab edit mode — usi ke variants bhi neeche load ho jaate hain
+  const [editingService, setEditingService] =
+    useState<ConsultationService | null>(null);
   const [form, setForm] = useState(emptyForm);
 
-  const { createService, loading: creating } = useCreateService(() => {
+  const { createService, loading: creating } = useCreateService((service) => {
     fetchServices();
-    setShowComposer(false);
-    setForm(emptyForm);
+    // Create hote hi seedha isi service ke edit-mode mein switch — taaki
+    // astrologer turant niche apni 5 variant prices bhi set kar sake,
+    // form band karne/dobara kholne ki zaroorat nahi.
+    setEditingService(service);
   });
-  const { updateService, loading: updating } = useUpdateService(() => {
+  const { updateService, loading: updating } = useUpdateService((service) => {
     fetchServices();
-    setShowComposer(false);
-    setEditingId(null);
-    setForm(emptyForm);
+    setEditingService(service);
   });
 
-  const [showBasicEdit, setShowBasicEdit] = useState(false);
-  const [basicDuration, setBasicDuration] = useState<DurationMinutes>(30);
-  const [basicPrice, setBasicPrice] = useState("");
-  const { updateService: updateBasic, loading: savingBasic } = useUpdateService(
-    () => {
-      fetchServices();
-      setShowBasicEdit(false);
-    },
-  );
+  const {
+    variants,
+    loading: variantsLoading,
+    fetchVariants,
+    setVariants,
+  } = useServiceVariants(editingService?.id);
+  const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
+  const { updateVariant, loading: savingVariant } = useUpdateServiceVariant();
+  const [savingVariantId, setSavingVariantId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchServices();
   }, []);
 
+  useEffect(() => {
+    if (!editingService) {
+      setVariants([]);
+      setPriceDrafts({});
+      return;
+    }
+    fetchVariants().then((data) => {
+      if (data) {
+        const drafts: Record<string, string> = {};
+        data.forEach((v) => (drafts[v.id] = v.price));
+        setPriceDrafts(drafts);
+      }
+    });
+  }, [editingService?.id]);
+
   const openCreateModal = () => {
-    setEditingId(null);
+    setEditingService(null);
     setForm(emptyForm);
     setShowComposer(true);
   };
 
   const openEditModal = (service: ConsultationService) => {
-    setEditingId(service.id);
+    setEditingService(service);
     setForm({
       title: service.title,
       shortDescription: service.shortDescription,
       about: service.about,
-      duration: service.durationMinutes as DurationMinutes,
-      price: service.price ?? "",
       coverImage: service.coverImage,
       coverImageUrl: service.coverImage,
       tags: service.tags,
     });
     setShowComposer(true);
-  };
-
-  const openBasicEdit = () => {
-    if (!basicService) return;
-    setBasicDuration(basicService.durationMinutes as DurationMinutes);
-    setBasicPrice(basicService.price ?? "");
-    setShowBasicEdit(true);
   };
 
   const toggleTag = (tagId: string) => {
@@ -149,34 +168,57 @@ export default function ServicesScreen() {
     else setForm((prev) => ({ ...prev, coverImage: null }));
   };
 
+  const closeComposer = () => {
+    setShowComposer(false);
+    setEditingService(null);
+    setForm(emptyForm);
+  };
+
   const handleSaveNormalService = async () => {
-    if (!form.coverImageUrl) {
+    // Cover sirf naya service banate waqt zaroori hai. Edit mode mein
+    // (Basic consultancy ka toh cover hota hi nahi) required nahi.
+    if (!editingService && !form.coverImageUrl) {
       Alert.alert("Required", "Cover image upload karo pehle");
       return;
     }
-    const payload = {
-      title: form.title.trim(),
-      shortDescription: form.shortDescription.trim(),
-      about: form.about.trim(),
-      coverImage: form.coverImageUrl,
-      durationMinutes: form.duration,
-      price: form.price ? Number(form.price) : undefined,
-      tags: form.tags,
-    };
 
-    if (editingId) {
-      await updateService(editingId, payload);
+    if (editingService) {
+      await updateService(editingService.id, {
+        title: form.title.trim(),
+        shortDescription: form.shortDescription.trim(),
+        about: form.about.trim(),
+        ...(form.coverImageUrl && { coverImage: form.coverImageUrl }),
+        tags: form.tags,
+      });
     } else {
-      await createService(payload);
+      await createService({
+        title: form.title.trim(),
+        shortDescription: form.shortDescription.trim(),
+        about: form.about.trim(),
+        coverImage: form.coverImageUrl!,
+        tags: form.tags,
+      });
     }
   };
 
-  const handleSaveBasic = async () => {
-    if (!basicService) return;
-    await updateBasic(basicService.id, {
-      durationMinutes: basicDuration,
-      price: basicPrice ? Number(basicPrice) : undefined,
-    });
+  const handleSaveVariantPrice = async (variant: ConsultationServiceVariant) => {
+    if (!editingService) return;
+    const draft = priceDrafts[variant.id];
+    const price = Number(draft);
+    if (!draft || isNaN(price) || price <= 0) {
+      Alert.alert("Invalid", "Sahi price daalo");
+      return;
+    }
+    setSavingVariantId(variant.id);
+    const updated = await updateVariant(editingService.id, variant.id, price);
+    setSavingVariantId(null);
+    if (updated) {
+      setVariants((prev) =>
+        prev.map((v) => (v.id === updated.id ? updated : v)),
+      );
+      // List screen pe bhi price turant reflect ho (default variant hai toh)
+      fetchServices();
+    }
   };
 
   const confirmDelete = (service: ConsultationService) => {
@@ -243,7 +285,7 @@ export default function ServicesScreen() {
         ) : basicService ? (
           <TouchableOpacity
             style={styles.basicCard}
-            onPress={openBasicEdit}
+            onPress={() => openEditModal(basicService)}
             activeOpacity={0.7}
           >
             <View style={styles.basicIconBox}>
@@ -254,20 +296,10 @@ export default function ServicesScreen() {
               <Text style={styles.basicDesc} numberOfLines={1}>
                 {basicService.shortDescription}
               </Text>
-              <View style={styles.serviceChips}>
-                <View style={styles.serviceChip}>
-                  <Text style={styles.serviceChipText}>
-                    ⏱ {basicService.durationMinutes} min
-                  </Text>
-                </View>
-                {basicService.price && (
-                  <View style={styles.serviceChip}>
-                    <Text style={styles.serviceChipText}>
-                      ₹{basicService.price}
-                    </Text>
-                  </View>
-                )}
-              </View>
+              <Text style={styles.variantHint}>
+                5 duration options · 30 min se ₹
+                {defaultVariantPrice(basicService) ?? "—"}
+              </Text>
             </View>
             <Text style={styles.editHint}>Edit ✏️</Text>
           </TouchableOpacity>
@@ -297,17 +329,13 @@ export default function ServicesScreen() {
             <Text style={styles.emptyEmoji}>🔮</Text>
             <Text style={styles.emptyText}>Koi service nahi hai abhi</Text>
             <Text style={styles.emptySubtext}>
-              "+ Add Service" se apni pehli service banao
+              "+ Add Service" se apni pehli service banao — 5 duration
+              variants apne aap ban jaayenge
             </Text>
           </View>
         ) : (
           normalServices.map((service) => (
-            <TouchableOpacity
-              key={service.id}
-              style={styles.serviceCard}
-              onPress={() => openEditModal(service)}
-              activeOpacity={0.7}
-            >
+            <View key={service.id} style={styles.serviceCard}>
               {service.coverImage && (
                 <Image
                   source={{ uri: service.coverImage }}
@@ -329,18 +357,18 @@ export default function ServicesScreen() {
                       </View>
                     );
                   })}
-                  <View style={styles.serviceChip}>
-                    <Text style={styles.serviceChipText}>
-                      ⏱ {service.durationMinutes} min
-                    </Text>
-                  </View>
-                  {service.price && (
-                    <View style={styles.serviceChip}>
-                      <Text style={styles.serviceChipText}>
-                        ₹{service.price}
-                      </Text>
-                    </View>
-                  )}
+                </View>
+                <Text style={styles.variantHint}>
+                  5 duration options · 30 min se ₹
+                  {defaultVariantPrice(service) ?? "—"}
+                </Text>
+                <View style={styles.cardActionsRow}>
+                  <TouchableOpacity
+                    style={styles.cardActionBtn}
+                    onPress={() => openEditModal(service)}
+                  >
+                    <Text style={styles.cardActionText}>Edit ✏️</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
               <TouchableOpacity
@@ -349,19 +377,20 @@ export default function ServicesScreen() {
               >
                 <Text style={styles.serviceDeleteText}>🗑️</Text>
               </TouchableOpacity>
-            </TouchableOpacity>
+            </View>
           ))
         )}
 
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* ── Create/Edit Normal Service Modal ── */}
+      {/* ── Unified Create/Edit Modal — details form + (edit mode mein)
+          niche 5 duration/price rows, sab ek hi form mein ── */}
       <Modal
         visible={showComposer}
         animationType="slide"
         transparent
-        onRequestClose={() => setShowComposer(false)}
+        onRequestClose={closeComposer}
       >
         <View style={styles.modalOverlay}>
           <ScrollView
@@ -370,12 +399,20 @@ export default function ServicesScreen() {
           >
             <View style={styles.composerHeader}>
               <Text style={styles.composerTitle}>
-                {editingId ? "Edit Service" : "Create Service"}
+                {editingService ? "Edit Service" : "Create Service"}
               </Text>
-              <TouchableOpacity onPress={() => setShowComposer(false)}>
+              <TouchableOpacity onPress={closeComposer}>
                 <Text style={styles.composerClose}>✕</Text>
               </TouchableOpacity>
             </View>
+
+            {!editingService && (
+              <Text style={styles.basicEditNote}>
+                Service create hote hi 5 duration variants (10/30/45 min, 1
+                hr, 1.5 hr) apne aap ban jaayenge, default prices ke saath —
+                baad mein "Prices" se har ek edit kar sakte ho.
+              </Text>
+            )}
 
             <Text style={styles.fieldLabel}>Service Name</Text>
             <TextInput
@@ -462,38 +499,77 @@ export default function ServicesScreen() {
               })}
             </View>
 
-            <Text style={styles.fieldLabel}>Duration</Text>
-            <View style={styles.chipsRow}>
-              {DURATION_OPTIONS.map((mins) => (
-                <TouchableOpacity
-                  key={mins}
-                  style={[
-                    styles.selectChip,
-                    form.duration === mins && styles.selectChipActive,
-                  ]}
-                  onPress={() => setForm((p) => ({ ...p, duration: mins }))}
-                >
-                  <Text
-                    style={[
-                      styles.selectChipText,
-                      form.duration === mins && styles.selectChipTextActive,
-                    ]}
-                  >
-                    {mins} min
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <Text style={styles.fieldLabel}>Price (₹)</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="999"
-              placeholderTextColor="#9CA3AF"
-              value={form.price}
-              onChangeText={(v) => setForm((p) => ({ ...p, price: v }))}
-              keyboardType="numeric"
-            />
+            {/* ── Pricing — sirf edit mode mein (naya service create hote
+                hi variants auto-create ho jaate hain, phir yeh section
+                turant dikhne lagta hai) ── */}
+            {editingService && (
+              <>
+                <Text style={styles.fieldLabel}>
+                  Pricing — 5 duration options
+                </Text>
+                <Text style={styles.basicEditNote}>
+                  Duration fixed hai — sirf price edit ho sakta hai. 30 min
+                  wala default hai, user detail page pe wahi pehle se
+                  selected rehta hai.
+                </Text>
+                {variantsLoading ? (
+                  <ActivityIndicator color="#9d0399" style={{ marginTop: 4 }} />
+                ) : (
+                  <View style={{ gap: 10 }}>
+                    {VARIANT_DURATIONS.map((duration) => {
+                      const variant = variants.find(
+                        (v) => v.durationMinutes === duration,
+                      );
+                      if (!variant) return null;
+                      const dirty =
+                        priceDrafts[variant.id] !== undefined &&
+                        priceDrafts[variant.id] !== variant.price;
+                      return (
+                        <View key={variant.id} style={styles.variantRow}>
+                          <View style={styles.variantDurationBox}>
+                            <Text style={styles.variantDurationText}>
+                              {VARIANT_DURATION_LABELS[duration]}
+                            </Text>
+                            {variant.isDefault && (
+                              <Text style={styles.variantDefaultBadge}>
+                                Default
+                              </Text>
+                            )}
+                          </View>
+                          <View style={styles.variantPriceInputWrap}>
+                            <Text style={styles.variantRupeeSign}>₹</Text>
+                            <TextInput
+                              style={styles.variantPriceInput}
+                              value={priceDrafts[variant.id] ?? variant.price}
+                              onChangeText={(v) =>
+                                setPriceDrafts((p) => ({ ...p, [variant.id]: v }))
+                              }
+                              keyboardType="numeric"
+                            />
+                          </View>
+                          <TouchableOpacity
+                            style={[
+                              styles.variantSaveBtn,
+                              !dirty && styles.variantSaveBtnDisabled,
+                            ]}
+                            disabled={!dirty || savingVariant}
+                            onPress={() => handleSaveVariantPrice(variant)}
+                          >
+                            {savingVariant && savingVariantId === variant.id ? (
+                              <ActivityIndicator size="small" color="#FFF" />
+                            ) : (
+                              <Text style={styles.variantSaveBtnText}>
+                                Save
+                              </Text>
+                            )}
+                          </TouchableOpacity>
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
+              </>
+            )}
 
             <TouchableOpacity
               style={[
@@ -508,87 +584,13 @@ export default function ServicesScreen() {
                 <ActivityIndicator size="small" color="#FFF" />
               ) : (
                 <Text style={styles.publishBtnText}>
-                  {editingId ? "Save Changes" : "Create Service ✨"}
+                  {editingService ? "Save Details" : "Create Service ✨"}
                 </Text>
               )}
             </TouchableOpacity>
 
             <View style={{ height: 20 }} />
           </ScrollView>
-        </View>
-      </Modal>
-
-      {/* ── Edit Basic Consultancy Modal ── */}
-      <Modal
-        visible={showBasicEdit}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setShowBasicEdit(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.composerCardSmall}>
-            <View style={styles.composerHeader}>
-              <Text style={styles.composerTitle}>Edit Basic Consultation</Text>
-              <TouchableOpacity onPress={() => setShowBasicEdit(false)}>
-                <Text style={styles.composerClose}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.basicEditNote}>
-              Basic consultation ka sirf price aur duration edit ho sakta hai —
-              yeh platform ne auto-create ki thi.
-            </Text>
-
-            <Text style={styles.fieldLabel}>Duration</Text>
-            <View style={styles.chipsRow}>
-              {DURATION_OPTIONS.map((mins) => (
-                <TouchableOpacity
-                  key={mins}
-                  style={[
-                    styles.selectChip,
-                    basicDuration === mins && styles.selectChipActive,
-                  ]}
-                  onPress={() => setBasicDuration(mins)}
-                >
-                  <Text
-                    style={[
-                      styles.selectChipText,
-                      basicDuration === mins && styles.selectChipTextActive,
-                    ]}
-                  >
-                    {mins} min
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <Text style={[styles.fieldLabel, { marginTop: 12 }]}>
-              Price (₹)
-            </Text>
-            <TextInput
-              style={styles.input}
-              placeholder="199"
-              placeholderTextColor="#9CA3AF"
-              value={basicPrice}
-              onChangeText={setBasicPrice}
-              keyboardType="numeric"
-            />
-
-            <TouchableOpacity
-              style={[
-                styles.publishBtn,
-                savingBasic && styles.publishBtnDisabled,
-                { marginTop: 16 },
-              ]}
-              onPress={handleSaveBasic}
-              disabled={savingBasic}
-            >
-              {savingBasic ? (
-                <ActivityIndicator size="small" color="#FFF" />
-              ) : (
-                <Text style={styles.publishBtnText}>Save Changes</Text>
-              )}
-            </TouchableOpacity>
-          </View>
         </View>
       </Modal>
     </SafeAreaView>
@@ -680,6 +682,12 @@ const styles = StyleSheet.create({
   basicIcon: { fontSize: 20 },
   basicTitle: { fontSize: 14, fontWeight: "800", color: "#1A1A2E" },
   basicDesc: { fontSize: 12, color: "#6B7280", marginTop: 2 },
+  variantHint: {
+    fontSize: 11,
+    color: "#9d0399",
+    fontWeight: "700",
+    marginTop: 4,
+  },
   editHint: { fontSize: 12, color: "#9d0399", fontWeight: "700" },
 
   serviceCard: {
@@ -703,6 +711,9 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   serviceChipText: { fontSize: 11, color: "#6B21A8", fontWeight: "600" },
+  cardActionsRow: { flexDirection: "row", gap: 14, marginTop: 4 },
+  cardActionBtn: { paddingVertical: 2 },
+  cardActionText: { fontSize: 12, color: "#9d0399", fontWeight: "700" },
   serviceDeleteBtn: {
     justifyContent: "center",
     alignItems: "center",
@@ -728,6 +739,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     padding: 20,
     gap: 10,
+    maxHeight: "80%",
   },
   composerHeader: {
     flexDirection: "row",
@@ -794,4 +806,51 @@ const styles = StyleSheet.create({
     shadowOpacity: 0,
   },
   publishBtnText: { color: "#FFF", fontWeight: "800", fontSize: 15 },
+
+  // ── Variant price editor rows ──
+  variantRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#F9F5FF",
+    borderRadius: 12,
+    padding: 10,
+    borderWidth: 1.5,
+    borderColor: "#EDE9FF",
+  },
+  variantDurationBox: { width: 70 },
+  variantDurationText: { fontSize: 13, fontWeight: "800", color: "#1A1A2E" },
+  variantDefaultBadge: {
+    fontSize: 9,
+    color: "#9d0399",
+    fontWeight: "700",
+    marginTop: 2,
+  },
+  variantPriceInputWrap: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF",
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: "#EDE9FF",
+    paddingHorizontal: 10,
+  },
+  variantRupeeSign: { fontSize: 14, color: "#9CA3AF", fontWeight: "700" },
+  variantPriceInput: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    fontSize: 14,
+    color: "#1A1A2E",
+    fontWeight: "700",
+  },
+  variantSaveBtn: {
+    backgroundColor: "#9d0399",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  variantSaveBtnDisabled: { backgroundColor: "#D1D5DB" },
+  variantSaveBtnText: { color: "#FFF", fontWeight: "800", fontSize: 12 },
 });

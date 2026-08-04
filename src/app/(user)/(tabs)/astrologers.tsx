@@ -1,4 +1,5 @@
 import Header from "@/components/header";
+import UserAvatar from "@/components/UserAvatar";
 import { useAstrologersList } from "@/features/astrologer/hooks/useAstrologersList";
 import { useRouter } from "expo-router";
 import { useEffect } from "react";
@@ -80,9 +81,12 @@ export default function AstrologersScreen() {
               >
                 <View style={styles.cardTop}>
                   <View style={styles.avatarContainer}>
-                    <Text style={styles.avatarEmoji}>
-                      {meta?.emoji ?? "🔮"}
-                    </Text>
+                    <UserAvatar
+                      uri={item.avatarUrl}
+                      name={item.name}
+                      id={item.id}
+                      size={74}
+                    />
                   </View>
 
                   <View style={styles.cardInfo}>

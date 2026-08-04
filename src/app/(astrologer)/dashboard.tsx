@@ -80,7 +80,7 @@ export default function AstrologerDashboard() {
   }, []);
 
   const completedEarnings = appointments.completed.reduce(
-    (sum, a) => sum + (a.service.price ? Number(a.service.price) : 0),
+    (sum, a) => sum + Number(a.price ?? a.service.price ?? 0),
     0,
   );
 
@@ -172,8 +172,10 @@ export default function AstrologerDashboard() {
                     </View>
                   </View>
                 </View>
-                {appt.service.price && (
-                  <Text style={styles.bookingPrice}>₹{appt.service.price}</Text>
+                {(appt.price ?? appt.service.price) && (
+                  <Text style={styles.bookingPrice}>
+                    ₹{appt.price ?? appt.service.price}
+                  </Text>
                 )}
               </View>
             );

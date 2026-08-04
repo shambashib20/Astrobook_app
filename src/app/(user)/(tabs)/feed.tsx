@@ -1,8 +1,10 @@
 import Header from "@/components/header";
+import UserAvatar from "@/components/UserAvatar";
 import { useUser } from "@/features/auth/store/auth.store";
 import { useFeedPosts } from "@/features/posts/hooks/useFeed";
 import { useLikePost } from "@/features/posts/hooks/usePosts";
 import type { Post } from "@/features/posts/types/post.types";
+import { colorForId } from "@/utils/colorUtils";
 import { Feather } from "@expo/vector-icons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useRouter } from "expo-router";
@@ -22,20 +24,6 @@ import {
 } from "react-native";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-
-const BG_PALETTE = [
-  "#6B21A8",
-  "#1E3A5F",
-  "#92400E",
-  "#065F46",
-  "#9D174D",
-  "#4C1D95",
-];
-function colorForId(id: string) {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) hash = (hash + id.charCodeAt(i)) % 997;
-  return BG_PALETTE[hash % BG_PALETTE.length]!;
-}
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-IN", {
@@ -162,11 +150,12 @@ export default function FeedScreen() {
           onPress={() => goToAstrologer(post.astrologerId)}
         >
           <View style={styles.postAuthorRow}>
-            <View style={[styles.postAvatar, { backgroundColor: bgColor }]}>
-              <Text style={styles.postAvatarEmoji}>
-                {post.astrologerAvatar ?? "🔮"}
-              </Text>
-            </View>
+            <UserAvatar
+              uri={post.astrologerAvatar}
+              name={post.astrologerName}
+              id={post.astrologerId}
+              size={40}
+            />
             <View>
               <Text style={styles.postAuthorName}>
                 {post.astrologerName ?? "Astrologer"}

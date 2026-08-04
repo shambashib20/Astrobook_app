@@ -1,6 +1,8 @@
 import Header from "@/components/header";
+import UserAvatar from "@/components/UserAvatar";
 import { useLogout } from "@/features/auth/hooks/useAuth";
 import { useUser } from "@/features/auth/store/auth.store";
+import { useMyProfile } from "@/features/users/hooks/useProfile";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -16,7 +18,12 @@ import {
 // pe hai, dashboard ab /(astrologer)/dashboard pe — yahan duplicate nahi karna.
 export function AstrologerProfileView() {
   const router = useRouter();
-  const user = useUser();
+  // sessionUser sirf id/name jaisi lightweight cheezon ke liye — avatarUrl
+  // jaisa fresh data (Edit Profile se turant sync) useMyProfile() se aata
+  // hai, isi cache ko Edit Profile screen bhi use karti hai.
+  const sessionUser = useUser();
+  const { profile } = useMyProfile();
+  const user = profile ?? sessionUser;
   const { handleLogout } = useLogout();
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -36,7 +43,12 @@ export function AstrologerProfileView() {
         {/* ── Profile Card ── */}
         <View style={styles.profileCard}>
           <View style={styles.avatarCircle}>
-            <Text style={styles.avatarEmoji}>🔮</Text>
+            <UserAvatar
+              uri={user?.avatarUrl}
+              name={user?.name}
+              id={sessionUser?.id}
+              size={78}
+            />
           </View>
           <Text style={styles.name}>{user?.name ?? "Astrologer"}</Text>
           {user?.email ? <Text style={styles.email}>{user.email}</Text> : null}

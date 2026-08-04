@@ -1,6 +1,10 @@
 import Header from "@/components/header";
 import { useAstrologerProfile } from "@/features/astrologer/hooks/useAstrologerProfile";
 import { cartService } from "@/features/cart/service";
+import {
+  VARIANT_DURATION_LABELS,
+  type ConsultationServiceVariant,
+} from "@/features/consultation/types";
 import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -57,13 +61,34 @@ export default function ServiceDetailScreen() {
   const service = services.find((s) => s.id === serviceId) ?? null;
   const [addingToCart, setAddingToCart] = useState(false);
 
+  // ── Variant selector — 5 duration options, 30-min default pre-selected ──
+  // Pehle yeh alag se API call karta tha (useServiceVariants), jabki
+  // service.variants mein yeh data already embedded aata hai (astrologer ki
+  // services fetch karte waqt hi backend attach kar deta hai) — ek poora
+  // extra network round-trip bach gaya, isliye page turant render hota hai.
+  const variants = service?.variants ?? [];
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(
+    null,
+  );
+
+  // Variants load hote hi default (30-min) wala pre-select karo
+  useEffect(() => {
+    if (variants.length === 0 || selectedVariantId) return;
+    const defaultVariant = variants.find((v) => v.isDefault) ?? variants[0];
+    if (defaultVariant) setSelectedVariantId(defaultVariant.id);
+  }, [variants]);
+
+  const selectedVariant: ConsultationServiceVariant | null =
+    variants.find((v) => v.id === selectedVariantId) ?? null;
+
   const handleAddToCart = async () => {
-    if (!service || !astrologer) return;
+    if (!service || !astrologer || !selectedVariant) return;
     setAddingToCart(true);
     try {
       await cartService.addItem({
         astrologerId: astrologer.id,
         serviceId: service.id,
+        variantId: selectedVariant.id,
       });
       Alert.alert("Cart mein add ho gaya", "Slot cart mein jaake select kar lena.", [
         { text: "OK" },
@@ -119,7 +144,7 @@ export default function ServiceDetailScreen() {
             <View style={styles.chipsRow}>
               <View style={styles.chip}>
                 <Text style={styles.chipText}>
-                  ⏱ {service.durationMinutes} min
+                  ⏱ {selectedVariant?.durationMinutes ?? service.durationMinutes} min
                 </Text>
               </View>
               {totalReviews > 0 && (
@@ -143,6 +168,60 @@ export default function ServiceDetailScreen() {
             </View>
           )}
 
+          {/* --- Duration / Price Variants --- */}
+          <View style={styles.variantsSection}>
+            <Text style={styles.sectionTitle}>Choose Duration</Text>
+            {variants.length === 0 ? (
+              <ActivityIndicator color="#9d0399" style={{ marginTop: 8 }} />
+            ) : (
+              <View style={styles.variantsGrid}>
+                {variants.map((variant) => {
+                  const isSelected = variant.id === selectedVariantId;
+                  return (
+                    <TouchableOpacity
+                      key={variant.id}
+                      style={[
+                        styles.variantCard,
+                        isSelected && styles.variantCardActive,
+                      ]}
+                      onPress={() => setSelectedVariantId(variant.id)}
+                      activeOpacity={0.8}
+                    >
+                      {variant.isDefault && (
+                        <Text
+                          style={[
+                            styles.variantBadge,
+                            isSelected && styles.variantBadgeActive,
+                          ]}
+                        >
+                          Popular
+                        </Text>
+                      )}
+                      <Text
+                        style={[
+                          styles.variantDuration,
+                          isSelected && styles.variantTextActive,
+                        ]}
+                      >
+                        {VARIANT_DURATION_LABELS[
+                          variant.durationMinutes as keyof typeof VARIANT_DURATION_LABELS
+                        ] ?? `${variant.durationMinutes} min`}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.variantPrice,
+                          isSelected && styles.variantTextActive,
+                        ]}
+                      >
+                        ₹{variant.price}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+
           {/* --- About this Service --- */}
           <View style={styles.aboutSection}>
             <Text style={styles.sectionTitle}>About this Service</Text>
@@ -155,12 +234,17 @@ export default function ServiceDetailScreen() {
       <View style={styles.bottomBar}>
         <View>
           <Text style={styles.priceLabel}>Price</Text>
-          <Text style={styles.price}>₹{service.price ?? "—"}</Text>
+          <Text style={styles.price}>
+            ₹{selectedVariant?.price ?? service.price ?? "—"}
+          </Text>
         </View>
         <View style={styles.bottomActions}>
           <TouchableOpacity
-            style={[styles.cartBtn, addingToCart && { opacity: 0.6 }]}
-            disabled={addingToCart}
+            style={[
+              styles.cartBtn,
+              (addingToCart || !selectedVariant) && { opacity: 0.6 },
+            ]}
+            disabled={addingToCart || !selectedVariant}
             onPress={handleAddToCart}
           >
             {addingToCart ? (
@@ -170,11 +254,16 @@ export default function ServiceDetailScreen() {
             )}
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.bookBtn}
+            style={[styles.bookBtn, !selectedVariant && { opacity: 0.6 }]}
+            disabled={!selectedVariant}
             onPress={() =>
               router.push({
                 pathname: "/(user)/book-slot" as any,
-                params: { astroId: astrologer.id, serviceId: service.id },
+                params: {
+                  astroId: astrologer.id,
+                  serviceId: service.id,
+                  variantId: selectedVariant?.id,
+                },
               })
             }
           >
@@ -257,6 +346,45 @@ const styles = StyleSheet.create({
   },
   ratingBig: { fontSize: 36, fontWeight: "800", color: "#6B21A8" },
   ratingCount: { fontSize: 12, color: "#9CA3AF", marginTop: 4 },
+
+  variantsSection: { paddingHorizontal: 16, paddingTop: 20, gap: 10 },
+  variantsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  variantCard: {
+    width: "30.5%",
+    backgroundColor: "#FFF",
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: "#EDE9FF",
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    alignItems: "center",
+    gap: 3,
+  },
+  variantCardActive: {
+    backgroundColor: "#9d0399",
+    borderColor: "#9d0399",
+    elevation: 4,
+    shadowColor: "#9d0399",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+  },
+  variantBadge: {
+    position: "absolute",
+    top: -8,
+    fontSize: 9,
+    fontWeight: "800",
+    color: "#9d0399",
+    backgroundColor: "#FEF3C7",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+  variantBadgeActive: { backgroundColor: "#FEF3C7", color: "#9d0399" },
+  variantDuration: { fontSize: 12, fontWeight: "700", color: "#374151" },
+  variantPrice: { fontSize: 14, fontWeight: "800", color: "#1A1A2E" },
+  variantTextActive: { color: "#FFF" },
 
   aboutSection: { paddingHorizontal: 16, paddingTop: 20, gap: 10 },
   sectionTitle: { fontSize: 18, fontWeight: "700", color: "#1F2937" },

@@ -3,6 +3,7 @@ import { Alert } from "react-native";
 import { consultationService } from "../service";
 import type {
   ConsultationService,
+  ConsultationServiceVariant,
   CreateServicePayload,
   UpdateServicePayload,
 } from "../types";
@@ -79,8 +80,8 @@ export function useCreateService(
       Alert.alert("Required", "Kam se kam ek tag/category select karo");
       return;
     }
-    setLoading(true);
     try {
+      setLoading(true);
       const service = await consultationService.createService(dto);
       onSuccess?.(service);
       return service;
@@ -99,8 +100,8 @@ export function useCreateService(
 }
 
 // ─── useUpdateService ────────────────────────────────────────────────────────
-// Kisi bhi service ka edit — Basic consultancy ke liye sirf price/duration,
-// normal services ke liye sab kuch editable.
+// Kisi bhi service ka edit — title/desc/cover/about/tags (Basic ho ya
+// normal). Price ab is se edit nahi hota — useUpdateServiceVariant use karo.
 
 export function useUpdateService(
   onSuccess?: (service: ConsultationService) => void,
@@ -125,4 +126,69 @@ export function useUpdateService(
   };
 
   return { updateService, loading };
+}
+
+// ─── useServiceVariants ────────────────────────────────────────────────────
+// Ek service ke 5 fixed duration variants fetch karna — astrologer edit
+// modal aur user detail page (variant selector), dono yahi use karte hain.
+
+export function useServiceVariants(serviceId: string | null | undefined) {
+  const [variants, setVariants] = useState<ConsultationServiceVariant[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchVariants = async () => {
+    if (!serviceId) return;
+    setLoading(true);
+    try {
+      const data = await consultationService.getServiceVariants(serviceId);
+      setVariants(data);
+      return data;
+    } catch (err: any) {
+      console.log(
+        "getServiceVariants error:",
+        err?.response?.status,
+        err?.response?.data ?? err?.message,
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { variants, loading, fetchVariants, setVariants };
+}
+
+// ─── useUpdateServiceVariant ────────────────────────────────────────────────
+// Astrologer sirf ek variant ka price edit karta hai (duration fixed hai)
+
+export function useUpdateServiceVariant(
+  onSuccess?: (variant: ConsultationServiceVariant) => void,
+) {
+  const [loading, setLoading] = useState(false);
+
+  const updateVariant = async (
+    serviceId: string,
+    variantId: string,
+    price: number,
+  ) => {
+    setLoading(true);
+    try {
+      const variant = await consultationService.updateServiceVariant(
+        serviceId,
+        variantId,
+        { price },
+      );
+      onSuccess?.(variant);
+      return variant;
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.error?.[0]?.message ||
+        "Price update nahi hua";
+      Alert.alert("Error", msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { updateVariant, loading };
 }

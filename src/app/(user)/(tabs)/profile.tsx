@@ -1,4 +1,5 @@
 import Header from "@/components/header";
+import { useAstrologerApplicationStatus } from "@/features/astrologer-application/hooks/useAstrologerApplication";
 import { AstrologerProfileView } from "@/features/astrologer/components/AstrologerProfileView";
 import { useLogout } from "@/features/auth/hooks/useAuth";
 import { useAuthStore, useUser } from "@/features/auth/store/auth.store";
@@ -37,6 +38,13 @@ export default function ProfileScreen() {
   const { handleLogout } = useLogout();
   const [loggingOut, setLoggingOut] = useState(false);
   const { isLoading } = useAuthStore();
+  // Astrologer application ka current status — button/state isi se decide
+  // hota hai. sessionUser.isAstrologer=false hone ke baad hi yeh relevant
+  // hai (astrologer already ban chuke user ke liye upar hi return ho jaata
+  // hai, isliye query yahan safe hai — enabled check apne aap ho jaata hai
+  // kyunki hook sirf render hone par hi query fire karta hai).
+  const { status: applicationStatus, loading: applicationLoading } =
+    useAstrologerApplicationStatus(!sessionUser?.isAstrologer);
 
   // Loading ho raha hai — kuch mat dikhao, flicker avoid karo
   if (isLoading) {
@@ -85,6 +93,46 @@ export default function ProfileScreen() {
             <Text style={styles.editBtnText}>Edit Profile</Text>
           </TouchableOpacity>
         </View>
+
+        {!applicationLoading && applicationStatus && (
+          <>
+            {!applicationStatus.hasApplied && (
+              <TouchableOpacity
+                style={styles.upgradeBtn}
+                onPress={() => router.push("/(user)/become-astrologer" as any)}
+              >
+                <Text style={styles.upgradeBtnText}>✨ Upgrade to Astrologer</Text>
+              </TouchableOpacity>
+            )}
+
+            {applicationStatus.verificationStatus === "pending" && (
+              <View style={styles.statusCardPending}>
+                <Text style={styles.statusCardTitle}>⏳ Application Under Review</Text>
+                <Text style={styles.statusCardText}>
+                  Humari team tumhari application review kar rahi hai. Approve hote hi
+                  notify kar denge.
+                </Text>
+              </View>
+            )}
+
+            {applicationStatus.verificationStatus === "rejected" && (
+              <View style={styles.statusCardRejected}>
+                <Text style={styles.statusCardTitleRejected}>Application Rejected</Text>
+                {applicationStatus.rejectionReason && (
+                  <Text style={styles.statusCardText}>
+                    Reason: {applicationStatus.rejectionReason}
+                  </Text>
+                )}
+                <TouchableOpacity
+                  style={styles.reapplyBtn}
+                  onPress={() => router.push("/(user)/become-astrologer" as any)}
+                >
+                  <Text style={styles.reapplyBtnText}>Reapply</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </>
+        )}
 
         <View style={styles.menuCard}>
           {MENU_ITEMS.map((item, index) => (
@@ -179,6 +227,54 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   editBtnText: { color: "#9d0399", fontWeight: "700", fontSize: 14 },
+  upgradeBtn: {
+    backgroundColor: "#9d0399",
+    borderRadius: 16,
+    paddingVertical: 14,
+    alignItems: "center",
+    shadowColor: "#9d0399",
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  upgradeBtnText: { color: "#FFF", fontWeight: "700", fontSize: 15 },
+  statusCardPending: {
+    backgroundColor: "#FFF7ED",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#FED7AA",
+    padding: 16,
+  },
+  statusCardRejected: {
+    backgroundColor: "#FEF2F2",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#FECACA",
+    padding: 16,
+  },
+  statusCardTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#C2410C",
+    marginBottom: 4,
+  },
+  statusCardTitleRejected: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#B91C1C",
+    marginBottom: 4,
+  },
+  statusCardText: { fontSize: 13, color: "#4A4468", lineHeight: 18 },
+  reapplyBtn: {
+    marginTop: 10,
+    alignSelf: "flex-start",
+    borderWidth: 1.5,
+    borderColor: "#B91C1C",
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+  },
+  reapplyBtnText: { color: "#B91C1C", fontWeight: "700", fontSize: 13 },
   menuCard: {
     backgroundColor: "#FFF",
     borderRadius: 16,

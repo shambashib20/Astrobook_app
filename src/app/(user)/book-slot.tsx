@@ -1,7 +1,7 @@
 import Header from "@/components/header";
 import { useAstrologerProfile } from "@/features/astrologer/hooks/useAstrologerProfile";
 import { consultationService } from "@/features/consultation/service";
-import type { TimeSlot } from "@/features/consultation/types";
+import type { ConsultationServiceVariant, TimeSlot } from "@/features/consultation/types";
 import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -54,9 +54,10 @@ function groupSlots(slots: TimeSlot[]) {
 
 export default function BookSlotScreen() {
   const router = useRouter();
-  const { astroId, serviceId } = useLocalSearchParams<{
+  const { astroId, serviceId, variantId } = useLocalSearchParams<{
     astroId: string;
     serviceId: string;
+    variantId?: string;
   }>();
 
   const {
@@ -72,6 +73,24 @@ export default function BookSlotScreen() {
   useEffect(() => {
     fetchProfile();
   }, [astroId]);
+
+  // Konsa duration/price variant select hua tha (service detail page se
+  // aata hai) — booking summary strip aur slots yahi duration use karte hain
+  const [variant, setVariant] = useState<ConsultationServiceVariant | null>(
+    null,
+  );
+  useEffect(() => {
+    if (!serviceId) return;
+    consultationService
+      .getServiceVariants(serviceId)
+      .then((variants) => {
+        const match = variantId
+          ? variants.find((v) => v.id === variantId)
+          : variants.find((v) => v.isDefault);
+        setVariant(match ?? variants[0] ?? null);
+      })
+      .catch(() => setVariant(null));
+  }, [serviceId, variantId]);
 
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [datesLoading, setDatesLoading] = useState(false);
@@ -95,17 +114,23 @@ export default function BookSlotScreen() {
       .finally(() => setDatesLoading(false));
   }, [astroId]);
 
-  // Date change hone pe uss din ke slots fetch karo
+  // Date change hone pe uss din ke slots fetch karo — variant ki duration
+  // se slot length decide hoti hai
   useEffect(() => {
     if (!astroId || !serviceId || !selectedDate) return;
     setSlotsLoading(true);
     setSelectedSlot(null);
     consultationService
-      .getSlots({ astrologerId: astroId, serviceId, date: selectedDate })
+      .getSlots({
+        astrologerId: astroId,
+        serviceId,
+        variantId: variant?.id,
+        date: selectedDate,
+      })
       .then(setSlots)
       .catch(() => setSlots([]))
       .finally(() => setSlotsLoading(false));
-  }, [astroId, serviceId, selectedDate]);
+  }, [astroId, serviceId, selectedDate, variant?.id]);
 
   const { morning, afternoon, evening } = groupSlots(slots);
 
@@ -116,6 +141,7 @@ export default function BookSlotScreen() {
       params: {
         astroId: astrologer.id,
         serviceId: service.id,
+        variantId: variant?.id,
         scheduledAt: selectedSlot.startTime,
       },
     });
@@ -216,11 +242,13 @@ export default function BookSlotScreen() {
         <View style={styles.stripRight}>
           <View style={styles.stripChip}>
             <Text style={styles.stripChipText}>
-              ⏱ {service.durationMinutes} min
+              ⏱ {variant?.durationMinutes ?? service.durationMinutes} min
             </Text>
           </View>
           <View style={styles.stripPriceChip}>
-            <Text style={styles.stripPriceText}>₹{service.price ?? "—"}</Text>
+            <Text style={styles.stripPriceText}>
+              ₹{variant?.price ?? service.price ?? "—"}
+            </Text>
           </View>
         </View>
       </View>
@@ -367,7 +395,7 @@ export default function BookSlotScreen() {
               !selectedSlot && styles.btnTextDisabled,
             ]}
           >
-            Proceed • ₹{service.price ?? "—"}
+            Proceed • ₹{variant?.price ?? service.price ?? "—"}
           </Text>
           {selectedSlot && (
             <Feather
