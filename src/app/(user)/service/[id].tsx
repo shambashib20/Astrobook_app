@@ -17,6 +17,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 function StarRating({
   rating,
@@ -44,6 +45,7 @@ function StarRating({
 
 export default function ServiceDetailScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   // NOTE: route ka file naam [id].tsx hai isliye param bhi "id" hi aata hai —
   // yahan "serviceId" ke naam se treat kar rahe hain saaf rehne ke liye
   const { id: serviceId, astroId } = useLocalSearchParams<{
@@ -231,7 +233,9 @@ export default function ServiceDetailScreen() {
       </ScrollView>
 
       {/* --- Sticky Bottom Bar --- */}
-      <View style={styles.bottomBar}>
+      <View
+        style={[styles.bottomBar, { paddingBottom: 14 + insets.bottom }]}
+      >
         <View>
           <Text style={styles.priceLabel}>Price</Text>
           <Text style={styles.price}>

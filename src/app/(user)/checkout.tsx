@@ -7,6 +7,7 @@ import { paymentService } from "@/features/payment/service";
 import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ActivityIndicator,
   ScrollView,
@@ -19,6 +20,7 @@ import RazorpayCheckout from "react-native-razorpay";
 
 export default function CheckoutScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const user = useUser();
   const { astroId, serviceId, variantId, scheduledAt, retryAppointmentId } =
     useLocalSearchParams<{
@@ -246,7 +248,9 @@ export default function CheckoutScreen() {
         <View style={{ height: 90 }} />
       </ScrollView>
 
-      <View style={styles.stickyBottom}>
+      <View
+        style={[styles.stickyBottom, { paddingBottom: 24 + insets.bottom }]}
+      >
         <TouchableOpacity
           style={[styles.paymentBtn, placing && styles.paymentBtnDisabled]}
           onPress={handlePayment}

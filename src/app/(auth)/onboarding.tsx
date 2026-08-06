@@ -16,6 +16,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const INTERESTS = [
@@ -34,6 +35,7 @@ const INTERESTS = [
 ];
 
 export default function OnboardingScreen() {
+  const insets = useSafeAreaInsets();
   const { user } = useAuthStore();
   const router = useRouter();
   const [name, setName] = useState("");
@@ -86,7 +88,7 @@ export default function OnboardingScreen() {
           behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
           <ScrollView
-            contentContainerStyle={styles.content}
+            contentContainerStyle={[styles.content, { paddingBottom: 32 + insets.bottom }]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >

@@ -16,6 +16,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 function formatDateTime(iso: string) {
   const d = new Date(iso);
@@ -227,6 +228,7 @@ const TABS = [
 ];
 
 export default function MyBookingsScreen() {
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState("consultations");
   const { appointments, loading, refreshing, fetchAppointments } =
     useMyAppointments();
@@ -281,7 +283,7 @@ export default function MyBookingsScreen() {
       ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[styles.content, { paddingBottom: 32 + insets.bottom }]}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const MONTH_LABELS = [
   "Jan",
@@ -54,6 +55,7 @@ function groupSlots(slots: TimeSlot[]) {
 
 export default function BookSlotScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { astroId, serviceId, variantId } = useLocalSearchParams<{
     astroId: string;
     serviceId: string;
@@ -362,7 +364,12 @@ export default function BookSlotScreen() {
       </ScrollView>
 
       {/* ── Sticky Bottom ── */}
-      <View style={styles.bottomBar}>
+      <View
+        style={[
+          styles.bottomBar,
+          { paddingBottom: 28 + insets.bottom },
+        ]}
+      >
         {selectedSlot ? (
           <View style={styles.selectedSlotConfirm}>
             <Feather name="check-circle" size={14} color="#9d0399" />

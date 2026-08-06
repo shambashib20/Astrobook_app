@@ -3,6 +3,7 @@ import { useUser } from "@/features/auth/store/auth.store";
 import { consultationService } from "@/features/consultation/service";
 import type { AppointmentWithChildren } from "@/features/consultation/types";
 import { Feather } from "@expo/vector-icons";
+import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -35,6 +36,7 @@ type ScreenState =
   | "loading"
   | "waiting_for_time"
   | "ready_to_join"
+  | "waiting_for_astrologer"
   | "joining"
   | "in_call"
   | "ended"
@@ -140,6 +142,17 @@ export default function SessionScreen() {
     return () => clearInterval(id);
   }, [screenState, appointment]);
 
+  // In-call ke dauraan screen sleep na ho — warna video/audio ruk jaata hai
+  // ya user ko lagta hai call drop ho gayi. Sirf in_call state mein zaroori
+  // hai, baaki (waiting/loading) screens mein normal auto-lock chalne do.
+  useEffect(() => {
+    if (screenState !== "in_call") return;
+    activateKeepAwakeAsync("session-in-call");
+    return () => {
+      deactivateKeepAwake("session-in-call");
+    };
+  }, [screenState]);
+
   // In-call countdown (session duration) — client-side self-enforced end
   useEffect(() => {
     if (screenState !== "in_call") return;
@@ -160,7 +173,12 @@ export default function SessionScreen() {
   // agar doosri party pehle join kar chuki ho (status "ongoing" ho jaaye)
   // ya astrologer/admin ne cancel kar diya ho, toh yeh screen turant update ho
   useEffect(() => {
-    if (screenState !== "waiting_for_time" && screenState !== "ready_to_join") return;
+    if (
+      screenState !== "waiting_for_time" &&
+      screenState !== "ready_to_join" &&
+      screenState !== "waiting_for_astrologer"
+    )
+      return;
     const id = setInterval(loadAppointment, 15000);
     return () => clearInterval(id);
   }, [screenState, loadAppointment]);
@@ -323,6 +341,14 @@ export default function SessionScreen() {
       engineRef.current = engine;
       setScreenState("in_call");
     } catch (err: any) {
+      if (err?.response?.status === 409) {
+        // Astrologer abhi tak join nahi hui — ye normal/temporary situation
+        // hai (dono ka time-gate ek saath khulta hai ab, bas chand second ka
+        // farak hota hai). Harsh error-alert dikhaana galat hoga — khud-b-khud
+        // retry karte hain jab tak astrologer aa nahi jaati.
+        setScreenState("waiting_for_astrologer");
+        return;
+      }
       Alert.alert(
         "Join Nahi Ho Paya",
         err?.response?.data?.message || "Session join nahi ho paya",
@@ -330,6 +356,31 @@ export default function SessionScreen() {
       setScreenState("ready_to_join");
     }
   };
+
+  // "waiting_for_astrologer" state mein har 3 sec baad khud-b-khud dobara
+  // join try karo — user ko baar-baar tap nahi karna padta
+  useEffect(() => {
+    if (screenState !== "waiting_for_astrologer") return;
+    const id = setTimeout(() => {
+      handleJoin();
+    }, 3000);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screenState]);
+
+  // Auto-start: scheduled time aate hi (ready_to_join) khud-b-khud join
+  // try karo — manual "Join Session" tap ki zarurat nahi. Ek baar hi
+  // auto-try hota hai per screen-visit; agar fail ho (koi genuine error
+  // aaye, alert dikhega) toh dobara auto-loop nahi karte — button abhi
+  // bhi manually tap kiya ja sakta hai fallback ke liye.
+  const autoJoinTriedRef = useRef(false);
+  useEffect(() => {
+    if (screenState !== "ready_to_join") return;
+    if (autoJoinTriedRef.current) return;
+    autoJoinTriedRef.current = true;
+    handleJoin();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screenState]);
 
   const handleEndCall = async (auto = false) => {
     if (endingRef.current) return;
@@ -404,7 +455,12 @@ export default function SessionScreen() {
     );
   }
 
-  if (screenState === "waiting_for_time" || screenState === "ready_to_join" || screenState === "joining") {
+  if (
+    screenState === "waiting_for_time" ||
+    screenState === "ready_to_join" ||
+    screenState === "waiting_for_astrologer" ||
+    screenState === "joining"
+  ) {
     return (
       <View style={styles.root}>
         <Header />
@@ -420,29 +476,38 @@ export default function SessionScreen() {
               <Text style={styles.countdownLabel}>Session starts in</Text>
               <Text style={styles.countdownBig}>{countdownText}</Text>
             </>
+          ) : screenState === "waiting_for_astrologer" ? (
+            <>
+              <ActivityIndicator color="#9d0399" style={{ marginBottom: 8 }} />
+              <Text style={styles.readyText}>
+                {otherPersonLabel} session mein aa rahi hai — bas thodi der...
+              </Text>
+            </>
           ) : (
             <Text style={styles.readyText}>
               Session shuru ho sakta hai — join karo
             </Text>
           )}
 
-          <TouchableOpacity
-            style={[
-              styles.joinBtn,
-              screenState !== "ready_to_join" && styles.joinBtnDisabled,
-            ]}
-            disabled={screenState !== "ready_to_join"}
-            onPress={handleJoin}
-          >
-            {screenState === "joining" ? (
-              <ActivityIndicator color="#FFF" size="small" />
-            ) : (
-              <>
-                <Feather name="phone-call" size={16} color="#FFF" />
-                <Text style={styles.joinBtnText}>Join Session</Text>
-              </>
-            )}
-          </TouchableOpacity>
+          {screenState !== "waiting_for_astrologer" && (
+            <TouchableOpacity
+              style={[
+                styles.joinBtn,
+                screenState !== "ready_to_join" && styles.joinBtnDisabled,
+              ]}
+              disabled={screenState !== "ready_to_join"}
+              onPress={handleJoin}
+            >
+              {screenState === "joining" ? (
+                <ActivityIndicator color="#FFF" size="small" />
+              ) : (
+                <>
+                  <Feather name="phone-call" size={16} color="#FFF" />
+                  <Text style={styles.joinBtnText}>Join Session</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     );

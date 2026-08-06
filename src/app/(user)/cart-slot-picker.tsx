@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const MONTH_LABELS = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -30,6 +31,7 @@ function displayTime(iso: string) {
 
 export default function CartSlotPickerScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { cartItemId, astroId, serviceId, variantId } = useLocalSearchParams<{
     cartItemId: string;
     astroId: string;
@@ -170,7 +172,9 @@ export default function CartSlotPickerScreen() {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <View style={styles.bottomBar}>
+      <View
+        style={[styles.bottomBar, { paddingBottom: 28 + insets.bottom }]}
+      >
         <TouchableOpacity
           style={[styles.confirmBtn, !selectedSlot && styles.btnDisabled]}
           disabled={!selectedSlot || saving}

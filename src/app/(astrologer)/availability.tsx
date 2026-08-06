@@ -18,6 +18,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 // ─── Date / Time helpers ─────────────────────────────────────────────────────
@@ -85,6 +86,7 @@ type DayGroup = { date: string; windows: AvailabilityWindow[] };
 // ─── Screen ───────────────────────────────────────────────────────────────
 
 export default function AvailabilityScreen() {
+  const insets = useSafeAreaInsets();
   const { availability, loading, fetchAvailability, deleteAvailability } =
     useMyAvailability();
   const { setAvailability, loading: saving } = useSetAvailability(() => {
@@ -300,7 +302,7 @@ export default function AvailabilityScreen() {
         onRequestClose={() => setShowAddModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
+          <View style={[styles.modalCard, { paddingBottom: 40 + insets.bottom }]}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Add Availability</Text>
               <TouchableOpacity

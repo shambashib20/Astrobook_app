@@ -8,9 +8,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function PaymentFailedScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { appointmentId, reason, astroId, serviceId, scheduledAt } =
     useLocalSearchParams<{
       appointmentId?: string;
@@ -66,7 +68,9 @@ export default function PaymentFailedScreen() {
         <View style={{ height: 20 }} />
       </ScrollView>
 
-      <View style={styles.stickyBottom}>
+      <View
+        style={[styles.stickyBottom, { paddingBottom: 24 + insets.bottom }]}
+      >
         {astroId && serviceId && scheduledAt && (
           <TouchableOpacity style={styles.retryBtn} onPress={handleRetry}>
             <Text style={styles.retryBtnText}>Dobara Try Karo</Text>

@@ -6,6 +6,7 @@ import type { CartItem } from "@/features/cart/types";
 import { Feather } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ActivityIndicator,
   Alert,
@@ -27,6 +28,7 @@ function formatSlot(iso: string) {
 
 export default function CartScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const user = useUser();
   const { items, loading, error, fetchCart, removeItem } = useCart();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -263,7 +265,9 @@ export default function CartScreen() {
       )}
 
       {items.length > 0 && (
-        <View style={styles.bottomBar}>
+        <View
+          style={[styles.bottomBar, { paddingBottom: 12 + insets.bottom }]}
+        >
           <TouchableOpacity
             style={[
               styles.paymentBtn,

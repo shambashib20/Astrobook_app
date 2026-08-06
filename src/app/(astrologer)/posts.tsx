@@ -24,6 +24,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
@@ -56,6 +57,7 @@ function clamp(n: number, min: number, max: number) {
 }
 
 export default function AstrologerPostsScreen() {
+  const insets = useSafeAreaInsets();
   const { posts, loading, fetchPosts, deletePost } = useMyPosts();
   const { uploadImage, uploading } = useImageKitUpload();
   const { categories, fetchCategories } = useCategories();
@@ -272,7 +274,7 @@ export default function AstrologerPostsScreen() {
       />
 
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: 16 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
       >
         {loading ? (

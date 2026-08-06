@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const STATUS_META: Record<
   string,
@@ -69,6 +70,7 @@ const STATUS_META: Record<
 
 export default function BookingConfirmationScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { appointmentId } = useLocalSearchParams<{ appointmentId: string }>();
 
   const [appointment, setAppointment] = useState<AppointmentWithChildren | null>(
@@ -215,7 +217,9 @@ export default function BookingConfirmationScreen() {
         <View style={{ height: 20 }} />
       </ScrollView>
 
-      <View style={styles.stickyBottom}>
+      <View
+        style={[styles.stickyBottom, { paddingBottom: 24 + insets.bottom }]}
+      >
         {(appointment.status === "confirmed" || appointment.status === "ongoing") && (
           <TouchableOpacity
             style={styles.joinBtn}

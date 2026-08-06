@@ -17,6 +17,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const ITEM_WIDTH = SCREEN_WIDTH * 0.62;
@@ -45,6 +46,7 @@ function StarRating({ rating }: { rating: number }) {
 
 export default function AstrologerProfileScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const currentUser = useUser();
   const isOwnProfile = !!currentUser && currentUser.id === id;
@@ -132,7 +134,7 @@ export default function AstrologerProfileScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 32 + insets.bottom }]}
       >
         {/* Profile Header Card */}
         <View style={styles.headerCard}>

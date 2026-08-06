@@ -22,6 +22,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -99,6 +100,7 @@ function DetailVideoPlayer({ uri }: { uri: string }) {
 
 export default function PostDetailScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const user = useUser();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { post, relatedPosts, loading, error, fetchPost } = usePost(id);
@@ -462,7 +464,7 @@ export default function PostDetailScreen() {
         />
 
         {/* Comment input */}
-        <View style={styles.commentInputRow}>
+        <View style={[styles.commentInputRow, { paddingBottom: 12 + insets.bottom }]}>
           <TextInput
             style={styles.commentInput}
             placeholder="Comment likho..."

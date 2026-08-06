@@ -92,12 +92,22 @@ class ApiClient {
             original.headers.Authorization = `Bearer ${newToken}`;
             this.isRefreshing = false;
             return this.instance(original);
-          } catch (err) {
-            // Refresh fail — logout
+          } catch (err: any) {
             this.refreshQueue.forEach((item) => item.reject(err));
             this.refreshQueue = [];
             this.isRefreshing = false;
-            await this._clearTokens();
+
+            // Sirf tabhi tokens clear karo jab backend ne refresh token ko
+            // GENUINELY reject kiya ho (401/400 — matlab token invalid ya
+            // expired hai). Network error / server temporarily down jaisi
+            // transient failures pe tokens ko haath mat lagao — warna ek
+            // valid session bhi wipe ho jaati hai aur user ko bewajah
+            // dobara OTP se login karna padta hai.
+            const isAuthRejection =
+              err?.response?.status === 401 || err?.response?.status === 400;
+            if (isAuthRejection) {
+              await this._clearTokens();
+            }
             return Promise.reject(error);
           }
         }

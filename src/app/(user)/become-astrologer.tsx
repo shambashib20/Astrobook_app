@@ -18,6 +18,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const MAX_VIDEO_DURATION_SEC = 60; // "1 min ka video" — jaisa product mein tay hua
@@ -43,6 +44,7 @@ type MediaSlot = { uri: string; uploadedUrl: string | null };
 
 export default function BecomeAstrologerScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { categories, fetchCategories } = useCategories();
   const { uploadImage, uploading } = useImageKitUpload();
   const { submit, loading: submitting } = useSubmitAstrologerApplication(() => {
@@ -212,7 +214,7 @@ export default function BecomeAstrologerScreen() {
     <SafeAreaView style={styles.root} edges={["top"]}>
       <ScreenHeader title="Become an Astrologer" fallbackHref="/(user)/(tabs)/profile" />
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 60 + insets.bottom }]} showsVerticalScrollIndicator={false}>
         <Text style={styles.intro}>
           Apne baare mein thodi jaankari do — humari team review karke tumhe astrologer ke
           taur pe verify kar degi.
