@@ -1,5 +1,4 @@
 import AstroGradient from "@/assets/images/astro-gradient.svg";
-import AstroLogo from "@/assets/images/logo-white.svg";
 import { useOnboarding } from "@/features/auth/hooks/useAuth";
 import { useAuthStore } from "@/features/auth/store/auth.store";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -7,6 +6,7 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import {
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -94,7 +94,11 @@ export default function OnboardingScreen() {
           >
             {/* Logo */}
             <View style={styles.logoRow}>
-              <AstroLogo width={220} height={90} />
+              <Image
+                source={require("@/assets/images/logo-white.png")}
+                style={{ width: 220, height: 90 }}
+                resizeMode="contain"
+              />
             </View>
 
             {/* Header */}

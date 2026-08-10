@@ -2,7 +2,6 @@ import Header from "@/components/header";
 import UserAvatar from "@/components/UserAvatar";
 import { useAstrologersList } from "@/features/astrologer/hooks/useAstrologersList";
 import { useRouter } from "expo-router";
-import { useEffect } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -35,12 +34,10 @@ function StarRating({ rating }: { rating: number }) {
 
 export default function AstrologersScreen() {
   const router = useRouter();
-  const { astrologers, loading, error, fetchAstrologers } =
-    useAstrologersList();
-
-  useEffect(() => {
-    fetchAstrologers();
-  }, []);
+  // useAstrologersList ab React Query se hai — initial fetch khud-ba-khud
+  // ho jaata hai aur cache hota hai, isliye yahan manually trigger nahi
+  // karna (warna mount pe double-fetch hoga).
+  const { astrologers, loading, error } = useAstrologersList();
 
   const goToProfile = (id: string) => {
     router.push({

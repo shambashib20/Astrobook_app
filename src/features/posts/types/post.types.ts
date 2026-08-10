@@ -37,9 +37,10 @@ export type Post = {
   // Joined fields (baad mein)
   astrologerName?: string;
   astrologerAvatar?: string;
-  // Client-side enriched — astrologer ki Basic consultancy ka id, "Book Now"
-  // button ke liye (linkedServiceId set nahi hota abhi post-creation UI se,
-  // isliye Feed ka Book button hamesha Basic consultancy ko represent karta hai)
+  // Backend se seedha aata hai (correlated subquery) — astrologer ki Basic
+  // consultancy ka id, "Book Now" button ke liye (linkedServiceId set nahi
+  // hota abhi post-creation UI se, isliye Feed ka Book button hamesha Basic
+  // consultancy ko represent karta hai)
   basicServiceId?: string | null;
 };
 

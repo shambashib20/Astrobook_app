@@ -32,6 +32,9 @@ export const queryKeys = {
     services: (id: string) => ["astrologer", id, "services"] as const,
     posts: (id: string) => ["astrologer", id, "posts"] as const,
   },
+  astrologers: {
+    list: ["astrologers", "list"] as const,
+  },
   posts: {
     feed: ["posts", "feed"] as const,
     byId: (id: string) => ["posts", id] as const,

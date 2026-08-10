@@ -80,12 +80,18 @@ export function usePushNotifications(enabled: boolean = true) {
     if (registeredRef.current) return;
     registeredRef.current = true;
 
-    registerForPushNotificationsAsync().then((token) => {
-      if (!token) return;
-      usersService
-        .registerPushToken(token, Platform.OS as "ios" | "android")
-        .catch((err) => console.warn("[Push] backend registration fail:", err));
-    });
+    // Android ka native "Allow notifications?" dialog turant login ke baad
+    // trigger hota tha, feed screen ke transition ke upar overlay ho jaata
+    // tha — user ko lagta tha app pending/stuck hai. Thoda delay karke feed
+    // pehle paint hone deta hai, dialog uske baad aata hai.
+    const timer = setTimeout(() => {
+      registerForPushNotificationsAsync().then((token) => {
+        if (!token) return;
+        usersService
+          .registerPushToken(token, Platform.OS as "ios" | "android")
+          .catch((err) => console.warn("[Push] backend registration fail:", err));
+      });
+    }, 1500);
 
     // Tap-to-open — app background/killed dono se aane wale taps handle karta hai
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
@@ -94,6 +100,9 @@ export function usePushNotifications(enabled: boolean = true) {
       if (href) router.push(href as any);
     });
 
-    return () => sub.remove();
+    return () => {
+      clearTimeout(timer);
+      sub.remove();
+    };
   }, [enabled]);
 }

@@ -1,125 +1,83 @@
-import { astrologersService } from "@/features/astrologer/services";
+import { queryKeys } from "@/lib/queryClient";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { postsService } from "../services/posts.service";
 import type { Post } from "../types/post.types";
 
 const PAGE_SIZE = 10;
 
-// Backend ab `posts` feed/detail query mein `users` table join karke
-// astrologerName + astrologerAvatar (real photo URL) seedha bhej deta hai —
-// yeh function ab SIRF basicServiceId ke liye zaroori hai (Feed ke "Book
-// Now" button ke liye, kyunki post.linkedServiceId kabhi set nahi hota).
-// Naam/avatar ko yahan se overwrite NAHI karna — backend ka data hi sahi/
-// fresh hai, cache wala emoji purana tha aur real photo ko clobber kar
-// deta tha.
-const astrologerCache = new Map<
-  string,
-  { name: string; basicServiceId: string | null }
->();
-
-async function enrichWithAstrologers(posts: Post[]): Promise<Post[]> {
-  const uniqueIds = Array.from(
-    new Set(
-      posts.map((p) => p.astrologerId).filter((id) => !astrologerCache.has(id)),
-    ),
-  );
-  if (uniqueIds.length > 0) {
-    const fetched = await Promise.all(
-      uniqueIds.map((id) =>
-        Promise.all([
-          astrologersService.getById(id).catch(() => null),
-          astrologersService.getServices(id).catch(() => []),
-        ]),
-      ),
-    );
-    fetched.forEach(([a, services], i) => {
-      const basic = services?.find((s) => s.isBasic) ?? null;
-      astrologerCache.set(uniqueIds[i]!, {
-        name: a?.name ?? "Astrologer",
-        basicServiceId: basic?.id ?? null,
-      });
-    });
-  }
+// Backend ab `posts` query mein hi astrologerName/astrologerAvatar (users
+// join) aur basicServiceId (correlated subquery) sab bhej deta hai — pehle
+// yahan har unique astrologer ke liye alag getById()+getServices() call
+// hota tha (N parallel Neon round trips per feed load), jo tab switch ko
+// multiple seconds tak freeze kar deta tha. Ab kuch fetch hi nahi karna.
+function enrichWithAstrologers(posts: Post[]): Post[] {
   return posts.map((p) => ({
     ...p,
-    // Backend se already aaya naam/avatar hi priority — cache sirf fallback
-    astrologerName:
-      p.astrologerName ?? astrologerCache.get(p.astrologerId)?.name ?? "Astrologer",
-    astrologerAvatar: p.astrologerAvatar,
-    basicServiceId: astrologerCache.get(p.astrologerId)?.basicServiceId ?? null,
+    astrologerName: p.astrologerName ?? "Astrologer",
   }));
 }
 
 // ─── useFeedPosts ────────────────────────────────────────────────────────────
 // Home feed — sabke posts, infinite scroll ke saath, astrologer info enriched
-
+//
+// Pehle plain useState+useEffect tha — har naye mount pe (chahe pehli baar ho
+// ya screen kisi wajah se remount ho, jaise Fast Refresh) poora feed dobara
+// fetch hota tha. Isliye tab-switch kabhi turant aata tha (screen mounted
+// reh gaya) kabhi seconds leta tha (remount ho gaya) — same data, alag
+// experience. React Query cache (queryKeys.posts.feed, 30s staleTime) ab
+// component lifecycle se independent hai — revisit hamesha cache se turant
+// aata hai, sirf pehli baar hi real network+DB round trip lagta hai.
 export function useFeedPosts() {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const offsetRef = useRef(0);
+  const queryClient = useQueryClient();
 
-  const fetchFeed = async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
-    setError(null);
-    offsetRef.current = 0;
-    try {
-      const { posts: data, hasMore: more } = await postsService.getAll(
-        PAGE_SIZE,
-        0,
-      );
-      const enriched = await enrichWithAstrologers(data);
-      setPosts(enriched);
-      setHasMore(more);
-      offsetRef.current = data.length;
-    } catch (err: any) {
-      setError(err?.response?.data?.message || "Feed load nahi hua");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+  const query = useInfiniteQuery({
+    queryKey: queryKeys.posts.feed,
+    queryFn: ({ pageParam }) => postsService.getAll(PAGE_SIZE, pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.hasMore ? allPages.length * PAGE_SIZE : undefined,
+  });
+
+  const posts = enrichWithAstrologers(
+    query.data?.pages.flatMap((page) => page.posts) ?? [],
+  );
+
+  // Feed screen mount pe isse call karta hai — initial fetch useInfiniteQuery
+  // khud handle karta hai, yahan sirf explicit pull-to-refresh ko forward
+  // karna hai (warna mount pe double-fetch ho jaayega).
+  const fetchFeed = (isRefresh = false) => {
+    if (isRefresh) query.refetch();
   };
 
-  // FlatList ke onEndReached se call hota hai — agla page laata hai
-  const loadMore = async () => {
-    if (loadingMore || !hasMore || loading) return;
-    setLoadingMore(true);
-    try {
-      const { posts: data, hasMore: more } = await postsService.getAll(
-        PAGE_SIZE,
-        offsetRef.current,
-      );
-      const enriched = await enrichWithAstrologers(data);
-      setPosts((prev) => {
-        const existingIds = new Set(prev.map((p) => p.id));
-        return [...prev, ...enriched.filter((p) => !existingIds.has(p.id))];
-      });
-      setHasMore(more);
-      offsetRef.current += data.length;
-    } catch {
-      // Silent fail on load-more — user scroll ruk jayega, refresh se retry
-    } finally {
-      setLoadingMore(false);
-    }
+  const loadMore = () => {
+    if (query.hasNextPage && !query.isFetchingNextPage) query.fetchNextPage();
   };
 
-  // Single post ko locally update karo (jaise like/unlike ke baad) — bina
-  // poora feed refetch kiye
+  // Single post ko cache ke andar hi update karo (jaise like/unlike ke
+  // baad) — bina poora feed refetch kiye
   const updatePost = (updated: Post) => {
-    setPosts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+    queryClient.setQueryData(queryKeys.posts.feed, (old: typeof query.data) => {
+      if (!old) return old;
+      return {
+        ...old,
+        pages: old.pages.map((page) => ({
+          ...page,
+          posts: page.posts.map((p) => (p.id === updated.id ? updated : p)),
+        })),
+      };
+    });
   };
 
   return {
     posts,
-    loading,
-    refreshing,
-    loadingMore,
-    hasMore,
-    error,
+    loading: query.isPending,
+    refreshing: query.isRefetching && !query.isFetchingNextPage,
+    loadingMore: query.isFetchingNextPage,
+    hasMore: query.hasNextPage ?? false,
+    error: query.isError
+      ? ((query.error as any)?.response?.data?.message ?? "Feed load nahi hua")
+      : null,
     fetchFeed,
     loadMore,
     updatePost,
@@ -148,7 +106,7 @@ export function useCategoryPosts(tag: string | undefined) {
         PAGE_SIZE,
         0,
       );
-      const enriched = await enrichWithAstrologers(data);
+      const enriched = enrichWithAstrologers(data);
       setPosts(enriched);
       setHasMore(more);
       offsetRef.current = data.length;
@@ -168,7 +126,7 @@ export function useCategoryPosts(tag: string | undefined) {
         PAGE_SIZE,
         offsetRef.current,
       );
-      const enriched = await enrichWithAstrologers(data);
+      const enriched = enrichWithAstrologers(data);
       setPosts((prev) => {
         const existingIds = new Set(prev.map((p) => p.id));
         return [...prev, ...enriched.filter((p) => !existingIds.has(p.id))];
@@ -225,7 +183,7 @@ export function usePost(id: string | undefined) {
     setError(null);
     try {
       const detail = await postsService.getById(id);
-      const enrichedDetail = (await enrichWithAstrologers([detail]))[0]!;
+      const enrichedDetail = enrichWithAstrologers([detail])[0]!;
       setPost(enrichedDetail);
 
       // "More posts by same astrologer" — pehle generic getAll se aa raha
@@ -234,7 +192,7 @@ export function usePost(id: string | undefined) {
         detail.astrologerId,
       );
       const related = sameAstrologer.filter((p) => p.id !== id).slice(0, 6);
-      const enrichedRelated = await enrichWithAstrologers(related);
+      const enrichedRelated = enrichWithAstrologers(related);
       setRelatedPosts(enrichedRelated);
     } catch (err: any) {
       setError(err?.response?.data?.message || "Post load nahi hua");

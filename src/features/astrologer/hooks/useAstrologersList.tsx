@@ -1,46 +1,34 @@
-import { useState } from "react";
+import { queryKeys } from "@/lib/queryClient";
+import { useQuery } from "@tanstack/react-query";
 import { astrologersService } from "../services";
 import type { AstrologerProfile } from "../types";
 
-export type AstrologerListItem = AstrologerProfile & {
-  basicPrice: string | null;
-  basicServiceId: string | null;
-};
+export type AstrologerListItem = AstrologerProfile;
 
+// React Query cache (30s staleTime) se — pehle plain useState+useEffect tha,
+// har naye mount pe (screen remount ho ya pehli baar visit ho) poori list
+// dobara fetch hoti thi. Ab component lifecycle se independent cache hai,
+// isliye tab revisit hamesha turant aata hai chahe screen kabhi unmount hua
+// ho ya nahi — sirf pehli baar hi real network+DB round trip lagta hai.
 export function useAstrologersList() {
-  const [astrologers, setAstrologers] = useState<AstrologerListItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const query = useQuery({
+    queryKey: queryKeys.astrologers.list,
+    queryFn: () => astrologersService.getAll(),
+  });
 
-  const fetchAstrologers = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const list = await astrologersService.getAll();
-      // Har astrologer ki Basic consultancy price nikaalne ke liye parallel
-      // fetch — list card pe "Book Now ₹X" real price ke saath dikhane ke liye
-      const withPrices = await Promise.all(
-        list.map(async (a) => {
-          try {
-            const services = await astrologersService.getServices(a.id);
-            const basic = services.find((s) => s.isBasic) ?? null;
-            return {
-              ...a,
-              basicPrice: basic?.price ?? null,
-              basicServiceId: basic?.id ?? null,
-            };
-          } catch {
-            return { ...a, basicPrice: null, basicServiceId: null };
-          }
-        }),
-      );
-      setAstrologers(withPrices);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || "Astrologers load nahi hue");
-    } finally {
-      setLoading(false);
-    }
+  // Feed screen jaisa hi pattern — mount pe explicit fetchAstrologers() call
+  // hota hai, initial load useQuery khud handle karta hai, yahan sirf
+  // manual refresh ke liye forward karna hai.
+  const fetchAstrologers = () => {
+    query.refetch();
   };
 
-  return { astrologers, loading, error, fetchAstrologers };
+  return {
+    astrologers: query.data ?? [],
+    loading: query.isPending,
+    error: query.isError
+      ? ((query.error as any)?.response?.data?.message ?? "Astrologers load nahi hue")
+      : null,
+    fetchAstrologers,
+  };
 }

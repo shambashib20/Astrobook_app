@@ -20,8 +20,8 @@
     "expo-font": "~56.0.7",
     "expo-glass-effect": "~56.0.4",
     "expo-image": "~56.0.11",
-    "expo-keep-awake": "~56.0.3",
     "expo-image-picker": "~56.0.18",
+    "expo-keep-awake": "~56.0.3",
     "expo-linear-gradient": "~56.0.4",
     "expo-linking": "~56.0.14",
     "expo-modules-core": "~56.0.17",
@@ -50,6 +50,7 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@types/react": "~19.2.2",
     "react-native-svg-transformer": "^1.5.3",
     "typescript": "~6.0.3"

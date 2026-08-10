@@ -23,6 +23,8 @@ export type AstrologerProfile = {
   meta: AstrologerMeta | null;
   isOnboarded: boolean;
   createdAt: string;
+  basicServiceId?: string | null;
+  basicPrice?: string | null;
 };
 
 export type AstrologerSlot = {

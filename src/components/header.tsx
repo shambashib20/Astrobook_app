@@ -1,10 +1,9 @@
-import AstroLogo from "@/assets/images/astro-icon.svg";
 import Feather from "@expo/vector-icons/Feather";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import type { ReactNode } from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { Image, StyleSheet, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function Header({ rightSlot }: { rightSlot?: ReactNode }) {
@@ -16,7 +15,11 @@ export default function Header({ rightSlot }: { rightSlot?: ReactNode }) {
       <StatusBar style="dark" />
       <View style={[styles.topBar, { paddingTop: insets.top + 10 }]}>
         <View style={styles.logoRow}>
-          <AstroLogo width={160} height={40} />
+          <Image
+            source={require("@/assets/images/astro-icon.png")}
+            style={{ width: 160, height: 40 }}
+            resizeMode="contain"
+          />
         </View>
         <View style={styles.actionsRow}>
           {rightSlot}
