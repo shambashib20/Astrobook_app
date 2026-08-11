@@ -11,6 +11,8 @@ export type AstrologerMeta = {
   online: boolean;
   price?: number;
   about?: string;
+  // Platform fee % deducted from each booking amount before payout
+  commissionPercentage?: number;
 };
 
 export type AstrologerProfile = {

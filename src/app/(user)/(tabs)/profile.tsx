@@ -111,8 +111,7 @@ export default function ProfileScreen() {
                   ⏳ Application Under Review
                 </Text>
                 <Text style={styles.statusCardText}>
-                  Humari team tumhari application review kar rahi hai. Approve
-                  hote hi notify kar denge.
+                  Your application is under review. Once verified, you will notified!
                 </Text>
               </View>
             )}
