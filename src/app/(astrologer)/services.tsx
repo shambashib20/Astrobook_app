@@ -1,5 +1,4 @@
 import ScreenHeader from "@/components/ScreenHeader";
-import { useImageKitUpload } from "@/features/posts/hooks/usePosts";
 import { useAstrologerProfile } from "@/features/astrologer/hooks/useAstrologerProfile";
 import { useUser } from "@/features/auth/store/auth.store";
 import {
@@ -16,6 +15,7 @@ import {
   type ConsultationService,
   type ConsultationServiceVariant,
 } from "@/features/consultation/types";
+import { useImageKitUpload } from "@/features/posts/hooks/usePosts";
 import * as ImagePicker from "expo-image-picker";
 import { useEffect, useState } from "react";
 import {
@@ -217,7 +217,9 @@ export default function ServicesScreen() {
     }
   };
 
-  const handleSaveVariantPrice = async (variant: ConsultationServiceVariant) => {
+  const handleSaveVariantPrice = async (
+    variant: ConsultationServiceVariant,
+  ) => {
     if (!editingService) return;
     const draft = priceDrafts[variant.id];
     const price = Number(draft);
@@ -345,8 +347,8 @@ export default function ServicesScreen() {
             <Text style={styles.emptyEmoji}>🔮</Text>
             <Text style={styles.emptyText}>Koi service nahi hai abhi</Text>
             <Text style={styles.emptySubtext}>
-              "+ Add Service" se apni pehli service banao — 5 duration
-              variants apne aap ban jaayenge
+              "+ Add Service" se apni pehli service banao — 5 duration variants
+              apne aap ban jaayenge
             </Text>
           </View>
         ) : (
@@ -424,9 +426,9 @@ export default function ServicesScreen() {
 
             {!editingService && (
               <Text style={styles.basicEditNote}>
-                Service create hote hi 5 duration variants (10/30/45 min, 1
-                hr, 1.5 hr) apne aap ban jaayenge, default prices ke saath —
-                baad mein "Prices" se har ek edit kar sakte ho.
+                Service create hote hi 5 duration variants (10/30/45 min, 1 hr,
+                1.5 hr) apne aap ban jaayenge, default prices ke saath — baad
+                mein "Prices" se har ek edit kar sakte ho.
               </Text>
             )}
 
@@ -524,9 +526,9 @@ export default function ServicesScreen() {
                   Pricing — 5 duration options
                 </Text>
                 <Text style={styles.basicEditNote}>
-                  Duration fixed hai — sirf price edit ho sakta hai. 30 min
-                  wala default hai, user detail page pe wahi pehle se
-                  selected rehta hai.
+                  Duration fixed hai — sirf price edit ho sakta hai. 30 min wala
+                  default hai, user detail page pe wahi pehle se selected rehta
+                  hai.
                 </Text>
                 {variantsLoading ? (
                   <ActivityIndicator color="#9d0399" style={{ marginTop: 4 }} />
@@ -540,11 +542,16 @@ export default function ServicesScreen() {
                       const dirty =
                         priceDrafts[variant.id] !== undefined &&
                         priceDrafts[variant.id] !== variant.price;
-                      const draftValue = priceDrafts[variant.id] ?? variant.price;
+                      const draftValue =
+                        priceDrafts[variant.id] ?? variant.price;
                       const draftAmount = Number(draftValue);
-                      const hasValidAmount = draftValue !== "" && !isNaN(draftAmount);
+                      const hasValidAmount =
+                        draftValue !== "" && !isNaN(draftAmount);
                       const { commissionAmount, payoutAmount } = hasValidAmount
-                        ? computeEarningsBreakup(draftAmount, commissionPercentage)
+                        ? computeEarningsBreakup(
+                            draftAmount,
+                            commissionPercentage,
+                          )
                         : { commissionAmount: 0, payoutAmount: 0 };
                       return (
                         <View key={variant.id} style={{ gap: 6 }}>
@@ -565,7 +572,10 @@ export default function ServicesScreen() {
                                 style={styles.variantPriceInput}
                                 value={priceDrafts[variant.id] ?? variant.price}
                                 onChangeText={(v) =>
-                                  setPriceDrafts((p) => ({ ...p, [variant.id]: v }))
+                                  setPriceDrafts((p) => ({
+                                    ...p,
+                                    [variant.id]: v,
+                                  }))
                                 }
                                 keyboardType="numeric"
                               />
@@ -578,7 +588,8 @@ export default function ServicesScreen() {
                               disabled={!dirty || savingVariant}
                               onPress={() => handleSaveVariantPrice(variant)}
                             >
-                              {savingVariant && savingVariantId === variant.id ? (
+                              {savingVariant &&
+                              savingVariantId === variant.id ? (
                                 <ActivityIndicator size="small" color="#FFF" />
                               ) : (
                                 <Text style={styles.variantSaveBtnText}>
