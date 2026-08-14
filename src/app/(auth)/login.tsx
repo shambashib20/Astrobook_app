@@ -1,15 +1,15 @@
 import AstroGradient from "@/assets/images/astro-gradient.svg";
-import AstroLogo from "@/assets/images/astro-icon.svg";
 import GoogleLogo from "@/assets/images/google-icon.svg";
 import { useGoogleLogin, useOtpLogin } from "@/features/auth/hooks/useAuth";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 
 import Checkbox from "expo-checkbox";
 import { useRouter } from "expo-router";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Dimensions,
   FlatList,
+  Image,
   Linking,
   Modal,
   ScrollView,
@@ -52,9 +52,12 @@ const links = [
   { label: "Blog", url: "https://astrobook-vert.vercel.app/blog" },
   { label: "Help", url: "https://astrobook-vert.vercel.app/help" },
 ];
-GoogleSignin.configure({
-  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-});
+// Module-scope side effect tod deta tha login.tsx ka Fast Refresh boundary —
+// har edit pe Metro poora app remount karta tha (Agora/GoogleSignin/Razorpay
+// sab dobara init hote the ek saath), jisse JS thread itni der block hoti
+// thi ki Android "isn't responding" (ANR) dialog trigger ho jaata tha.
+// Ab sirf pehli baar configure hota hai, component ke andar se.
+let googleSigninConfigured = false;
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -67,6 +70,14 @@ export default function LoginScreen() {
 
   const { sendOtp, sending: otpSending } = useOtpLogin();
   const { googleLogin, loading: googleLoading } = useGoogleLogin();
+
+  useEffect(() => {
+    if (googleSigninConfigured) return;
+    googleSigninConfigured = true;
+    GoogleSignin.configure({
+      webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    });
+  }, []);
 
   const handleSendOTP = async () => {
     const fullPhone = `${selectedCode.code}${phone.trim()}`;
@@ -110,7 +121,11 @@ export default function LoginScreen() {
         >
           {/* White Card */}
           <View style={styles.card}>
-            <AstroLogo width={260} height={120} />
+            <Image
+              source={require("@/assets/images/astro-icon.png")}
+              style={{ width: 260, height: 120 }}
+              resizeMode="contain"
+            />
 
             {/* Phone Input */}
             <View style={styles.phoneRow}>

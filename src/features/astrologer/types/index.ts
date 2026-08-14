@@ -11,6 +11,8 @@ export type AstrologerMeta = {
   online: boolean;
   price?: number;
   about?: string;
+  // Platform fee % deducted from each booking amount before payout
+  commissionPercentage?: number;
 };
 
 export type AstrologerProfile = {
@@ -23,6 +25,8 @@ export type AstrologerProfile = {
   meta: AstrologerMeta | null;
   isOnboarded: boolean;
   createdAt: string;
+  basicServiceId?: string | null;
+  basicPrice?: string | null;
 };
 
 export type AstrologerSlot = {

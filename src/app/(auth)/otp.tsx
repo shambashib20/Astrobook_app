@@ -1,11 +1,11 @@
 import AstroGradient from "@/assets/images/astro-gradient.svg";
-import AstroLogo from "@/assets/images/astro-icon.svg";
 import { useOtpLogin } from "@/features/auth/hooks/useAuth";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Dimensions,
   FlatList,
+  Image,
   Linking,
   ScrollView,
   StyleSheet,
@@ -135,7 +135,11 @@ export default function OtpScreen() {
         >
           {/* Card */}
           <View style={styles.card}>
-            <AstroLogo width={260} height={100} />
+            <Image
+              source={require("@/assets/images/astro-icon.png")}
+              style={{ width: 260, height: 100 }}
+              resizeMode="contain"
+            />
             {/* Contact info */}
             {/* <Text style={styles.subtitle}>OTP bheja gaya</Text> */}
             {/* <Text style={styles.contact}>{contact}</Text> */}

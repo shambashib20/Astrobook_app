@@ -1,5 +1,6 @@
 import ScreenHeader from "@/components/ScreenHeader";
-import { useImageKitUpload } from "@/features/posts/hooks/usePosts";
+import { useAstrologerProfile } from "@/features/astrologer/hooks/useAstrologerProfile";
+import { useUser } from "@/features/auth/store/auth.store";
 import {
   useCreateService,
   useMyServices,
@@ -14,8 +15,9 @@ import {
   type ConsultationService,
   type ConsultationServiceVariant,
 } from "@/features/consultation/types";
+import { useImageKitUpload } from "@/features/posts/hooks/usePosts";
 import * as ImagePicker from "expo-image-picker";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -53,8 +55,22 @@ function defaultVariantPrice(service: ConsultationService): string | null {
   return def?.price ?? service.price ?? null;
 }
 
+// Amount se platform commission kaat ke astrologer ka payout nikalta hai
+function computeEarningsBreakup(amount: number, commissionPercentage: number) {
+  const commissionAmount = (amount * commissionPercentage) / 100;
+  const payoutAmount = amount - commissionAmount;
+  return { commissionAmount, payoutAmount };
+}
+
 export default function ServicesScreen() {
   const [activeKind, setActiveKind] = useState<ServiceKind>("consultancy");
+
+  // Har astrologer ka apna commissionPercentage — dynamically unke khud ke
+  // profile se aata hai, isliye price breakup automatically har astrologer
+  // ke liye alag/correct hota hai
+  const currentUser = useUser();
+  const { astrologer: ownProfile } = useAstrologerProfile(currentUser?.id);
+  const commissionPercentage = ownProfile?.meta?.commissionPercentage ?? 0;
 
   const {
     services,
@@ -201,7 +217,9 @@ export default function ServicesScreen() {
     }
   };
 
-  const handleSaveVariantPrice = async (variant: ConsultationServiceVariant) => {
+  const handleSaveVariantPrice = async (
+    variant: ConsultationServiceVariant,
+  ) => {
     if (!editingService) return;
     const draft = priceDrafts[variant.id];
     const price = Number(draft);
@@ -329,8 +347,8 @@ export default function ServicesScreen() {
             <Text style={styles.emptyEmoji}>🔮</Text>
             <Text style={styles.emptyText}>Koi service nahi hai abhi</Text>
             <Text style={styles.emptySubtext}>
-              "+ Add Service" se apni pehli service banao — 5 duration
-              variants apne aap ban jaayenge
+              "+ Add Service" se apni pehli service banao — 5 duration variants
+              apne aap ban jaayenge
             </Text>
           </View>
         ) : (
@@ -408,9 +426,9 @@ export default function ServicesScreen() {
 
             {!editingService && (
               <Text style={styles.basicEditNote}>
-                Service create hote hi 5 duration variants (10/30/45 min, 1
-                hr, 1.5 hr) apne aap ban jaayenge, default prices ke saath —
-                baad mein "Prices" se har ek edit kar sakte ho.
+                Service create hote hi 5 duration variants (10/30/45 min, 1 hr,
+                1.5 hr) apne aap ban jaayenge, default prices ke saath — baad
+                mein "Prices" se har ek edit kar sakte ho.
               </Text>
             )}
 
@@ -508,9 +526,9 @@ export default function ServicesScreen() {
                   Pricing — 5 duration options
                 </Text>
                 <Text style={styles.basicEditNote}>
-                  Duration fixed hai — sirf price edit ho sakta hai. 30 min
-                  wala default hai, user detail page pe wahi pehle se
-                  selected rehta hai.
+                  Duration fixed hai — sirf price edit ho sakta hai. 30 min wala
+                  default hai, user detail page pe wahi pehle se selected rehta
+                  hai.
                 </Text>
                 {variantsLoading ? (
                   <ActivityIndicator color="#9d0399" style={{ marginTop: 4 }} />
@@ -524,45 +542,73 @@ export default function ServicesScreen() {
                       const dirty =
                         priceDrafts[variant.id] !== undefined &&
                         priceDrafts[variant.id] !== variant.price;
+                      const draftValue =
+                        priceDrafts[variant.id] ?? variant.price;
+                      const draftAmount = Number(draftValue);
+                      const hasValidAmount =
+                        draftValue !== "" && !isNaN(draftAmount);
+                      const { commissionAmount, payoutAmount } = hasValidAmount
+                        ? computeEarningsBreakup(
+                            draftAmount,
+                            commissionPercentage,
+                          )
+                        : { commissionAmount: 0, payoutAmount: 0 };
                       return (
-                        <View key={variant.id} style={styles.variantRow}>
-                          <View style={styles.variantDurationBox}>
-                            <Text style={styles.variantDurationText}>
-                              {VARIANT_DURATION_LABELS[duration]}
-                            </Text>
-                            {variant.isDefault && (
-                              <Text style={styles.variantDefaultBadge}>
-                                Default
+                        <View key={variant.id} style={{ gap: 6 }}>
+                          <View style={styles.variantRow}>
+                            <View style={styles.variantDurationBox}>
+                              <Text style={styles.variantDurationText}>
+                                {VARIANT_DURATION_LABELS[duration]}
                               </Text>
-                            )}
+                              {variant.isDefault && (
+                                <Text style={styles.variantDefaultBadge}>
+                                  Default
+                                </Text>
+                              )}
+                            </View>
+                            <View style={styles.variantPriceInputWrap}>
+                              <Text style={styles.variantRupeeSign}>₹</Text>
+                              <TextInput
+                                style={styles.variantPriceInput}
+                                value={priceDrafts[variant.id] ?? variant.price}
+                                onChangeText={(v) =>
+                                  setPriceDrafts((p) => ({
+                                    ...p,
+                                    [variant.id]: v,
+                                  }))
+                                }
+                                keyboardType="numeric"
+                              />
+                            </View>
+                            <TouchableOpacity
+                              style={[
+                                styles.variantSaveBtn,
+                                !dirty && styles.variantSaveBtnDisabled,
+                              ]}
+                              disabled={!dirty || savingVariant}
+                              onPress={() => handleSaveVariantPrice(variant)}
+                            >
+                              {savingVariant &&
+                              savingVariantId === variant.id ? (
+                                <ActivityIndicator size="small" color="#FFF" />
+                              ) : (
+                                <Text style={styles.variantSaveBtnText}>
+                                  Save
+                                </Text>
+                              )}
+                            </TouchableOpacity>
                           </View>
-                          <View style={styles.variantPriceInputWrap}>
-                            <Text style={styles.variantRupeeSign}>₹</Text>
-                            <TextInput
-                              style={styles.variantPriceInput}
-                              value={priceDrafts[variant.id] ?? variant.price}
-                              onChangeText={(v) =>
-                                setPriceDrafts((p) => ({ ...p, [variant.id]: v }))
-                              }
-                              keyboardType="numeric"
-                            />
-                          </View>
-                          <TouchableOpacity
-                            style={[
-                              styles.variantSaveBtn,
-                              !dirty && styles.variantSaveBtnDisabled,
-                            ]}
-                            disabled={!dirty || savingVariant}
-                            onPress={() => handleSaveVariantPrice(variant)}
-                          >
-                            {savingVariant && savingVariantId === variant.id ? (
-                              <ActivityIndicator size="small" color="#FFF" />
-                            ) : (
-                              <Text style={styles.variantSaveBtnText}>
-                                Save
+                          {hasValidAmount && (
+                            <View style={styles.breakupBox}>
+                              <Text style={styles.breakupText}>
+                                Platform fee ({commissionPercentage}%): ₹
+                                {commissionAmount.toFixed(2)}
                               </Text>
-                            )}
-                          </TouchableOpacity>
+                              <Text style={styles.breakupPayoutText}>
+                                You get: ₹{payoutAmount.toFixed(2)}
+                              </Text>
+                            </View>
+                          )}
                         </View>
                       );
                     })}
@@ -853,4 +899,18 @@ const styles = StyleSheet.create({
   },
   variantSaveBtnDisabled: { backgroundColor: "#D1D5DB" },
   variantSaveBtnText: { color: "#FFF", fontWeight: "800", fontSize: 12 },
+
+  // ── Astrologer earnings breakup (price minus platform commission) ──
+  breakupBox: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#F5F0FF",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginLeft: 80,
+  },
+  breakupText: { fontSize: 11, color: "#6B7280", fontWeight: "600" },
+  breakupPayoutText: { fontSize: 12, color: "#0F9D58", fontWeight: "800" },
 });

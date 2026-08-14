@@ -73,10 +73,7 @@ export default function ProfileScreen() {
       >
         <View style={styles.profileCard}>
           {user?.avatarUrl ? (
-            <Image
-              source={{ uri: user.avatarUrl }}
-              style={styles.avatarImg}
-            />
+            <Image source={{ uri: user.avatarUrl }} style={styles.avatarImg} />
           ) : (
             <View style={styles.avatarCircle}>
               <Text style={styles.avatarEmoji}>👤</Text>
@@ -101,23 +98,29 @@ export default function ProfileScreen() {
                 style={styles.upgradeBtn}
                 onPress={() => router.push("/(user)/become-astrologer" as any)}
               >
-                <Text style={styles.upgradeBtnText}>✨ Upgrade to Astrologer</Text>
+                <Text style={styles.upgradeBtnText}>
+                  {" "}
+                  Upgrade to Astrologer
+                </Text>
               </TouchableOpacity>
             )}
 
             {applicationStatus.verificationStatus === "pending" && (
               <View style={styles.statusCardPending}>
-                <Text style={styles.statusCardTitle}>⏳ Application Under Review</Text>
+                <Text style={styles.statusCardTitle}>
+                  ⏳ Application Under Review
+                </Text>
                 <Text style={styles.statusCardText}>
-                  Humari team tumhari application review kar rahi hai. Approve hote hi
-                  notify kar denge.
+                  Your application is under review. Once verified, you will notified!
                 </Text>
               </View>
             )}
 
             {applicationStatus.verificationStatus === "rejected" && (
               <View style={styles.statusCardRejected}>
-                <Text style={styles.statusCardTitleRejected}>Application Rejected</Text>
+                <Text style={styles.statusCardTitleRejected}>
+                  Application Rejected
+                </Text>
                 {applicationStatus.rejectionReason && (
                   <Text style={styles.statusCardText}>
                     Reason: {applicationStatus.rejectionReason}
@@ -125,7 +128,9 @@ export default function ProfileScreen() {
                 )}
                 <TouchableOpacity
                   style={styles.reapplyBtn}
-                  onPress={() => router.push("/(user)/become-astrologer" as any)}
+                  onPress={() =>
+                    router.push("/(user)/become-astrologer" as any)
+                  }
                 >
                   <Text style={styles.reapplyBtnText}>Reapply</Text>
                 </TouchableOpacity>

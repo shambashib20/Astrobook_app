@@ -1,13 +1,16 @@
 import Header from "@/components/header";
 import UserAvatar from "@/components/UserAvatar";
 import { useAstrologersList } from "@/features/astrologer/hooks/useAstrologersList";
+import Feather from "@expo/vector-icons/Feather";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useEffect } from "react";
+import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -16,31 +19,58 @@ function StarRating({ rating }: { rating: number }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
       {[1, 2, 3, 4, 5].map((i) => (
-        <Text
+        <Feather
           key={i}
-          style={{
-            fontSize: 12,
-            color: i <= Math.floor(rating) ? "#F59E0B" : "#E5E7EB",
-          }}
-        >
-          ★
-        </Text>
+          name="star"
+          size={12}
+          color={i <= Math.round(rating) ? "#F59E0B" : "#E5E7EB"}
+          style={i <= Math.round(rating) ? styles.starFilled : undefined}
+        />
       ))}
-      <Text style={{ fontSize: 11, color: "#6B7280", marginLeft: 4 }}>
-        {rating}
-      </Text>
+      <Text style={styles.ratingValue}>{rating}</Text>
     </View>
   );
 }
 
+type FilterKey = "all" | "online" | "top";
+
 export default function AstrologersScreen() {
   const router = useRouter();
-  const { astrologers, loading, error, fetchAstrologers } =
-    useAstrologersList();
+  // useAstrologersList ab React Query se hai — initial fetch khud-ba-khud
+  // ho jaata hai aur cache hota hai, isliye yahan manually trigger nahi
+  // karna (warna mount pe double-fetch hoga).
+  const { astrologers, loading, error } = useAstrologersList();
 
-  useEffect(() => {
-    fetchAstrologers();
-  }, []);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<FilterKey>("all");
+
+  const filteredAstrologers = useMemo(() => {
+    let list = astrologers;
+
+    if (filter === "online") {
+      list = list.filter((a) => a.meta?.online);
+    } else if (filter === "top") {
+      list = list.filter((a) => (a.meta?.rating ?? 0) >= 4.5);
+    }
+
+    const q = search.trim().toLowerCase();
+    if (q) {
+      list = list.filter((a) => {
+        return (
+          a.name?.toLowerCase().includes(q) ||
+          a.meta?.speciality?.toLowerCase().includes(q) ||
+          a.meta?.languages?.toLowerCase().includes(q)
+        );
+      });
+    }
+
+    return list;
+  }, [astrologers, filter, search]);
+
+  const onlineCount = useMemo(
+    () => astrologers.filter((a) => a.meta?.online).length,
+    [astrologers]
+  );
 
   const goToProfile = (id: string) => {
     router.push({
@@ -49,9 +79,63 @@ export default function AstrologersScreen() {
     });
   };
 
+  const filters: { key: FilterKey; label: string }[] = [
+    { key: "all", label: "All" },
+    { key: "online", label: "🟢 Online" },
+    { key: "top", label: "⭐ Top Rated" },
+  ];
+
   return (
     <View style={styles.root}>
       <Header />
+
+      <View style={styles.introSection}>
+        <Text style={styles.introTitle}>Find Your Astrologer</Text>
+        <Text style={styles.introSubtitle}>
+          {onlineCount > 0
+            ? `${onlineCount} experts online now, ready to guide you`
+            : "Connect with expert astrologers for guidance"}
+        </Text>
+
+        <View style={styles.searchBar}>
+          <Feather name="search" size={18} color="#9d0399" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by name, skill or language"
+            placeholderTextColor="#B8A2C9"
+            value={search}
+            onChangeText={setSearch}
+          />
+          {search.length > 0 && (
+            <TouchableOpacity onPress={() => setSearch("")}>
+              <Feather name="x" size={16} color="#9d0399" />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <View style={styles.filterRow}>
+          {filters.map((f) => {
+            const active = filter === f.key;
+            return (
+              <TouchableOpacity
+                key={f.key}
+                style={[styles.filterChip, active && styles.filterChipActive]}
+                onPress={() => setFilter(f.key)}
+                activeOpacity={0.85}
+              >
+                <Text
+                  style={[
+                    styles.filterChipText,
+                    active && styles.filterChipTextActive,
+                  ]}
+                >
+                  {f.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
 
       {loading ? (
         <View style={styles.centerFill}>
@@ -59,15 +143,17 @@ export default function AstrologersScreen() {
         </View>
       ) : error ? (
         <View style={styles.centerFill}>
+          <Feather name="alert-circle" size={28} color="#D97706" />
           <Text style={styles.emptyText}>{error}</Text>
         </View>
-      ) : astrologers.length === 0 ? (
+      ) : filteredAstrologers.length === 0 ? (
         <View style={styles.centerFill}>
+          <Feather name="users" size={28} color="#C4B5E0" />
           <Text style={styles.emptyText}>Koi astrologer nahi mila</Text>
         </View>
       ) : (
         <FlatList
-          data={astrologers}
+          data={filteredAstrologers}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
@@ -85,21 +171,38 @@ export default function AstrologersScreen() {
                       uri={item.avatarUrl}
                       name={item.name}
                       id={item.id}
-                      size={74}
+                      size={72}
                     />
+                    {meta?.online && <View style={styles.onlineDot} />}
                   </View>
 
                   <View style={styles.cardInfo}>
-                    <Text style={styles.cardName} numberOfLines={1}>
-                      {item.name ?? "Astrologer"}
-                    </Text>
-                    <Text style={styles.cardSpeciality}>
-                      {meta?.speciality ?? "Astrologer"}
-                    </Text>
-                    <Text style={styles.cardMeta}>
-                      {meta?.languages ?? "—"}
-                      {meta?.exp ? ` · Exp: ${meta.exp}` : ""}
-                    </Text>
+                    <View style={styles.nameRow}>
+                      <Text style={styles.cardName} numberOfLines={1}>
+                        {item.name ?? "Astrologer"}
+                      </Text>
+                      <Feather name="check-circle" size={13} color="#22C55E" />
+                    </View>
+
+                    <View style={styles.specialityPill}>
+                      <Text style={styles.specialityPillText} numberOfLines={1}>
+                        {meta?.speciality ?? "Astrologer"}
+                      </Text>
+                    </View>
+
+                    <View style={styles.metaRow}>
+                      <Feather name="globe" size={11} color="#8A8093" />
+                      <Text style={styles.cardMeta} numberOfLines={1}>
+                        {meta?.languages ?? "—"}
+                      </Text>
+                      {meta?.exp ? (
+                        <>
+                          <View style={styles.metaDivider} />
+                          <Feather name="briefcase" size={11} color="#8A8093" />
+                          <Text style={styles.cardMeta}>{meta.exp}</Text>
+                        </>
+                      ) : null}
+                    </View>
 
                     <View style={styles.ratingRow}>
                       <StarRating rating={meta?.rating ?? 0} />
@@ -108,27 +211,48 @@ export default function AstrologersScreen() {
                       </Text>
                     </View>
                   </View>
+                </View>
 
-                  <View style={styles.cardRight}>
+                <View style={styles.cardDivider} />
+
+                <View style={styles.cardBottom}>
+                  <View style={styles.statusPill}>
+                    <View
+                      style={[
+                        styles.statusDot,
+                        {
+                          backgroundColor: meta?.online ? "#22C55E" : "#C4B5E0",
+                        },
+                      ]}
+                    />
+                    <Text style={styles.statusText}>
+                      {meta?.online ? "Available now" : "Offline"}
+                    </Text>
+                  </View>
+
+                  <View style={styles.actionsRow}>
                     <TouchableOpacity
                       style={styles.followBtn}
                       onPress={(e) => e.stopPropagation?.()}
                     >
-                      <Text style={styles.followBtnText}>Follow +</Text>
+                      <Feather name="heart" size={16} color="#9d0399" />
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                      style={styles.bookBtnWrapper}
                       onPress={() => goToProfile(item.id)}
+                      activeOpacity={0.9}
                     >
-                      <View style={styles.bookBtnTop}>
+                      <LinearGradient
+                        colors={["#B4179F", "#7A0480"]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.bookBtn}
+                      >
                         <Text style={styles.bookBtnText}>Book Now</Text>
-                      </View>
-                      <View style={styles.bookBtnBottom}>
                         <Text style={styles.bookBtnPrice}>
                           {item.basicPrice ? `₹${item.basicPrice}` : "—"}
                         </Text>
-                      </View>
+                      </LinearGradient>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -143,78 +267,205 @@ export default function AstrologersScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#F9F5FF" },
-  centerFill: { flex: 1, alignItems: "center", justifyContent: "center" },
+  centerFill: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
   emptyText: { fontSize: 14, color: "#9CA3AF" },
 
-  listContent: { padding: 16, gap: 16 },
+  introSection: {
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 12,
+    backgroundColor: "#fff1ff",
+  },
+  introTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#0b1d5b",
+  },
+  introSubtitle: {
+    fontSize: 12.5,
+    color: "#6B7280",
+    marginTop: 2,
+    marginBottom: 12,
+  },
+
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#FFF",
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    height: 46,
+    borderWidth: 1,
+    borderColor: "#EDE0F5",
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: "#0b1d5b",
+    padding: 0,
+  },
+
+  filterRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 12,
+  },
+  filterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+    backgroundColor: "#FFF",
+    borderWidth: 1,
+    borderColor: "#EDE0F5",
+  },
+  filterChipActive: {
+    backgroundColor: "#9d0399",
+    borderColor: "#9d0399",
+  },
+  filterChipText: {
+    fontSize: 12.5,
+    fontWeight: "600",
+    color: "#6B4E77",
+  },
+  filterChipTextActive: {
+    color: "#FFF",
+  },
+
+  listContent: { padding: 16, gap: 14 },
 
   card: {
     backgroundColor: "#FFF",
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: "#EDE9FF",
     elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: "#5B0E63",
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.08,
-    shadowRadius: 8,
+    shadowRadius: 10,
     overflow: "hidden",
   },
   cardTop: {
     flexDirection: "row",
-    gap: 16,
+    gap: 14,
     alignItems: "flex-start",
     padding: 16,
+    paddingBottom: 12,
   },
   avatarContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 3,
-    borderColor: "#e8d5f5",
-    backgroundColor: "#FFF",
-    alignItems: "center",
-    justifyContent: "center",
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     flexShrink: 0,
   },
-  avatarEmoji: { fontSize: 34 },
+  onlineDot: {
+    position: "absolute",
+    bottom: 2,
+    right: 2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: "#22C55E",
+    borderWidth: 2,
+    borderColor: "#FFF",
+  },
   cardInfo: { flex: 1 },
+  nameRow: { flexDirection: "row", alignItems: "center", gap: 5 },
   cardName: {
     fontSize: 16,
     fontWeight: "700",
     color: "#0b1d5b",
-    marginBottom: 1,
+    flexShrink: 1,
   },
-  cardSpeciality: {
-    fontSize: 13,
+  specialityPill: {
+    alignSelf: "flex-start",
+    backgroundColor: "#FBEBFF",
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginTop: 4,
+    marginBottom: 6,
+    maxWidth: "100%",
+  },
+  specialityPillText: {
+    fontSize: 12,
     color: "#9d0399",
     fontWeight: "600",
-    marginBottom: 2,
   },
-  cardMeta: { fontSize: 12, color: "#6B7280", marginBottom: 4 },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginBottom: 6,
+    flexWrap: "wrap",
+  },
+  metaDivider: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: "#D1C4DE",
+    marginHorizontal: 2,
+  },
+  cardMeta: { fontSize: 11.5, color: "#8A8093" },
   ratingRow: { flexDirection: "row", alignItems: "center", gap: 4 },
-  reviewCount: { fontSize: 12, color: "#9d0399" },
-  cardRight: { alignItems: "flex-end", gap: 8 },
+  starFilled: {},
+  ratingValue: {
+    fontSize: 11,
+    color: "#6B7280",
+    marginLeft: 3,
+    fontWeight: "600",
+  },
+  reviewCount: { fontSize: 11.5, color: "#9d0399" },
 
-  followBtn: { paddingHorizontal: 4 },
-  followBtnText: { color: "#9d0399", fontSize: 12, fontWeight: "600" },
+  cardDivider: {
+    height: 1,
+    backgroundColor: "#F3EDFA",
+    marginHorizontal: 16,
+  },
 
-  bookBtnWrapper: {
-    backgroundColor: "#9d0399",
-    borderRadius: 8,
-    overflow: "hidden",
-    minWidth: 80,
-  },
-  bookBtnTop: {
-    paddingVertical: 4,
+  cardBottom: {
+    flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#9d0399",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
-  bookBtnBottom: {
-    paddingVertical: 4,
+  statusPill: {
+    flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#eac0e8",
+    gap: 6,
   },
-  bookBtnText: { color: "#FFF", fontSize: 11, fontWeight: "700" },
-  bookBtnPrice: { color: "#9d0399", fontSize: 11, fontWeight: "700" },
+  statusDot: { width: 7, height: 7, borderRadius: 3.5 },
+  statusText: { fontSize: 11.5, color: "#6B7280", fontWeight: "600" },
+
+  actionsRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  followBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#FBEBFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  bookBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+  },
+  bookBtnText: { color: "#FFF", fontSize: 12.5, fontWeight: "700" },
+  bookBtnPrice: {
+    color: "#F2CFFF",
+    fontSize: 12.5,
+    fontWeight: "700",
+  },
 });

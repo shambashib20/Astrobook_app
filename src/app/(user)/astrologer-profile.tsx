@@ -193,14 +193,14 @@ export default function AstrologerProfileScreen() {
           </View>
 
           {/* Bio */}
-          <View style={styles.bioContainer}>
-            <Text style={styles.bioText}>
-              {bio || "Is astrologer ne abhi apni bio add nahi ki hai."}
-              {bio ? (
+          {bio ? (
+            <View style={styles.bioContainer}>
+              <Text style={styles.bioText}>
+                {bio}
                 <Text style={styles.seeMoreLink}> See more...</Text>
-              ) : null}
-            </Text>
-          </View>
+              </Text>
+            </View>
+          ) : null}
         </View>
 
         {/* Consultations Section */}
