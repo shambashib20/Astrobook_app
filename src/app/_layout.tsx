@@ -9,9 +9,11 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 export default function RootLayout() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AppGate />
-    </QueryClientProvider>
+    <SafeAreaProvider>
+      <QueryClientProvider client={queryClient}>
+        <AppGate />
+      </QueryClientProvider>
+    </SafeAreaProvider>
   );
 }
 
@@ -48,20 +50,19 @@ function AppGate() {
   }, []);
 
   // Init chal raha hai ya redirect abhi commit nahi hua — kuch mat dikhao
+  // (SafeAreaProvider ab RootLayout mein top-level pe hai, poori app ko cover karta hai)
   if (!ready) {
     return (
- <SafeAreaProvider>
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: "#121943",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <ActivityIndicator color="#9d0399" size="large" />
-        </View>
-      </SafeAreaProvider>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: "#121943",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <ActivityIndicator color="#9d0399" size="large" />
+      </View>
     );
   }
 

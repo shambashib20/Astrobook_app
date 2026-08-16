@@ -51,7 +51,7 @@ export function useOtpLogin() {
   };
 
   const verifyOtp = async (phone: string, otp: string) => {
-    if (otp.length !== 6) return;
+    if (otp.length !== 4) return;
     setVerifying(true);
     try {
       const data: AuthResult = await authService.verifyOtp(phone, otp);

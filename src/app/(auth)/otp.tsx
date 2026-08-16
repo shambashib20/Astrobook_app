@@ -38,6 +38,7 @@ const links = [
 ];
 
 const RESEND_TIMEOUT = 30;
+const OTP_LENGTH = 4;
 
 export default function OtpScreen() {
   const router = useRouter();
@@ -91,7 +92,7 @@ export default function OtpScreen() {
   };
 
   const handleVerify = async () => {
-    if (otp.length !== 6 || verifying) return;
+    if (otp.length !== OTP_LENGTH || verifying) return;
     try {
       await verifyOtp(contact, otp);
     } catch {
@@ -148,10 +149,10 @@ export default function OtpScreen() {
               ref={inputRef}
               value={otp}
               onChangeText={(text) => {
-                if (/^\d*$/.test(text) && text.length <= 6) setOtp(text);
+                if (/^\d*$/.test(text) && text.length <= OTP_LENGTH) setOtp(text);
               }}
               keyboardType="number-pad"
-              maxLength={6}
+              maxLength={OTP_LENGTH}
               style={{ position: "absolute", opacity: 0, height: 0 }}
             />
             {/* OTP Boxes */}
@@ -160,7 +161,7 @@ export default function OtpScreen() {
               activeOpacity={1}
               onPress={() => inputRef.current?.focus()}
             >
-              {[...Array(6)].map((_, i) => (
+              {[...Array(OTP_LENGTH)].map((_, i) => (
                 <View
                   key={i}
                   style={[
@@ -203,9 +204,9 @@ export default function OtpScreen() {
             <TouchableOpacity
               style={[
                 styles.submitBtn,
-                (otp.length !== 6 || verifying) && styles.submitBtnDisabled,
+                (otp.length !== OTP_LENGTH || verifying) && styles.submitBtnDisabled,
               ]}
-              disabled={otp.length !== 6 || verifying}
+              disabled={otp.length !== OTP_LENGTH || verifying}
               onPress={handleVerify}
             >
               <Text style={styles.submitText}>
@@ -319,7 +320,8 @@ const styles = StyleSheet.create({
   },
   otpContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
+    gap: 16,
     width: "100%",
     marginVertical: 12,
     paddingHorizontal: 4,

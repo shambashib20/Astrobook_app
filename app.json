@@ -38,6 +38,16 @@
       "expo-router",
       "@react-native-google-signin/google-signin",
       [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableProguardInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "enableMinifyInReleaseBuilds": true
+          }
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "backgroundColor": "#121943",
@@ -67,8 +77,9 @@
         "root": "./src/app"
       },
       "eas": {
-        "projectId": "7dad0621-2d06-4c03-873d-ca2743e313b0"
+        "projectId": "838d5055-7819-4d89-af19-1f64972a96ac"
       }
-    }
+    },
+    "owner": "tazi00s-team"
   }
 }

@@ -91,11 +91,12 @@ function CustomTabBar({ state, navigation }: any) {
   );
 }
 
+
 export default function UserLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
- 
+
       <Stack.Screen name="astrologer-profile" />
       <Stack.Screen name="service/[id]" />
       <Stack.Screen name="book-slot" />

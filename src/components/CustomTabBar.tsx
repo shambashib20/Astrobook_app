@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
@@ -25,6 +26,7 @@ type Props = {
 // alag `tabs` config ke saath use karte hain — design ek jagah change
 // hoga to dono jagah reflect hoga.
 export function CustomTabBar({ state, navigation, tabs }: Props) {
+  const insets = useSafeAreaInsets();
   const tabWidth = SCREEN_WIDTH / tabs.length;
   const dotX = useRef(new Animated.Value(state.index * tabWidth)).current;
 
@@ -38,7 +40,12 @@ export function CustomTabBar({ state, navigation, tabs }: Props) {
   }, [state.index]);
 
   return (
-    <View style={styles.tabBar}>
+    <View
+      style={[
+        styles.tabBar,
+        { height: 64 + insets.bottom, paddingBottom: 8 + insets.bottom },
+      ]}
+    >
       <Animated.View
         style={[styles.dot, { transform: [{ translateX: dotX }] }]}
       />
