@@ -2,9 +2,10 @@ import Header from "@/components/header";
 import UserAvatar from "@/components/UserAvatar";
 import { useLogout } from "@/features/auth/hooks/useAuth";
 import { useUser } from "@/features/auth/store/auth.store";
+import { useFollowCounts } from "@/features/follows/hooks/useFollow";
 import { useMyProfile } from "@/features/users/hooks/useProfile";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -26,6 +27,11 @@ export function AstrologerProfileView() {
   const user = profile ?? sessionUser;
   const { handleLogout } = useLogout();
   const [loggingOut, setLoggingOut] = useState(false);
+  const { counts: followCounts, fetchCounts } = useFollowCounts(sessionUser?.id);
+
+  useEffect(() => {
+    fetchCounts();
+  }, [sessionUser?.id]);
 
   const handleLogoutPress = async () => {
     setLoggingOut(true);
@@ -56,6 +62,48 @@ export function AstrologerProfileView() {
 
           <View style={styles.badge}>
             <Text style={styles.badgeText}>⭐ Astrologer</Text>
+          </View>
+
+          <View style={styles.followStatsRow}>
+            <TouchableOpacity
+              style={styles.followStatItem}
+              onPress={() =>
+                router.push({
+                  pathname: "/(user)/follow-list",
+                  params: {
+                    userId: sessionUser?.id,
+                    name: user?.name ?? "Astrologer",
+                    role: "astrologer",
+                    initialTab: "followers",
+                  },
+                } as any)
+              }
+            >
+              <Text style={styles.followStatCount}>
+                {followCounts?.followers ?? 0}
+              </Text>
+              <Text style={styles.followStatLabel}>Followers</Text>
+            </TouchableOpacity>
+            <View style={styles.followStatDivider} />
+            <TouchableOpacity
+              style={styles.followStatItem}
+              onPress={() =>
+                router.push({
+                  pathname: "/(user)/follow-list",
+                  params: {
+                    userId: sessionUser?.id,
+                    name: user?.name ?? "Astrologer",
+                    role: "astrologer",
+                    initialTab: "following",
+                  },
+                } as any)
+              }
+            >
+              <Text style={styles.followStatCount}>
+                {followCounts?.following ?? 0}
+              </Text>
+              <Text style={styles.followStatLabel}>Following</Text>
+            </TouchableOpacity>
           </View>
 
           <TouchableOpacity
@@ -137,6 +185,15 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   badgeText: { color: "#9d0399", fontWeight: "700", fontSize: 12 },
+  followStatsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 14,
+  },
+  followStatItem: { alignItems: "center", paddingHorizontal: 18 },
+  followStatDivider: { width: 1, height: 24, backgroundColor: "#EDE9FF" },
+  followStatCount: { fontSize: 16, fontWeight: "800", color: "#1A1A2E" },
+  followStatLabel: { fontSize: 11.5, color: "#9CA3AF", marginTop: 2 },
   editBtn: {
     borderWidth: 1.5,
     borderColor: "#9d0399",

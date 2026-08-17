@@ -1,6 +1,7 @@
 import Header from "@/components/header";
 import UserAvatar from "@/components/UserAvatar";
 import { useUser } from "@/features/auth/store/auth.store";
+import { useToggleFollow } from "@/features/follows/hooks/useFollow";
 import { useFeedPosts } from "@/features/posts/hooks/useFeed";
 import { useLikePost } from "@/features/posts/hooks/usePosts";
 import type { Post } from "@/features/posts/types/post.types";
@@ -75,6 +76,7 @@ export default function FeedScreen() {
   const router = useRouter();
   const user = useUser();
   const { toggleLike } = useLikePost();
+  const { toggleFollow } = useToggleFollow();
   const {
     posts,
     loading,
@@ -163,12 +165,27 @@ export default function FeedScreen() {
               <Text style={styles.postTime}>{formatDate(post.createdAt)}</Text>
             </View>
           </View>
-          <TouchableOpacity
-            style={styles.followBtn}
-            onPress={(e) => e.stopPropagation?.()}
-          >
-            <Text style={styles.followBtnText}>Follow +</Text>
-          </TouchableOpacity>
+          {post.astrologerId !== user?.id && (
+            <TouchableOpacity
+              style={[
+                styles.followBtn,
+                post.isFollowedByMe && styles.followBtnActive,
+              ]}
+              onPress={(e) => {
+                e.stopPropagation?.();
+                toggleFollow(post.astrologerId, post, updatePost);
+              }}
+            >
+              <Text
+                style={[
+                  styles.followBtnText,
+                  post.isFollowedByMe && styles.followBtnTextActive,
+                ]}
+              >
+                {post.isFollowedByMe ? "Following" : "Follow +"}
+              </Text>
+            </TouchableOpacity>
+          )}
         </TouchableOpacity>
 
         {/* Post Content */}
@@ -369,7 +386,18 @@ const styles = StyleSheet.create({
   postAuthorName: { fontSize: 15, fontWeight: "700", color: "#0b1d5b" },
   postTime: { fontSize: 11, color: "#999" },
   followBtnText: { color: "#9d0399", fontSize: 12, fontWeight: "600" },
-  followBtn: {},
+  followBtn: {
+    borderWidth: 1.5,
+    borderColor: "#9d0399",
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  followBtnActive: {
+    backgroundColor: "#9d0399",
+    borderColor: "#9d0399",
+  },
+  followBtnTextActive: { color: "#FFFFFF" },
 
   postImageArea: {
     width: SCREEN_WIDTH,

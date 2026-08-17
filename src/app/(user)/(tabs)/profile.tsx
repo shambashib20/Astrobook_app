@@ -3,9 +3,10 @@ import { useAstrologerApplicationStatus } from "@/features/astrologer-applicatio
 import { AstrologerProfileView } from "@/features/astrologer/components/AstrologerProfileView";
 import { useLogout } from "@/features/auth/hooks/useAuth";
 import { useAuthStore, useUser } from "@/features/auth/store/auth.store";
+import { useFollowCounts } from "@/features/follows/hooks/useFollow";
 import { useMyProfile } from "@/features/users/hooks/useProfile";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -18,7 +19,7 @@ import {
 
 const MENU_ITEMS = [
   { icon: "📅", label: "My Bookings", route: "/(user)/my-bookings" },
-  { icon: "🔔", label: "Notifications", route: null },
+  { icon: "🔔", label: "Notifications", route: "/(user)/notifications" },
   { icon: "🔒", label: "Privacy & Security", route: null },
   { icon: "💬", label: "Help & Support", route: null },
   { icon: "⭐", label: "Rate the App", route: null },
@@ -45,6 +46,17 @@ export default function ProfileScreen() {
   // kyunki hook sirf render hone par hi query fire karta hai).
   const { status: applicationStatus, loading: applicationLoading } =
     useAstrologerApplicationStatus(!sessionUser?.isAstrologer);
+  // Yeh hook conditional early-returns (neeche) se PEHLE call hona zaroori
+  // hai — warna astrologer accounts ke liye kabhi call hi nahi hota (early
+  // return AstrologerProfileView pe chala jaata hai), lekin plain user ke
+  // liye hota hai. Hooks ka call-count render se render badalna React ki
+  // Rules of Hooks todta hai ("Rendered more hooks than during the previous
+  // render") — jaisa hi role change hota, crash.
+  const { counts: followCounts, fetchCounts } = useFollowCounts(sessionUser?.id);
+
+  useEffect(() => {
+    fetchCounts();
+  }, [sessionUser?.id]);
 
   // Loading ho raha hai — kuch mat dikhao, flicker avoid karo
   if (isLoading) {
@@ -83,6 +95,27 @@ export default function ProfileScreen() {
           {user?.phone ? <Text style={styles.phone}>{user.phone}</Text> : null}
           {user?.email ? <Text style={styles.email}>{user.email}</Text> : null}
           {user?.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
+
+          <TouchableOpacity
+            style={styles.followingBtn}
+            onPress={() =>
+              router.push({
+                pathname: "/(user)/follow-list",
+                params: {
+                  userId: sessionUser?.id,
+                  name: user?.name ?? "You",
+                  role: "user",
+                  initialTab: "following",
+                },
+              } as any)
+            }
+          >
+            <Text style={styles.followingBtnCount}>
+              {followCounts?.following ?? 0}
+            </Text>
+            <Text style={styles.followingBtnLabel}>Following</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.editBtn}
             onPress={() => router.push("/(user)/edit-profile" as any)}
@@ -232,6 +265,18 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   editBtnText: { color: "#9d0399", fontWeight: "700", fontSize: 14 },
+  followingBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    backgroundColor: "#F5F0FF",
+    borderRadius: 20,
+  },
+  followingBtnCount: { fontSize: 14, fontWeight: "800", color: "#1A1A2E" },
+  followingBtnLabel: { fontSize: 13, color: "#6B7280", fontWeight: "600" },
   upgradeBtn: {
     backgroundColor: "#9d0399",
     borderRadius: 16,

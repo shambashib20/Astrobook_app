@@ -160,7 +160,8 @@ export default function SessionScreen() {
       const diff = endsAtRef.current - Date.now();
       setRemainingMs(Math.max(diff, 0));
       if (diff <= 0) {
-        handleEndCall(true);
+        if (isAstrologer) handleEndCall();
+        else handleLeave();
       }
     };
     tick();
@@ -382,7 +383,9 @@ export default function SessionScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screenState]);
 
-  const handleEndCall = async (auto = false) => {
+  // Astrologer ke liye — session POORI TARAH khatam, dono ke liye. Backend
+  // bhi ab yeh enforce karta hai (sirf astrologer end kar sakta hai).
+  const handleEndCall = async () => {
     if (endingRef.current) return;
     endingRef.current = true;
     try {
@@ -393,6 +396,43 @@ export default function SessionScreen() {
       setScreenState("ended");
     } finally {
       endingRef.current = false;
+    }
+  };
+
+  // User ke liye — sirf apni taraf se nikalta hai, backend session
+  // "ongoing" hi rehta hai. Isi booking se My Bookings → Join karke wapas
+  // aa sakta hai jab tak astrologer end na kare ya duration khatam na ho
+  // (tab background cron automatically complete kar deta hai).
+  const handleLeave = async () => {
+    if (endingRef.current) return;
+    endingRef.current = true;
+    try {
+      await teardownAgora();
+      router.replace("/(user)/my-bookings" as any);
+    } finally {
+      endingRef.current = false;
+    }
+  };
+
+  const confirmEndOrLeave = () => {
+    if (isAstrologer) {
+      Alert.alert(
+        "Session End Karna Hai?",
+        "Yeh session dono ke liye poori tarah khatam ho jaayega — dobara join nahi ho payega.",
+        [
+          { text: "Nahi", style: "cancel" },
+          { text: "Haan, end karo", style: "destructive", onPress: handleEndCall },
+        ],
+      );
+    } else {
+      Alert.alert(
+        "Call Chhodni Hai?",
+        "Session chalta rahega — tum isi booking se My Bookings mein jaake dobara join kar sakte ho.",
+        [
+          { text: "Nahi", style: "cancel" },
+          { text: "Haan, chhodo", onPress: handleLeave },
+        ],
+      );
     }
   };
 
@@ -571,7 +611,7 @@ export default function SessionScreen() {
           <Feather name={micMuted ? "mic-off" : "mic"} size={22} color="#FFF" />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.endCallBtn} onPress={() => handleEndCall(false)}>
+        <TouchableOpacity style={styles.endCallBtn} onPress={confirmEndOrLeave}>
           <Feather name="phone-off" size={26} color="#FFF" />
         </TouchableOpacity>
 

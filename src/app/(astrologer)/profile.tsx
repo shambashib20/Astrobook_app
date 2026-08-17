@@ -4,5 +4,5 @@
 import { Redirect } from "expo-router";
 
 export default function AstrologerProfileRedirect() {
-  return <Redirect href="/(user)/profile" />;
+  return <Redirect href="/(user)/(tabs)/profile" />;
 }

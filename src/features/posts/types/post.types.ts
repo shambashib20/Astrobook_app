@@ -34,6 +34,7 @@ export type Post = {
   likesCount: number;
   commentsCount: number;
   isLikedByMe: boolean;
+  isFollowedByMe?: boolean;
   // Joined fields (baad mein)
   astrologerName?: string;
   astrologerAvatar?: string;

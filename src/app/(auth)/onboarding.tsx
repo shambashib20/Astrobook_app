@@ -1,11 +1,13 @@
 import AstroGradient from "@/assets/images/astro-gradient.svg";
 import { useOnboarding } from "@/features/auth/hooks/useAuth";
 import { useAuthStore } from "@/features/auth/store/auth.store";
+import { useCategories } from "@/features/categories/hooks/useCategories";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -16,23 +18,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { SafeAreaView } from "react-native-safe-area-context";
-
-const INTERESTS = [
-  { label: "Numerology", emoji: "🔢" },
-  { label: "Vastu", emoji: "🏠" },
-  { label: "Past Life", emoji: "🔮" },
-  { label: "Reiki", emoji: "✋" },
-  { label: "Tarot", emoji: "🃏" },
-  { label: "Astrology", emoji: "♈" },
-  { label: "Palmistry", emoji: "🤚" },
-  { label: "Face Reading", emoji: "👁️" },
-  { label: "Kundli", emoji: "📜" },
-  { label: "Horoscope", emoji: "⭐" },
-  { label: "Gemstones", emoji: "💎" },
-  { label: "Meditation", emoji: "🧘" },
-];
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
@@ -44,6 +30,12 @@ export default function OnboardingScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const { onboard, loading } = useOnboarding();
+  const { categories, loading: categoriesLoading, fetchCategories } =
+    useCategories();
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
   const toggleInterest = (item: string) => {
     setSelected((prev) =>
@@ -180,27 +172,31 @@ export default function OnboardingScreen() {
                 Jo topics mein curious ho, woh choose karo
               </Text>
               <View style={styles.chips}>
-                {INTERESTS.map((item) => {
-                  const active = selected.includes(item.label);
-                  return (
-                    <TouchableOpacity
-                      key={item.label}
-                      style={[styles.chip, active && styles.chipActive]}
-                      onPress={() => toggleInterest(item.label)}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={styles.chipEmoji}>{item.emoji}</Text>
-                      <Text
-                        style={[
-                          styles.chipText,
-                          active && styles.chipTextActive,
-                        ]}
+                {categoriesLoading ? (
+                  <ActivityIndicator color="#9d0399" style={{ marginTop: 8 }} />
+                ) : (
+                  categories.map((item) => {
+                    const active = selected.includes(item.id);
+                    return (
+                      <TouchableOpacity
+                        key={item.id}
+                        style={[styles.chip, active && styles.chipActive]}
+                        onPress={() => toggleInterest(item.id)}
+                        activeOpacity={0.8}
                       >
-                        {item.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+                        <Text style={styles.chipEmoji}>{item.emoji}</Text>
+                        <Text
+                          style={[
+                            styles.chipText,
+                            active && styles.chipTextActive,
+                          ]}
+                        >
+                          {item.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })
+                )}
               </View>
 
               {selected.length > 0 && (

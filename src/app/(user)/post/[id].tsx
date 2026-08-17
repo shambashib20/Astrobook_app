@@ -1,3 +1,4 @@
+import UserAvatar from "@/components/UserAvatar";
 import { useUser } from "@/features/auth/store/auth.store";
 import { usePost } from "@/features/posts/hooks/useFeed";
 import { useComments, useLikePost } from "@/features/posts/hooks/usePosts";
@@ -230,14 +231,12 @@ export default function PostDetailScreen() {
                   })
                 }
               >
-                <LinearGradient
-                  colors={BRAND_GRADIENT}
-                  style={styles.authorAvatar}
-                >
-                  <Text style={{ fontSize: 20 }}>
-                    {localPost.astrologerAvatar ?? "🔮"}
-                  </Text>
-                </LinearGradient>
+                <UserAvatar
+                  uri={localPost.astrologerAvatar}
+                  name={localPost.astrologerName}
+                  id={localPost.astrologerId}
+                  size={46}
+                />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.authorName}>
                     {localPost.astrologerName ?? "Astrologer"}

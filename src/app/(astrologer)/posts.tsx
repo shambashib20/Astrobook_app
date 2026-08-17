@@ -301,7 +301,28 @@ export default function AstrologerPostsScreen() {
                   </Text>
                 </View>
               )}
-              <Text style={styles.postContent}>{post.content}</Text>
+              {post.mediaType === "TEXT" && (
+                <View
+                  style={[
+                    styles.postImage,
+                    styles.textPostHero,
+                    { backgroundColor: post.bgColor ?? BG_COLORS[0] },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.textPostHeroContent,
+                      { color: post.textColor ?? TEXT_COLORS[0] },
+                    ]}
+                    numberOfLines={5}
+                  >
+                    {post.content}
+                  </Text>
+                </View>
+              )}
+              {post.mediaType !== "TEXT" && (
+                <Text style={styles.postContent}>{post.content}</Text>
+              )}
               <View style={styles.postFooter}>
                 <Text style={styles.postDate}>
                   {new Date(post.createdAt).toLocaleDateString("en-IN", {
@@ -597,6 +618,17 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   postImage: { width: "100%", height: 200 },
+  textPostHero: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+  },
+  textPostHeroContent: {
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: "600",
+    textAlign: "center",
+  },
   videoPlaceholder: {
     backgroundColor: "#F3E8FF",
     alignItems: "center",

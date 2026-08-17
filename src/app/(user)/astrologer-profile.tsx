@@ -2,6 +2,7 @@ import Header from "@/components/header";
 import UserAvatar from "@/components/UserAvatar";
 import { useAstrologerProfile } from "@/features/astrologer/hooks/useAstrologerProfile";
 import { useUser } from "@/features/auth/store/auth.store";
+import { useFollowStatus, useFollowCounts } from "@/features/follows/hooks/useFollow";
 import { useAstrologerPosts } from "@/features/posts/hooks/useFeed";
 import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -61,11 +62,24 @@ export default function AstrologerProfileScreen() {
   } = useAstrologerProfile(id);
 
   const { posts, loading: postsLoading, fetchPosts } = useAstrologerPosts(id);
+  const { isFollowing, fetchStatus, toggle: toggleFollowStatus } = useFollowStatus(
+    isOwnProfile ? undefined : id,
+  );
+  const { counts: followCounts, fetchCounts } = useFollowCounts(id);
 
   useEffect(() => {
     fetchProfile();
     fetchPosts();
+    fetchCounts();
+    if (!isOwnProfile) fetchStatus();
   }, [id]);
+
+  // Follow/unfollow ke baad count bhi turant refresh — warna stale rahega
+  // jab tak screen dobara mount na ho
+  const toggleFollow = async () => {
+    await toggleFollowStatus();
+    fetchCounts();
+  };
 
   const flatListRef = useRef<FlatList>(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -149,9 +163,22 @@ export default function AstrologerProfileScreen() {
                   size={144}
                 />
               </View>
-              <TouchableOpacity>
-                <Text style={styles.followBtnText}>Follow+</Text>
-              </TouchableOpacity>
+              {!isOwnProfile && (
+                <TouchableOpacity
+                  style={[styles.followBtn, isFollowing && styles.followBtnActive]}
+                  onPress={toggleFollow}
+                  disabled={isFollowing === null}
+                >
+                  <Text
+                    style={[
+                      styles.followBtnText,
+                      isFollowing && styles.followBtnTextActive,
+                    ]}
+                  >
+                    {isFollowing ? "Following" : "Follow+"}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             {/* Info */}
@@ -164,6 +191,49 @@ export default function AstrologerProfileScreen() {
               <View style={styles.ratingRow}>
                 <StarRating rating={rating} />
                 <Text style={styles.reviewCount}>{reviews} reviews</Text>
+              </View>
+
+              <View style={styles.followStatsRow}>
+                <TouchableOpacity
+                  onPress={() =>
+                    router.push({
+                      pathname: "/(user)/follow-list",
+                      params: {
+                        userId: astrologer.id,
+                        name: displayName,
+                        role: "astrologer",
+                        initialTab: "followers",
+                      },
+                    })
+                  }
+                >
+                  <Text style={styles.followStatText}>
+                    <Text style={styles.followStatCount}>
+                      {followCounts?.followers ?? 0}
+                    </Text>{" "}
+                    Followers
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() =>
+                    router.push({
+                      pathname: "/(user)/follow-list",
+                      params: {
+                        userId: astrologer.id,
+                        name: displayName,
+                        role: "astrologer",
+                        initialTab: "following",
+                      },
+                    })
+                  }
+                >
+                  <Text style={styles.followStatText}>
+                    <Text style={styles.followStatCount}>
+                      {followCounts?.following ?? 0}
+                    </Text>{" "}
+                    Following
+                  </Text>
+                </TouchableOpacity>
               </View>
 
               {isOwnProfile ? (
@@ -383,7 +453,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  followBtn: {
+    borderWidth: 1.5,
+    borderColor: "#9d0399",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    marginTop: 10,
+  },
+  followBtnActive: {
+    backgroundColor: "#9d0399",
+    borderColor: "#9d0399",
+  },
+  followBtnTextActive: { color: "#FFFFFF" },
   followBtnText: { color: "#9d0399", fontSize: 13, fontWeight: "600" },
+  followStatsRow: {
+    flexDirection: "row",
+    gap: 16,
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  followStatText: { fontSize: 12.5, color: "#6B7280" },
+  followStatCount: { fontWeight: "700", color: "#1A1A2E" },
   infoColumn: { flex: 1 },
   name: { fontSize: 18, fontWeight: "700", color: "#0b1d5b", marginBottom: 2 },
   speciality: { fontSize: 13, color: "#6B7280", marginBottom: 1 },

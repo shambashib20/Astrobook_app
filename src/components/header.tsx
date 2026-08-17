@@ -1,14 +1,29 @@
 import Feather from "@expo/vector-icons/Feather";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useUnreadCount } from "@/features/notifications/hooks/useNotifications";
+import { useFocusEffect, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import type { ReactNode } from "react";
-import { Image, StyleSheet, TouchableOpacity, View } from "react-native";
+import { useCallback } from "react";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function Header({ rightSlot }: { rightSlot?: ReactNode }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { count: unreadCount, fetchCount } = useUnreadCount();
+
+  // useEffect(() => {}, []) sirf PEHLI baar mount pe chalta — Header jin
+  // screens (Feed, Profile) pe hai woh navigation stack mein back jaane pe
+  // remount nahi hoti (React Navigation unhe memory mein rakhta hai), toh
+  // notifications screen se "mark read" karke wapas aane pe badge purana hi
+  // dikhta rehta tha. useFocusEffect har baar chalta hai jab yeh screen
+  // wapas focus mein aati hai — isliye badge hamesha fresh rehta hai.
+  useFocusEffect(
+    useCallback(() => {
+      fetchCount();
+    }, []),
+  );
 
   return (
     <View>
@@ -23,9 +38,19 @@ export default function Header({ rightSlot }: { rightSlot?: ReactNode }) {
         </View>
         <View style={styles.actionsRow}>
           {rightSlot}
-          {/* Bookmarks — saved/favourites */}
-          <TouchableOpacity style={styles.iconBtn}>
-            <Feather name="bookmark" size={22} color="#9d0399" />
+          {/* Notifications */}
+          <TouchableOpacity
+            style={styles.iconBtn}
+            onPress={() => router.push("/(user)/notifications")}
+          >
+            <Feather name="bell" size={22} color="#9d0399" />
+            {unreadCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
           {/* Cart */}
           <TouchableOpacity
@@ -34,13 +59,7 @@ export default function Header({ rightSlot }: { rightSlot?: ReactNode }) {
           >
             <Feather name="shopping-cart" size={22} color="#9d0399" />
           </TouchableOpacity>
-          {/* Search */}
-          <TouchableOpacity
-            style={styles.iconBtn}
-            onPress={() => router.push("/(user)/checkout")}
-          >
-            <Feather name="search" size={22} color="#9d0399" />
-          </TouchableOpacity>
+          
         </View>
       </View>
       <LinearGradient
@@ -73,4 +92,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  badge: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "#DC2626",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 3,
+    borderWidth: 1.5,
+    borderColor: "#fff1ff",
+  },
+  badgeText: { color: "#FFFFFF", fontSize: 9, fontWeight: "800" },
 });

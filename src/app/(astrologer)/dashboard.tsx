@@ -225,9 +225,9 @@ const styles = StyleSheet.create({
   },
   sectionHeaderRow: { marginTop: 8 },
 
-  controlsGrid: { flexDirection: "row", gap: 12 },
+  controlsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   controlCard: {
-    flex: 1,
+    width: "47%",
     backgroundColor: "#FFF",
     borderRadius: 16,
     padding: 14,

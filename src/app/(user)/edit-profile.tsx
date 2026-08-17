@@ -1,5 +1,6 @@
 import ScreenHeader from "@/components/ScreenHeader";
 import { useAuthStore } from "@/features/auth/store/auth.store";
+import { useCategories } from "@/features/categories/hooks/useCategories";
 import { useImageKitUpload } from "@/features/posts/hooks/usePosts";
 import {
   useMyProfile,
@@ -22,23 +23,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-// Backend ke INTEREST_OPTIONS (server/src/modules/users/schemas/user.schema.ts)
-// se match karta hai
-const INTEREST_OPTIONS = [
-  "Numerology",
-  "Vastu",
-  "Past Life",
-  "Reiki",
-  "Tarot",
-  "Astrology",
-  "Palmistry",
-  "Face Reading",
-  "Kundli",
-  "Horoscope",
-  "Gemstones",
-  "Meditation",
-] as const;
 
 function toApiDate(d: Date): string {
   const yyyy = d.getFullYear();
@@ -67,19 +51,33 @@ export default function EditProfileScreen() {
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const { uploadImage, uploading: avatarUploading } = useImageKitUpload();
+  const { categories, loading: categoriesLoading, fetchCategories } =
+    useCategories();
 
   useEffect(() => {
     fetchProfile();
+    fetchCategories();
   }, []);
 
   useEffect(() => {
     if (!profile) return;
     setName(profile.name ?? "");
     setDob(profile.dateOfBirth ? new Date(profile.dateOfBirth) : null);
-    setInterests(profile.interests ?? []);
+    // Purane accounts ke paas stale interest values ho sakti hain (categories
+    // fix se pehle ke, jaise "Numerology" label ab "numerology" id ki jagah)
+    // — jab tak categories list load nahi hoti tab tak raw rakho (harmless,
+    // backend bhi filter karta hai), load hote hi valid ids tak trim karo
+    // taaki chips row mein bhoot-values na dikhein.
+    setInterests(
+      categories.length > 0
+        ? (profile.interests ?? []).filter((id) =>
+            categories.some((cat) => cat.id === id),
+          )
+        : (profile.interests ?? []),
+    );
     setBio(profile.bio ?? "");
     setAvatarUrl(profile.avatarUrl ?? null);
-  }, [profile]);
+  }, [profile, categories]);
 
   const toggleInterest = (interest: string) => {
     setInterests((prev) =>
@@ -216,25 +214,29 @@ export default function EditProfileScreen() {
 
           <Text style={styles.fieldLabel}>Interests</Text>
           <View style={styles.chipsRow}>
-            {INTEREST_OPTIONS.map((interest) => {
-              const isSelected = interests.includes(interest);
-              return (
-                <TouchableOpacity
-                  key={interest}
-                  style={[styles.chip, isSelected && styles.chipActive]}
-                  onPress={() => toggleInterest(interest)}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      isSelected && styles.chipTextActive,
-                    ]}
+            {categoriesLoading ? (
+              <ActivityIndicator color="#9d0399" />
+            ) : (
+              categories.map((cat) => {
+                const isSelected = interests.includes(cat.id);
+                return (
+                  <TouchableOpacity
+                    key={cat.id}
+                    style={[styles.chip, isSelected && styles.chipActive]}
+                    onPress={() => toggleInterest(cat.id)}
                   >
-                    {interest}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+                    <Text
+                      style={[
+                        styles.chipText,
+                        isSelected && styles.chipTextActive,
+                      ]}
+                    >
+                      {cat.emoji} {cat.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })
+            )}
           </View>
 
           <TouchableOpacity
