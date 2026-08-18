@@ -77,9 +77,9 @@
         "root": "./src/app"
       },
       "eas": {
-        "projectId": "838d5055-7819-4d89-af19-1f64972a96ac"
+        "projectId": "50742411-157c-4dbf-bf23-d3b081ad3800"
       }
     },
-    "owner": "tazi00s-team"
+    "owner": "tushar440"
   }
 }

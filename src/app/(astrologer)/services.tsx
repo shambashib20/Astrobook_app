@@ -30,7 +30,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 type ServiceKind = "consultancy" | "courses" | "products";
 
@@ -63,6 +66,7 @@ function computeEarningsBreakup(amount: number, commissionPercentage: number) {
 }
 
 export default function ServicesScreen() {
+  const insets = useSafeAreaInsets();
   const [activeKind, setActiveKind] = useState<ServiceKind>("consultancy");
 
   // Har astrologer ka apna commissionPercentage — dynamically unke khud ke
@@ -413,7 +417,10 @@ export default function ServicesScreen() {
         <View style={styles.modalOverlay}>
           <ScrollView
             style={styles.composerCard}
-            contentContainerStyle={{ gap: 12 }}
+            contentContainerStyle={{
+              gap: 12,
+              paddingBottom: insets.bottom + 24,
+            }}
           >
             <View style={styles.composerHeader}>
               <Text style={styles.composerTitle}>
@@ -634,8 +641,6 @@ export default function ServicesScreen() {
                 </Text>
               )}
             </TouchableOpacity>
-
-            <View style={{ height: 20 }} />
           </ScrollView>
         </View>
       </Modal>
