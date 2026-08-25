@@ -44,6 +44,26 @@ class UsersServiceApi {
   ): Promise<void> {
     await apiClient.post("/users/me/push-token", { expoPushToken, platform });
   }
+
+  // ── Phone verification (Google-login users, onboarding ke andar) ──────────
+  // Phone-login users ko yeh call karne ki zaroorat nahi — unka phone
+  // already login ke time se account mein set hota hai.
+
+  async sendPhoneOtp(phone: string): Promise<{ debugOtp?: string }> {
+    const res = await apiClient.post<{ debugOtp?: string }>(
+      "/users/me/phone/send-otp",
+      { phone },
+    );
+    return { debugOtp: res.data?.debugOtp };
+  }
+
+  async verifyPhoneOtp(phone: string, otp: string): Promise<UserProfile> {
+    const res = await apiClient.post<{ user: UserProfile }>(
+      "/users/me/phone/verify-otp",
+      { phone, otp },
+    );
+    return (res as any).user as UserProfile;
+  }
 }
 
 export const usersService = new UsersServiceApi();
