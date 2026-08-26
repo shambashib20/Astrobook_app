@@ -1,5 +1,6 @@
 import ScreenHeader from "@/components/ScreenHeader";
 import { useMyAppointments } from "@/features/consultation/hooks/useAppointments";
+import { useAstrologerApplicationStatus } from "@/features/astrologer-application/hooks/useAstrologerApplication";
 import { useRouter } from "expo-router";
 import { useEffect } from "react";
 import {
@@ -74,10 +75,13 @@ export default function AstrologerDashboard() {
     loading: apptsLoading,
     fetchAppointments,
   } = useMyAppointments();
+  const { status: applicationStatus } = useAstrologerApplicationStatus();
 
   useEffect(() => {
     fetchAppointments();
   }, []);
+
+  const isVerified = applicationStatus?.verificationStatus === "approved";
 
   const completedEarnings = appointments.completed.reduce(
     (sum, a) => sum + Number(a.price ?? a.service.price ?? 0),
@@ -116,6 +120,17 @@ export default function AstrologerDashboard() {
             <Text style={styles.statLabel}>Earned</Text>
           </View>
         </View>
+
+        {/* ── Bank onboarding CTA — only once admin has verified ── */}
+        {isVerified && (
+          <TouchableOpacity
+            style={styles.bankCta}
+            onPress={() => router.push("/(astrologer)/bank-onboarding" as any)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.bankCtaText}>🏦 Start Bank Onboarding</Text>
+          </TouchableOpacity>
+        )}
 
         {/* ── Controls — quick nav hub ── */}
         <Text style={styles.sectionTitle}>Manage</Text>
@@ -216,6 +231,15 @@ const styles = StyleSheet.create({
   },
   statValue: { fontSize: 20, fontWeight: "800", color: "#1A1A2E" },
   statLabel: { fontSize: 11, color: "#9CA3AF", marginTop: 4 },
+
+  bankCta: {
+    backgroundColor: "#0b1d5b",
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+    elevation: 2,
+  },
+  bankCtaText: { fontSize: 14, fontWeight: "800", color: "#FFF" },
 
   sectionTitle: {
     fontSize: 16,

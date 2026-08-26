@@ -1,14 +1,13 @@
 import AstroGradient from "@/assets/images/astro-gradient.svg";
 import GoogleLogo from "@/assets/images/google-icon.svg";
 import { useGoogleLogin, useOtpLogin } from "@/features/auth/hooks/useAuth";
+import { YoutubeCarousel } from "@/features/youtube/components/YoutubeCarousel";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 
 import Checkbox from "expo-checkbox";
 import { useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  Dimensions,
-  FlatList,
   Image,
   Linking,
   Modal,
@@ -21,8 +20,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-
 const COUNTRY_CODES = [
   { code: "+91", flag: "🇮🇳", name: "India" },
   { code: "+1", flag: "🇺🇸", name: "USA" },
@@ -32,17 +29,6 @@ const COUNTRY_CODES = [
   { code: "+971", flag: "🇦🇪", name: "UAE" },
   { code: "+61", flag: "🇦🇺", name: "Australia" },
   { code: "+49", flag: "🇩🇪", name: "Germany" },
-];
-
-const VIDEOS = [
-  {
-    id: "1",
-    title: "রাশি অনুযায়ী\nধনতেরাস টিপস!",
-    color: "#4C1D95",
-    emoji: "🎬",
-  },
-  { id: "2", title: "Mercury\nRetrograde Tips", color: "#1E3A5F", emoji: "🪐" },
-  { id: "3", title: "Daily\nHoroscope", color: "#1A3320", emoji: "⭐" },
 ];
 
 const links = [
@@ -65,8 +51,6 @@ export default function LoginScreen() {
   const [remember, setRemember] = useState(false);
   const [selectedCode, setSelectedCode] = useState(COUNTRY_CODES[0]);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [activeSlide, setActiveSlide] = useState(0);
-  const flatListRef = useRef<FlatList>(null);
 
   const { sendOtp, sending: otpSending } = useOtpLogin();
   const { googleLogin, loading: googleLoading } = useGoogleLogin();
@@ -92,13 +76,6 @@ export default function LoginScreen() {
 
   const handleGoogleLogin = async () => {
     await googleLogin();
-  };
-
-  const onSlideChange = (e: any) => {
-    const index = Math.round(
-      e.nativeEvent.contentOffset.x / (SCREEN_WIDTH * 0.85),
-    );
-    setActiveSlide(index);
   };
 
   const openLink = async (url: string) => {
@@ -190,44 +167,7 @@ export default function LoginScreen() {
           </View>
 
           {/* Video Slider */}
-          <View style={styles.sliderSection}>
-            <FlatList
-              ref={flatListRef}
-              data={VIDEOS}
-              horizontal
-              pagingEnabled={false}
-              snapToInterval={SCREEN_WIDTH * 0.62}
-              decelerationRate="fast"
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.sliderContent}
-              onMomentumScrollEnd={onSlideChange}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item, index }) => (
-                <TouchableOpacity
-                  style={[
-                    styles.videoCard,
-                    index === activeSlide && styles.videoCardActive,
-                    { backgroundColor: item.color },
-                  ]}
-                  activeOpacity={0.9}
-                >
-                  <Text style={styles.videoEmoji}>{item.emoji}</Text>
-                  <Text style={styles.videoTitle}>{item.title}</Text>
-                  <View style={styles.playBtn}>
-                    <Text style={styles.playIcon}>▶</Text>
-                  </View>
-                </TouchableOpacity>
-              )}
-            />
-            <View style={styles.dotsRow}>
-              {VIDEOS.map((_, i) => (
-                <View
-                  key={i}
-                  style={[styles.dot, i === activeSlide && styles.dotActive]}
-                />
-              ))}
-            </View>
-          </View>
+          <YoutubeCarousel />
 
           {/* Footer */}
           <View style={styles.footerLinks}>
@@ -384,42 +324,6 @@ const styles = StyleSheet.create({
     width: "100%",
     marginLeft: 10,
   },
-  sliderSection: { width: "100%", marginBottom: 12 },
-  sliderContent: { paddingHorizontal: 12, gap: 10 },
-  videoCard: {
-    width: SCREEN_WIDTH * 0.7,
-    height: 200,
-    borderRadius: 12,
-    padding: 12,
-    justifyContent: "space-between",
-    opacity: 0.75,
-  },
-  videoCardActive: { opacity: 1, transform: [{ scale: 1.03 }] },
-  videoEmoji: { fontSize: 22 },
-  videoTitle: {
-    color: "#FFF",
-    fontSize: 11,
-    fontWeight: "600",
-    lineHeight: 16,
-  },
-  playBtn: {
-    alignSelf: "flex-end",
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "#FFFFFF30",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  playIcon: { color: "#FFF", fontSize: 10 },
-  dotsRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 6,
-    marginTop: 30,
-  },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#FFFFFF40" },
-  dotActive: { backgroundColor: "#FFF", width: 20 },
   footerLinks: {
     flexDirection: "row",
     flexWrap: "wrap",

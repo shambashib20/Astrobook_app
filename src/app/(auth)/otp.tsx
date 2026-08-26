@@ -1,10 +1,9 @@
 import AstroGradient from "@/assets/images/astro-gradient.svg";
 import { useOtpLogin } from "@/features/auth/hooks/useAuth";
+import { YoutubeCarousel } from "@/features/youtube/components/YoutubeCarousel";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Dimensions,
-  FlatList,
   Image,
   Linking,
   ScrollView,
@@ -15,19 +14,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-
-const VIDEOS = [
-  {
-    id: "1",
-    title: "রাশি অনুযায়ী\nধনতেরাস টিপস!",
-    color: "#4C1D95",
-    emoji: "🎬",
-  },
-  { id: "2", title: "Mercury\nRetrograde Tips", color: "#1E3A5F", emoji: "🪐" },
-  { id: "3", title: "Daily\nHoroscope", color: "#1A3320", emoji: "⭐" },
-];
 
 const links = [
   { label: "About Us", url: "https://astrobook-vert.vercel.app/about" },
@@ -57,12 +43,10 @@ export default function OtpScreen() {
   // starting value use hota hai. Production mein dono hamesha undefined
   // rahenge, isliye yeh block kabhi render hi nahi hoga.
   const debugOtp = debugOtpFromResend ?? debugOtpParam;
-  const [activeSlide, setActiveSlide] = useState(0);
   const [timer, setTimer] = useState(RESEND_TIMEOUT);
   const [canResend, setCanResend] = useState(false);
 
   const inputRef = useRef<TextInput>(null);
-  const flatListRef = useRef<FlatList>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -107,13 +91,6 @@ export default function OtpScreen() {
     setOtp("");
     inputRef.current?.focus();
     startTimer();
-  };
-
-  const onSlideChange = (e: any) => {
-    const index = Math.round(
-      e.nativeEvent.contentOffset.x / (SCREEN_WIDTH * 0.85),
-    );
-    setActiveSlide(index);
   };
 
   const openLink = async (url: string) => {
@@ -223,44 +200,7 @@ export default function OtpScreen() {
           </View>
 
           {/* Video Slider */}
-          <View style={styles.sliderSection}>
-            <FlatList
-              ref={flatListRef}
-              data={VIDEOS}
-              horizontal
-              pagingEnabled={false}
-              snapToInterval={SCREEN_WIDTH * 0.62}
-              decelerationRate="fast"
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.sliderContent}
-              onMomentumScrollEnd={onSlideChange}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item, index }) => (
-                <TouchableOpacity
-                  style={[
-                    styles.videoCard,
-                    index === activeSlide && styles.videoCardActive,
-                    { backgroundColor: item.color },
-                  ]}
-                  activeOpacity={0.9}
-                >
-                  <Text style={styles.videoEmoji}>{item.emoji}</Text>
-                  <Text style={styles.videoTitle}>{item.title}</Text>
-                  <View style={styles.playBtn}>
-                    <Text style={styles.playIcon}>▶</Text>
-                  </View>
-                </TouchableOpacity>
-              )}
-            />
-            <View style={styles.dotsRow}>
-              {VIDEOS.map((_, i) => (
-                <View
-                  key={i}
-                  style={[styles.dot, i === activeSlide && styles.dotActive]}
-                />
-              ))}
-            </View>
-          </View>
+          <YoutubeCarousel />
 
           {/* Footer */}
           <View style={styles.footerLinks}>
@@ -387,42 +327,6 @@ const styles = StyleSheet.create({
   submitText: { color: "#fff", fontWeight: "700", fontSize: 15 },
   backBtn: { marginTop: 12 },
   backText: { fontSize: 13, color: "#9d0399" },
-  sliderSection: { width: "100%", marginBottom: 12 },
-  sliderContent: { paddingHorizontal: 12, gap: 10 },
-  videoCard: {
-    width: SCREEN_WIDTH * 0.7,
-    height: 200,
-    borderRadius: 12,
-    padding: 12,
-    justifyContent: "space-between",
-    opacity: 0.75,
-  },
-  videoCardActive: { opacity: 1, transform: [{ scale: 1.03 }] },
-  videoEmoji: { fontSize: 22 },
-  videoTitle: {
-    color: "#FFF",
-    fontSize: 11,
-    fontWeight: "600",
-    lineHeight: 16,
-  },
-  playBtn: {
-    alignSelf: "flex-end",
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "#FFFFFF30",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  playIcon: { color: "#FFF", fontSize: 10 },
-  dotsRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 6,
-    marginTop: 30,
-  },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#FFFFFF40" },
-  dotActive: { backgroundColor: "#FFF", width: 20 },
   footerLinks: {
     flexDirection: "row",
     flexWrap: "wrap",
