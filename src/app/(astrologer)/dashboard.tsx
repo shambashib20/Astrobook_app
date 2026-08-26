@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 11, color: "#9CA3AF", marginTop: 4 },
 
   bankCta: {
-    backgroundColor: "#0b1d5b",
+    backgroundColor: "#9d0399",
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: "center",
