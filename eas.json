@@ -7,8 +7,8 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://astrobook-backend.onrender.com",
-        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "863538894717-h7387re39sf7o82e7nsmkutaekegtafh.apps.googleusercontent.com",
+        "EXPO_PUBLIC_API_URL": "http://192.168.29.92:9000",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "698332891822-78rj49egti2l97ncutcjt3m7j36jn414.apps.googleusercontent.com",
         "EXPO_PUBLIC_IMAGEKIT_PUBLIC_KEY": "public_oF4Az3chzcDCjFyXWAzRj/V6DJw=",
         "EXPO_PUBLIC_IMAGEKIT_URL_ENDPOINT": "https://ik.imagekit.io/cetfbxfj4",
         "EXPO_PUBLIC_RAZORPAY_KEY_ID": "rzp_test_TAZIV1XS1ud4sM",

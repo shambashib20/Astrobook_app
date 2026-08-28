@@ -52,7 +52,7 @@ export default function ScreenHeader({
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: "#0b1d5b",
+    backgroundColor: "#9d0399",
     paddingHorizontal: 16,
     paddingVertical: 20,
     borderBottomLeftRadius: 20,
@@ -71,5 +71,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   title: { fontSize: 20, fontWeight: "800", color: "#FFF" },
-  subtitle: { fontSize: 13, color: "#C4CBEB", marginTop: 4 },
+  subtitle: { fontSize: 13, color: "#EBC4E8", marginTop: 4 },
 });
