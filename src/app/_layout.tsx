@@ -19,7 +19,7 @@ export default function RootLayout() {
 
 function AppGate() {
   const router = useRouter();
-  const { restoreSession, user } = useAuthStore();
+  const { restoreSession } = useAuthStore();
   // Apna khud ka gate — store ka `isLoading` restoreSession() ke ANDAR hi
   // false ho jaata hai, router.replace() call hone SE PEHLE. Isse ek race
   // banta tha: Slot turant render ho jaata (stale default route ke saath,
@@ -28,6 +28,7 @@ function AppGate() {
   // upar overlay dikhta (tab bar peek-through bug). Ab redirect ke BAAD
   // hi Slot render karte hain.
   const [ready, setReady] = useState(false);
+  const user = useAuthStore((s) => s.user);
 
   // Sirf logged-in user ke liye register karo — logged-out state mein
   // backend call 401 dega (harmless, catch ho jaata hai), lekin gate laga
@@ -40,9 +41,21 @@ function AppGate() {
       if (!restored) {
         router.replace("/(auth)/login" as any);
       } else {
-        // User ho ya astrologer — dono hamesha feed pe hi land karte hain.
-        // Astrologer apni profile se explicitly Dashboard pe navigate karta hai.
-        router.replace("/(user)/feed" as any);
+        // restoreSession() ne poora user object (isOnboarded samet) store
+        // mein save kar diya hai — session valid hone ka matlab yeh NAHI
+        // ki onboarding complete hai. Beech mein app band karne wale users
+        // ko yahan wapas onboarding pe bhejna hai, feed pe nahi — warna
+        // unka adhoora profile silently feed mein reh jaata (naam/DOB/
+        // interests kabhi save hi nahi hue the, kyunki onboarding sirf
+        // ek hi final submit call pe save karta hai).
+        const freshUser = useAuthStore.getState().user;
+        if (freshUser && !freshUser.isOnboarded) {
+          router.replace("/(auth)/onboarding" as any);
+        } else {
+          // User ho ya astrologer — dono hamesha feed pe hi land karte hain.
+          // Astrologer apni profile se explicitly Dashboard pe navigate karta hai.
+          router.replace("/(user)/feed" as any);
+        }
       }
       setReady(true);
     };

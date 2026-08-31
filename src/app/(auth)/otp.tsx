@@ -1,6 +1,7 @@
 import AstroGradient from "@/assets/images/astro-gradient.svg";
 import { useOtpLogin } from "@/features/auth/hooks/useAuth";
 import { YoutubeCarousel } from "@/features/youtube/components/YoutubeCarousel";
+import * as Clipboard from "expo-clipboard";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -23,7 +24,10 @@ const links = [
   { label: "Help", url: "https://astrobook-vert.vercel.app/help" },
 ];
 
-const RESEND_TIMEOUT = 30;
+// WhatsApp delivery mein 10-15s lagte hain (aur kabhi thoda zyada bhi) —
+// 30s bahut tight tha, user ke paas message padhne/type karne ke liye
+// mushkil se 10-15s bachte the. 2 min se aaram se time milta hai.
+const RESEND_TIMEOUT = 120;
 const OTP_LENGTH = 4;
 
 export default function OtpScreen() {
@@ -45,6 +49,36 @@ export default function OtpScreen() {
   const debugOtp = debugOtpFromResend ?? debugOtpParam;
   const [timer, setTimer] = useState(RESEND_TIMEOUT);
   const [canResend, setCanResend] = useState(false);
+
+  // ─── Clipboard OTP suggestion ────────────────────────────────────────────
+  // WhatsApp pe aaye OTP ko user copy karke wapas app mein aata hai — jab
+  // bhi clipboard change hota hai (app foreground mein), check karte hain
+  // ki kya usme ek 4-digit number hai. Agar hai AUR field abhi khaali hai,
+  // seedha auto-fill kar dete hain — user ka manually typed input kabhi
+  // overwrite nahi hota (functional setOtp se check karte hain, taaki
+  // stale closure ka masla na ho, kyunki listener sirf mount pe register
+  // hota hai).
+  const checkClipboardForOtp = async () => {
+    try {
+      const hasString = await Clipboard.hasStringAsync();
+      if (!hasString) return;
+      const content = await Clipboard.getStringAsync();
+      const match = content?.trim().match(/\b(\d{4})\b/);
+      if (!match) return;
+      setOtp((prev) => (prev.length === 0 ? match[1] : prev));
+    } catch {
+      // Clipboard read fail ho sakta hai (permission/platform quirks) —
+      // silently ignore, yeh sirf ek convenience feature hai
+    }
+  };
+
+  useEffect(() => {
+    checkClipboardForOtp();
+    const subscription = Clipboard.addClipboardListener(() => {
+      checkClipboardForOtp();
+    });
+    return () => subscription.remove();
+  }, []);
 
   const inputRef = useRef<TextInput>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
