@@ -73,11 +73,18 @@ export default function OtpScreen() {
   };
 
   useEffect(() => {
-    checkClipboardForOtp();
+    // Thoda delay — mount ke turant baad focus() aur clipboard read dono
+    // native calls ek saath fire na ho, isse kuch devices pe focus/keyboard
+    // flaky ho sakta tha. Listener (jo baad mein clipboard change pe fire
+    // hota hai) ko delay ki zaroorat nahi.
+    const initialCheck = setTimeout(checkClipboardForOtp, 300);
     const subscription = Clipboard.addClipboardListener(() => {
       checkClipboardForOtp();
     });
-    return () => subscription.remove();
+    return () => {
+      clearTimeout(initialCheck);
+      subscription.remove();
+    };
   }, []);
 
   const inputRef = useRef<TextInput>(null);
@@ -155,36 +162,37 @@ export default function OtpScreen() {
             {/* Contact info */}
             {/* <Text style={styles.subtitle}>OTP bheja gaya</Text> */}
             {/* <Text style={styles.contact}>{contact}</Text> */}
-            {/* Hidden input */}
-            <TextInput
-              ref={inputRef}
-              value={otp}
-              onChangeText={(text) => {
-                if (/^\d*$/.test(text) && text.length <= OTP_LENGTH) setOtp(text);
-              }}
-              keyboardType="number-pad"
-              maxLength={OTP_LENGTH}
-              style={{ position: "absolute", opacity: 0, height: 0 }}
-            />
-            {/* OTP Boxes */}
-            <TouchableOpacity
-              style={styles.otpContainer}
-              activeOpacity={1}
-              onPress={() => inputRef.current?.focus()}
-            >
-              {[...Array(OTP_LENGTH)].map((_, i) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.otpBox,
-                    otp[i] ? styles.otpBoxFilled : null,
-                    otp.length === i ? styles.otpBoxActive : null,
-                  ]}
-                >
-                  <Text style={styles.otpText}>{otp[i] || ""}</Text>
-                </View>
-              ))}
-            </TouchableOpacity>
+            {/* OTP Boxes — hidden input ab inhi ke exact upar overlay hai
+                (neeche wale "OTP Boxes" block mein), taaki tap seedha real
+                input pe lage — .focus() ko kisi doosre component se call
+                karwane se zyada reliable, kyunki Android/iOS khud hi
+                decide karte hain ki tap kis native view ko jaata hai. */}
+            <View style={styles.otpWrapper}>
+              <TextInput
+                ref={inputRef}
+                value={otp}
+                onChangeText={(text) => {
+                  if (/^\d*$/.test(text) && text.length <= OTP_LENGTH) setOtp(text);
+                }}
+                keyboardType="number-pad"
+                maxLength={OTP_LENGTH}
+                style={styles.hiddenInput}
+              />
+              <View style={styles.otpContainer} pointerEvents="none">
+                {[...Array(OTP_LENGTH)].map((_, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.otpBox,
+                      otp[i] ? styles.otpBoxFilled : null,
+                      otp.length === i ? styles.otpBoxActive : null,
+                    ]}
+                  >
+                    <Text style={styles.otpText}>{otp[i] || ""}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
             {/* Dev/test helper — jab SMS delivery band ho, server-generated
                 OTP yahan dikh jaata hai. Tap karne se input mein bhar bhi
                 jaata hai. Production mein debugOtp hamesha undefined hoga,
@@ -299,6 +307,18 @@ const styles = StyleSheet.create({
     width: "100%",
     marginVertical: 12,
     paddingHorizontal: 4,
+  },
+  otpWrapper: {
+    width: "100%",
+    position: "relative",
+  },
+  hiddenInput: {
+    // Boxes ke row jitna hi area cover karta hai (StyleSheet.absoluteFill
+    // se poora wrapper), opacity 0 se invisible — tap seedha isi pe lagta
+    // hai, boxes wala View "pointerEvents: none" hai isliye touch use
+    // seedha through ho jaata hai.
+    ...StyleSheet.absoluteFill,
+    opacity: 0,
   },
   otpBox: {
     width: 52,
