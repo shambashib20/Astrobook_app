@@ -14,6 +14,12 @@ export type UserProfile = {
   bio: string | null;
   createdAt: string;
   updatedAt: string;
+  // Additive — null for non-astrologers / astrologers who haven't started
+  // bank onboarding yet. Drives which step the onboarding wizard resumes at.
+  razorpayAccountId: string | null;
+  razorpayAccountStatus: string | null;
+  razorpayProductId: string | null;
+  razorpayProductStatus: string | null;
 };
 
 export type UpdateProfilePayload = {

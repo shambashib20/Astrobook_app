@@ -7,7 +7,7 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://192.168.29.92:8080",
+        "EXPO_PUBLIC_API_URL": "http://192.168.29.92:9000",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "698332891822-78rj49egti2l97ncutcjt3m7j36jn414.apps.googleusercontent.com",
         "EXPO_PUBLIC_IMAGEKIT_PUBLIC_KEY": "public_oF4Az3chzcDCjFyXWAzRj/V6DJw=",
         "EXPO_PUBLIC_IMAGEKIT_URL_ENDPOINT": "https://ik.imagekit.io/cetfbxfj4",
