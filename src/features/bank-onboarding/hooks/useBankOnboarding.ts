@@ -3,7 +3,7 @@ import type { UserProfile } from "@/features/users/services";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Alert } from "react-native";
 import { bankOnboardingService } from "../services";
-import type { BankDetailsPayload, BankOnboardingPayload } from "../types";
+import type { BankOnboardingPayload } from "../types";
 
 function extractErrorMessage(err: any, fallback: string) {
   return (
@@ -13,7 +13,10 @@ function extractErrorMessage(err: any, fallback: string) {
   );
 }
 
-// ─── Step 1 — creates the Razorpay account + Route product ───────────────────
+// ─── Single step — creates/updates the Cashfree Easy Split vendor ────────────
+// Replaces the old two-hook Razorpay Route flow (useSubmitBankOnboarding +
+// useSubmitBankDetails, commented out below) — Cashfree collects
+// business/KYC + bank-or-UPI in one call, so there's only one step now.
 
 export function useSubmitBankOnboarding(onSuccess?: () => void) {
   const queryClient = useQueryClient();
@@ -30,10 +33,8 @@ export function useSubmitBankOnboarding(onSuccess?: () => void) {
         (prev) =>
           prev && {
             ...prev,
-            razorpayAccountId: account.id,
-            razorpayAccountStatus: account.status,
-            razorpayProductId: account.productId,
-            razorpayProductStatus: account.productStatus,
+            cashfreeVendorId: account.vendorId,
+            cashfreeVendorStatus: account.status,
           },
       );
       onSuccess?.();
@@ -54,38 +55,6 @@ export function useSubmitBankOnboarding(onSuccess?: () => void) {
   };
 }
 
-// ─── Step 2 — submits payout (settlement) bank account details ──────────────
-
-export function useSubmitBankDetails(onSuccess?: () => void) {
-  const queryClient = useQueryClient();
-
-  const mutation = useMutation({
-    mutationFn: (payload: BankDetailsPayload) =>
-      bankOnboardingService.submitBankDetails(payload),
-    onSuccess: ({ product }) => {
-      queryClient.setQueryData<UserProfile | undefined>(
-        queryKeys.profile.me,
-        (prev) =>
-          prev && {
-            ...prev,
-            razorpayProductId: product.productId,
-            razorpayProductStatus: product.status,
-          },
-      );
-      onSuccess?.();
-    },
-    onError: (err: any) => {
-      Alert.alert(
-        "Error",
-        extractErrorMessage(err, "Bank details could not be saved"),
-      );
-    },
-  });
-
-  return {
-    submit: (payload: BankDetailsPayload) =>
-      mutation.mutateAsync(payload).catch(() => undefined),
-    loading: mutation.isPending,
-    error: mutation.error as any,
-  };
-}
+// ── useSubmitBankDetails (Razorpay Route's second step) — commented out
+// during the Cashfree migration, kept for rollback:
+// export function useSubmitBankDetails(onSuccess?: () => void) { ... }

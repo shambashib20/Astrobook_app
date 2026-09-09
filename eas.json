@@ -12,6 +12,7 @@
         "EXPO_PUBLIC_IMAGEKIT_PUBLIC_KEY": "public_oF4Az3chzcDCjFyXWAzRj/V6DJw=",
         "EXPO_PUBLIC_IMAGEKIT_URL_ENDPOINT": "https://ik.imagekit.io/cetfbxfj4",
         "EXPO_PUBLIC_RAZORPAY_KEY_ID": "rzp_test_TAZIV1XS1ud4sM",
+        "EXPO_PUBLIC_CASHFREE_ENV": "SANDBOX",
         "EXPO_PUBLIC_AGORA_APP_ID": "d47f31ddd5ee4b498009cfafd1c4f4ac"
       }
     },
@@ -26,6 +27,7 @@
         "EXPO_PUBLIC_IMAGEKIT_PUBLIC_KEY": "public_oF4Az3chzcDCjFyXWAzRj/V6DJw=",
         "EXPO_PUBLIC_IMAGEKIT_URL_ENDPOINT": "https://ik.imagekit.io/cetfbxfj4",
         "EXPO_PUBLIC_RAZORPAY_KEY_ID": "rzp_test_TAZIV1XS1ud4sM",
+        "EXPO_PUBLIC_CASHFREE_ENV": "SANDBOX",
         "EXPO_PUBLIC_AGORA_APP_ID": "d47f31ddd5ee4b498009cfafd1c4f4ac"
       },
       "distribution": "internal"
@@ -40,6 +42,7 @@
         "EXPO_PUBLIC_IMAGEKIT_PUBLIC_KEY": "public_oF4Az3chzcDCjFyXWAzRj/V6DJw=",
         "EXPO_PUBLIC_IMAGEKIT_URL_ENDPOINT": "https://ik.imagekit.io/cetfbxfj4",
         "EXPO_PUBLIC_RAZORPAY_KEY_ID": "rzp_test_TAZIV1XS1ud4sM",
+        "EXPO_PUBLIC_CASHFREE_ENV": "PRODUCTION",
         "EXPO_PUBLIC_AGORA_APP_ID": "d47f31ddd5ee4b498009cfafd1c4f4ac"
       }
     }
