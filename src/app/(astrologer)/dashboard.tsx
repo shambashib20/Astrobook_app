@@ -1,6 +1,6 @@
 import ScreenHeader from "@/components/ScreenHeader";
-import { useMyAppointments } from "@/features/consultation/hooks/useAppointments";
 import { useAstrologerApplicationStatus } from "@/features/astrologer-application/hooks/useAstrologerApplication";
+import { useMyAppointments } from "@/features/consultation/hooks/useAppointments";
 import { useRouter } from "expo-router";
 import { useEffect } from "react";
 import {
