@@ -2,6 +2,7 @@
   "expo": {
     "name": "Astrobook",
     "slug": "astrobook",
+    "owner": "astrobook",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -78,7 +79,7 @@
         "root": "./src/app"
       },
       "eas": {
-        "projectId": "7dad0621-2d06-4c03-873d-ca2743e313b0"
+        "projectId": "b1363d34-df21-49a7-8c36-565f90c12aad"
       }
     }
   }
