@@ -22,7 +22,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.tushar440.astrobook",
+       "package": "com.astrobook.app",
       "permissions": [
         "CAMERA",
         "RECORD_AUDIO",
