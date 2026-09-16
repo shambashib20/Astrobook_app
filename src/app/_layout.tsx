@@ -20,7 +20,6 @@ export default function RootLayout() {
 function AppGate() {
   const router = useRouter();
   const { restoreSession } = useAuthStore();
-
   const [ready, setReady] = useState(false);
   const user = useAuthStore((s) => s.user);
   const sessionExpired = useAuthStore((s) => s.sessionExpired);
