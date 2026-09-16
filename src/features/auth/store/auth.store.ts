@@ -1,9 +1,7 @@
-import { API_BASE_URL } from "@/config/api";
-import { apiClient } from "@/services/apiClient";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
+import { queryClient } from "@/lib/queryClient";
+import { apiClient, isAuthRejection } from "@/services/apiClient";
+import { tokenStorage } from "@/services/tokenStorage";
 import { create } from "zustand";
-
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -32,12 +30,24 @@ type AuthStore = {
   user: AuthUser | null;
   accessToken: string | null;
   isLoading: boolean;
+  // Backend ne session reject kiya (token expire/invalid) — root layout isko
+  // dekh ke login pe bhejta hai. Normal logout pe ye true NAHI hota.
+  sessionExpired: boolean;
 
   loginSuccess: (data: AuthResult) => Promise<void>;
   updateUser: (updates: Partial<AuthUser>) => void;
   setLoading: (val: boolean) => void;
   logout: () => Promise<void>;
   restoreSession: () => Promise<boolean>;
+  clearSessionExpired: () => void;
+};
+
+const LOGGED_OUT_STATE = {
+  isLoggedIn: false,
+  isNewUser: false,
+  user: null,
+  accessToken: null,
+  isLoading: false,
 };
 
 // ─── Store ────────────────────────────────────────────────────────────────────
@@ -48,11 +58,18 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   user: null,
   accessToken: null,
   isLoading: true,
+  sessionExpired: false,
 
   loginSuccess: async ({ accessToken, refreshToken, user, isNewUser }) => {
-    await AsyncStorage.setItem("accessToken", accessToken);
-    await AsyncStorage.setItem("refreshToken", refreshToken);
-    set({ isLoggedIn: true, isNewUser, user, accessToken, isLoading: false });
+    await tokenStorage.setTokens(accessToken, refreshToken);
+    set({
+      isLoggedIn: true,
+      isNewUser,
+      user,
+      accessToken,
+      isLoading: false,
+      sessionExpired: false,
+    });
   },
 
   updateUser: (updates) => {
@@ -65,76 +82,71 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
   logout: async () => {
     try {
-      const refreshToken = await AsyncStorage.getItem("refreshToken");
+      const refreshToken = await tokenStorage.getRefreshToken();
       if (refreshToken) {
-        await apiClient.post("/auth/logout", { refreshToken }).catch(() => {});
+        // withToken: false — logout route ko auth nahi chahiye. Token ke saath
+        // bhejte to expired accessToken pe refresh + rotation ho jaata aur
+        // backend pe naya session bina logout ke bach jaata.
+        await apiClient
+          .post("/auth/logout", { refreshToken }, { withToken: false })
+          .catch(() => {});
       }
     } catch {}
-    await AsyncStorage.multiRemove(["accessToken", "refreshToken"]);
-    set({
-      isLoggedIn: false,
-      isNewUser: false,
-      user: null,
-      accessToken: null,
-      isLoading: false,
-    });
+    await tokenStorage.clear();
+    queryClient.clear(); // pichhle user ka cached data agle login mein na dikhe
+    set({ ...LOGGED_OUT_STATE, sessionExpired: false });
   },
 
   restoreSession: async () => {
     set({ isLoading: true });
-    const refreshToken = await AsyncStorage.getItem("refreshToken");
-    if (!refreshToken) {
+    const storedRefreshToken = await tokenStorage.getRefreshToken();
+    if (!storedRefreshToken) {
       set({ isLoading: false });
       return false;
     }
 
-    // Server temporarily unreachable ho sakta hai (dev-server restart, wifi
-    // hiccup, LAN IP change) — isse "refresh token invalid" jaisa treat
-    // nahi karna chahiye, warna valid session bhi wipe ho jaati hai aur
-    // user ko baar-baar OTP se login karna padta hai (naya session banta
-    // hai har baar). Isliye network errors pe kuch retries karte hain aur
-    // tokens ko tabhi clear karte hain jab backend GENUINELY reject kare
-    // (401/400 response — matlab token sach mein invalid/expired hai).
+    // Server temporarily unreachable ho sakta hai (Render cold start, wifi
+    // hiccup, dev-server restart) — network errors pe retry karo, tokens
+    // tabhi clear hote hain jab backend GENUINELY reject kare.
+    //
+    // Refresh sirf ek baar hota hai: pehle attempt mein naya token mil gaya
+    // aur /auth/me network se fail hua, to retry mein dobara refresh NAHI
+    // karte. (Pehle yahi bug tha — retry purana, rotate ho chuka token
+    // bhejta tha, backend reject karta tha, aur user logout ho jaata tha.)
     const MAX_ATTEMPTS = 3;
+    let accessToken: string | null = null;
+
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       try {
-        const res = await axios.post(
-          `${API_BASE_URL}/auth/refresh`,
-          { refreshToken },
-        );
-
-        const { accessToken, refreshToken: newRefreshToken } = res.data.data;
-        await AsyncStorage.setItem("accessToken", accessToken);
-        await AsyncStorage.setItem("refreshToken", newRefreshToken);
+        if (!accessToken) {
+          accessToken = await apiClient.refreshSession();
+        }
 
         const meRes = await apiClient.get<{ user: AuthUser }>("/auth/me");
         const user = meRes.data.user;
 
-        set({ isLoggedIn: true, accessToken, user, isLoading: false });
+        set({
+          isLoggedIn: true,
+          accessToken,
+          user,
+          isLoading: false,
+          sessionExpired: false,
+        });
         return true;
       } catch (err: any) {
-        const isAuthRejection =
-          err?.response?.status === 401 || err?.response?.status === 400;
-
-        if (isAuthRejection) {
-          // Backend ne saaf mana kiya — refresh token genuinely invalid ya
-          // expired hai. Ab yahan se recover nahi ho sakta, tokens clear
-          // karke login pe bhejo.
-          await AsyncStorage.multiRemove(["accessToken", "refreshToken"]);
-          set({ isLoading: false });
+        if (isAuthRejection(err)) {
+          // apiClient ne tokens already clear kar diye hain
+          set({ isLoading: false, sessionExpired: false });
           return false;
         }
 
-        // Network/timeout/server-down jaisi transient error — retry karo,
-        // tokens ko haath mat lagao
         if (attempt < MAX_ATTEMPTS) {
           await new Promise((r) => setTimeout(r, 1200 * attempt));
           continue;
         }
 
-        // Saare retries fail — tokens abhi bhi preserve karte hain (agla
-        // app-open pe dobara try hoga), sirf is session ke liye logged-out
-        // dikhate hain
+        // Saare retries fail — tokens preserve rehte hain (agle app-open pe
+        // dobara try hoga), sirf is session ke liye logged-out dikhate hain
         set({ isLoading: false });
         return false;
       }
@@ -143,7 +155,19 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     set({ isLoading: false });
     return false;
   },
+
+  clearSessionExpired: () => set({ sessionExpired: false }),
 }));
+
+// ─── Session expiry (apiClient se) ────────────────────────────────────────────
+// Kisi bhi API call pe refresh token reject hua to apiClient tokens clear
+// karke yahan batata hai. App ki state turant logged-out ho jaati hai aur
+// root layout login pe redirect karta hai.
+apiClient.setSessionExpiredHandler(() => {
+  const wasLoggedIn = useAuthStore.getState().isLoggedIn;
+  queryClient.clear();
+  useAuthStore.setState({ ...LOGGED_OUT_STATE, sessionExpired: wasLoggedIn });
+});
 
 // ─── Selectors ────────────────────────────────────────────────────────────────
 

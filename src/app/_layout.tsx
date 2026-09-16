@@ -29,6 +29,7 @@ function AppGate() {
   // hi Slot render karte hain.
   const [ready, setReady] = useState(false);
   const user = useAuthStore((s) => s.user);
+  const sessionExpired = useAuthStore((s) => s.sessionExpired);
 
   // Sirf logged-in user ke liye register karo — logged-out state mein
   // backend call 401 dega (harmless, catch ho jaata hai), lekin gate laga
@@ -61,6 +62,14 @@ function AppGate() {
     };
     init();
   }, []);
+
+  // Beech mein session expire hua (backend ne refresh token reject kiya) —
+  // login pe bhejo. Normal logout apna redirect khud karta hai.
+  useEffect(() => {
+    if (!ready || !sessionExpired) return;
+    useAuthStore.getState().clearSessionExpired();
+    router.replace("/(auth)/login" as any);
+  }, [ready, sessionExpired]);
 
   // Init chal raha hai ya redirect abhi commit nahi hua — kuch mat dikhao
   // (SafeAreaProvider ab RootLayout mein top-level pe hai, poori app ko cover karta hai)

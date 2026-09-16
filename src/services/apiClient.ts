@@ -1,6 +1,7 @@
 import { API_BASE_URL } from "@/config/api";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { tokenStorage } from "@/services/tokenStorage";
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
+
 export type ApiResponse<T = any> = {
   success: boolean;
   data: T;
@@ -13,10 +14,17 @@ type RequestOptions = {
   headers?: Record<string, string>;
 };
 
-type QueueItem = {
-  resolve: (token: string) => void;
-  reject: (err: any) => void;
-};
+/**
+ * Backend ne saaf mana kiya (401/400) ya refresh token hai hi nahi — session
+ * sach mein khatam. Network error / timeout / server down isme NAHI aate.
+ */
+export function isAuthRejection(err: any): boolean {
+  return (
+    err?.isAuthRejection === true ||
+    err?.response?.status === 401 ||
+    err?.response?.status === 400
+  );
+}
 
 // ─────────────────────────────────────────────────────────────
 // ApiClient Class
@@ -24,12 +32,15 @@ type QueueItem = {
 
 class ApiClient {
   private instance: AxiosInstance;
-  private isRefreshing = false;
-  private refreshQueue: QueueItem[] = [];
+  // Ek waqt pe sirf EK refresh chalega. Backend har refresh pe purana token
+  // delete karta hai (rotation), isliye do parallel refresh ek dusre ko
+  // invalid kar dete. Baaki sab isi promise ka wait karte hain.
+  private refreshPromise: Promise<string> | null = null;
+  private onSessionExpired: (() => void) | null = null;
 
   constructor() {
     this.instance = axios.create({
-    baseURL: API_BASE_URL,
+      baseURL: API_BASE_URL,
       timeout: 45000, // Render free-tier cold start 30-50s tak le sakta hai (keep-alive ping se rare hona chahiye, lekin safety net rakha)
       headers: { "Content-Type": "application/json" },
     });
@@ -43,7 +54,7 @@ class ApiClient {
     // Request — accessToken auto-attach (withToken mode)
     this.instance.interceptors.request.use(async (config) => {
       if (config.headers["__withToken"] === "true") {
-        const token = await AsyncStorage.getItem("accessToken");
+        const token = await tokenStorage.getAccessToken();
         if (token) config.headers.Authorization = `Bearer ${token}`;
       }
       // Internal header hata do — backend ko nahi jaana chahiye
@@ -65,47 +76,13 @@ class ApiClient {
         ) {
           original._retry = true;
 
-          // Refresh already chal raha hai — queue mein wait karo
-          if (this.isRefreshing) {
-            return new Promise((resolve, reject) => {
-              this.refreshQueue.push({
-                resolve: (newToken) => {
-                  original.headers.Authorization = `Bearer ${newToken}`;
-                  resolve(this.instance(original));
-                },
-                reject,
-              });
-            });
-          }
-
-          this.isRefreshing = true;
-
           try {
-            const newToken = await this._refresh();
-
-            // Queue mein jo requests wait kar rahi thi — unko naya token do
-            this.refreshQueue.forEach((item) => item.resolve(newToken));
-            this.refreshQueue = [];
-
+            const newToken = await this.refreshSession();
             original.headers.Authorization = `Bearer ${newToken}`;
-            this.isRefreshing = false;
             return this.instance(original);
-          } catch (err: any) {
-            this.refreshQueue.forEach((item) => item.reject(err));
-            this.refreshQueue = [];
-            this.isRefreshing = false;
-
-            // Sirf tabhi tokens clear karo jab backend ne refresh token ko
-            // GENUINELY reject kiya ho (401/400 — matlab token invalid ya
-            // expired hai). Network error / server temporarily down jaisi
-            // transient failures pe tokens ko haath mat lagao — warna ek
-            // valid session bhi wipe ho jaati hai aur user ko bewajah
-            // dobara OTP se login karna padta hai.
-            const isAuthRejection =
-              err?.response?.status === 401 || err?.response?.status === 400;
-            if (isAuthRejection) {
-              await this._clearTokens();
-            }
+          } catch {
+            // Auth rejection pe session already expire ho chuka hai
+            // (refreshSession ne tokens clear + handler call kar diya)
             return Promise.reject(error);
           }
         }
@@ -115,30 +92,55 @@ class ApiClient {
     );
   }
 
-  // ── Private: Token Refresh ─────────────────────────────────
+  // ── Session Refresh (public, single-flight) ─────────────────
 
-  private async _refresh(): Promise<string> {
-    const refreshToken = await AsyncStorage.getItem("refreshToken");
-    if (!refreshToken) throw new Error("No refresh token");
-
-    // Seedha axios use karo — instance nahi (infinite loop avoid)
-    const res = await axios.post(
-    `${API_BASE_URL}/auth/refresh`,
-      { refreshToken },
-    );
-
-    const { accessToken, refreshToken: newRefreshToken } = res.data.data;
-
-    await AsyncStorage.setItem("accessToken", accessToken);
-    await AsyncStorage.setItem("refreshToken", newRefreshToken);
-
-    return accessToken;
+  /**
+   * Naya accessToken lo. Parallel calls ek hi network request share karti hain.
+   * Backend ne token reject kiya to tokens clear + onSessionExpired call hota hai.
+   * Network error pe tokens ko haath nahi lagaya jaata.
+   */
+  refreshSession(): Promise<string> {
+    if (!this.refreshPromise) {
+      this.refreshPromise = this._doRefresh().finally(() => {
+        this.refreshPromise = null;
+      });
+    }
+    return this.refreshPromise;
   }
 
-  // ── Private: Clear Tokens ──────────────────────────────────
+  /** Auth store yahan apna handler register karta hai (circular import se bachne ke liye) */
+  setSessionExpiredHandler(handler: () => void) {
+    this.onSessionExpired = handler;
+  }
 
-  private async _clearTokens() {
-    await AsyncStorage.multiRemove(["accessToken", "refreshToken"]);
+  private async _doRefresh(): Promise<string> {
+    const refreshToken = await tokenStorage.getRefreshToken();
+    if (!refreshToken) {
+      await this._expireSession();
+      throw Object.assign(new Error("No refresh token"), {
+        isAuthRejection: true,
+      });
+    }
+
+    try {
+      // Seedha axios — instance nahi (warna interceptor loop)
+      const res = await axios.post(
+        `${API_BASE_URL}/auth/refresh`,
+        { refreshToken },
+        { timeout: 45000 },
+      );
+      const { accessToken, refreshToken: newRefreshToken } = res.data.data;
+      await tokenStorage.setTokens(accessToken, newRefreshToken);
+      return accessToken;
+    } catch (err) {
+      if (isAuthRejection(err)) await this._expireSession();
+      throw err;
+    }
+  }
+
+  private async _expireSession() {
+    await tokenStorage.clear();
+    this.onSessionExpired?.();
   }
 
   // ── Private: Build Config ──────────────────────────────────
