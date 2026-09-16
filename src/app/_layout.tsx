@@ -20,13 +20,7 @@ export default function RootLayout() {
 function AppGate() {
   const router = useRouter();
   const { restoreSession } = useAuthStore();
-  // Apna khud ka gate — store ka `isLoading` restoreSession() ke ANDAR hi
-  // false ho jaata hai, router.replace() call hone SE PEHLE. Isse ek race
-  // banta tha: Slot turant render ho jaata (stale default route ke saath,
-  // jaise index.tsx) jabki naya route abhi commit ho hi raha hota — result:
-  // purani (user) tabs screen background mein reh jaati aur login card
-  // upar overlay dikhta (tab bar peek-through bug). Ab redirect ke BAAD
-  // hi Slot render karte hain.
+
   const [ready, setReady] = useState(false);
   const user = useAuthStore((s) => s.user);
   const sessionExpired = useAuthStore((s) => s.sessionExpired);
