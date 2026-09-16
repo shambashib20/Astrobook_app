@@ -22,7 +22,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-       "package": "com.astrobook.app",
+      "package": "com.astrobook.app",
       "permissions": [
         "CAMERA",
         "RECORD_AUDIO",
@@ -68,7 +68,9 @@
           "icon": "./assets/images/android-icon-monochrome.png",
           "color": "#9d0399"
         }
-      ]
+      ],
+      "expo-image",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
