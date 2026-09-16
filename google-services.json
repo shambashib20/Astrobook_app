@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "863538894717",
+    "project_id": "astrobook-4a069",
+    "storage_bucket": "astrobook-4a069.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:863538894717:android:f6aeab3f27b0e76db79e14",
+        "android_client_info": {
+          "package_name": "com.astrobook.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "863538894717-h7387re39sf7o82e7nsmkutaekegtafh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDczn66yVtVs9ezsO_ZjaYpsItpfdZclNE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "863538894717-h7387re39sf7o82e7nsmkutaekegtafh.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:863538894717:android:03bcb0288de0f54db79e14",
+        "android_client_info": {
+          "package_name": "com.tushar440.astrobook_mobile"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "863538894717-h7387re39sf7o82e7nsmkutaekegtafh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDczn66yVtVs9ezsO_ZjaYpsItpfdZclNE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "863538894717-h7387re39sf7o82e7nsmkutaekegtafh.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
