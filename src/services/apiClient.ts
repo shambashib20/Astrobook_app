@@ -1,6 +1,6 @@
+import { API_BASE_URL } from "@/config/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
-
 export type ApiResponse<T = any> = {
   success: boolean;
   data: T;
@@ -29,7 +29,7 @@ class ApiClient {
 
   constructor() {
     this.instance = axios.create({
-      baseURL: `${process.env.EXPO_PUBLIC_API_URL || "http://192.168.0.200:8080"}/api/v1`,
+    baseURL: API_BASE_URL,
       timeout: 45000, // Render free-tier cold start 30-50s tak le sakta hai (keep-alive ping se rare hona chahiye, lekin safety net rakha)
       headers: { "Content-Type": "application/json" },
     });
@@ -123,7 +123,7 @@ class ApiClient {
 
     // Seedha axios use karo — instance nahi (infinite loop avoid)
     const res = await axios.post(
-      `${process.env.EXPO_PUBLIC_API_URL}/api/v1/auth/refresh`,
+    `${API_BASE_URL}/auth/refresh`,
       { refreshToken },
     );
 

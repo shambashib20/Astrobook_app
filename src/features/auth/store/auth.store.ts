@@ -1,7 +1,9 @@
+import { API_BASE_URL } from "@/config/api";
 import { apiClient } from "@/services/apiClient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { create } from "zustand";
+
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -97,7 +99,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       try {
         const res = await axios.post(
-          `${process.env.EXPO_PUBLIC_API_URL}/api/v1/auth/refresh`,
+          `${API_BASE_URL}/auth/refresh`,
           { refreshToken },
         );
 
