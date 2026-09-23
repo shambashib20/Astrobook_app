@@ -1,21 +1,19 @@
 import { apiClient } from "@/services/apiClient";
 
 export type CreatePaymentOrderResponse = {
-  orderId: string;
-  // Cashfree's checkout launches off this, not a raw amount+key like
-  // Razorpay did — see CFSession usage in checkout.tsx.
-  paymentSessionId: string;
+  orderId: string; // Razorpay order id
   amount: number; // rupees
   currency: string;
   appointmentId: string;
 };
 
-// Cashfree's hosted checkout doesn't hand the client a signed payment id
-// the way Razorpay did (razorpayOrderId/PaymentId/Signature — commented
-// out) — confirmation is webhook-driven server-side, so this is just a
-// status re-read keyed by appointmentId.
+// RazorpayCheckout.open ka success response + appointmentId — backend
+// signature verify karke appointment confirm karta hai
 export type VerifyPaymentPayload = {
   appointmentId: string;
+  razorpayOrderId: string;
+  razorpayPaymentId: string;
+  razorpaySignature: string;
 };
 
 export type VerifyPaymentResponse = {

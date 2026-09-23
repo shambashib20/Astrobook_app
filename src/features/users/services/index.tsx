@@ -14,19 +14,10 @@ export type UserProfile = {
   bio: string | null;
   createdAt: string;
   updatedAt: string;
-  // Razorpay Route fields — commented out during the Cashfree migration,
-  // kept for rollback:
-  // razorpayAccountId: string | null;
-  // razorpayAccountStatus: string | null;
-  // razorpayProductId: string | null;
-  // razorpayProductStatus: string | null;
-
-  // Additive — null for non-astrologers / astrologers who haven't started
-  // bank onboarding yet. Drives whether the onboarding wizard shows the
-  // form or the "done" screen (Cashfree vendor creation is a single step,
-  // so there's no separate "product status" to track anymore).
-  cashfreeVendorId: string | null;
-  cashfreeVendorStatus: string | null;
+  // 'bank' | 'upi' once an astrologer has saved payout details (for manual
+  // payouts — no Razorpay Route), null otherwise. Drives whether the payout
+  // screen shows the form or the "done" state.
+  payoutMethod: "bank" | "upi" | null;
 };
 
 export type UpdateProfilePayload = {

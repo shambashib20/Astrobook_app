@@ -16,43 +16,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-// react-native-razorpay — commented out during the Cashfree migration,
-// kept installed (see package.json) for a quick rollback:
-// import RazorpayCheckout from "react-native-razorpay";
-// CFPaymentGatewayService is the SDK's native bridge singleton; CFEnvironment
-// and CFSession are plain data types that actually live in the separate
-// `cashfree-pg-api-contract` package (a dependency of the SDK above, not
-// re-exported from it) — confirmed against the installed package sources.
-import { CFPaymentGatewayService } from "react-native-cashfree-pg-sdk";
-import { CFEnvironment, CFSession } from "cashfree-pg-api-contract";
-
-const cashfreeEnvironment =
-  process.env.EXPO_PUBLIC_CASHFREE_ENV === "PRODUCTION"
-    ? CFEnvironment.PRODUCTION
-    : CFEnvironment.SANDBOX;
-
-// The SDK is callback-based (setCallback + doWebPayment), not a Promise
-// like RazorpayCheckout.open was — wrap it so the rest of handlePayment
-// below barely has to change shape.
-function openCashfreeCheckout(
-  orderId: string,
-  paymentSessionId: string,
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    CFPaymentGatewayService.setCallback({
-      onVerify: () => {
-        CFPaymentGatewayService.removeCallback();
-        resolve();
-      },
-      onError: (error: any) => {
-        CFPaymentGatewayService.removeCallback();
-        reject(error);
-      },
-    });
-    const session = new CFSession(paymentSessionId, orderId, cashfreeEnvironment);
-    CFPaymentGatewayService.doWebPayment(session);
-  });
-}
+// Plain Razorpay Standard Checkout — poora amount seedha platform ke main
+// Razorpay account mein settle hota hai (no Route / split). Astrologers ka
+// payout manually reconcile karke kiya jaata hai.
+import RazorpayCheckout from "react-native-razorpay";
 
 export default function CheckoutScreen() {
   const router = useRouter();
@@ -131,32 +98,44 @@ export default function CheckoutScreen() {
         setPendingAppointmentId(appointmentId);
       }
 
-      // Step 2: Cashfree order banao (split-aware — astrologer ka payout
-      // isi order ke saath bind ho jaata hai, backend pe)
+      // Step 2: Razorpay order banao
       const order = await paymentService.createOrder(appointmentId);
 
-      // Step 3: Cashfree hosted checkout kholo
-      await openCashfreeCheckout(order.orderId, order.paymentSessionId);
+      // Step 3: Razorpay checkout kholo (card / UPI / etc.)
+      const razorpayResult = await RazorpayCheckout.open({
+        description: service?.title ?? "Astrobook Consultation",
+        currency: order.currency,
+        key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID as string,
+        amount: Math.round(order.amount * 100), // rupees → paise
+        name: "AstroBook",
+        order_id: order.orderId,
+        prefill: {
+          email: user?.email ?? undefined,
+          contact: user?.phone ?? undefined,
+          name: user?.name ?? undefined,
+        },
+        theme: { color: "#9d0399" },
+      });
 
-      // Step 4: Status re-check karo → authoritative confirmation Cashfree
-      // ke webhook se already ho chuka hoga (ya abhi ho raha hoga) — yeh
-      // call bas current state fetch karta hai, appointment ko confirm
-      // nahi karta khud
-      await paymentService.verifyPayment({ appointmentId });
+      // Step 4: Payment verify karo → appointment confirm hoga backend pe
+      await paymentService.verifyPayment({
+        appointmentId,
+        razorpayOrderId: razorpayResult.razorpay_order_id,
+        razorpayPaymentId: razorpayResult.razorpay_payment_id,
+        razorpaySignature: razorpayResult.razorpay_signature,
+      });
 
       router.replace({
         pathname: "/(user)/booking-confirmation" as any,
         params: { appointmentId },
       });
     } catch (err: any) {
-      // Cashfree's onError callback rejects with a CFErrorResponse-shaped
-      // object (message/getMessage(), not response.data.message) when the
-      // user cancels or the payment fails — check those before the axios
-      // error shape our own API calls use.
+      // Razorpay checkout khud reject karta hai jab user cancel kare ya
+      // payment fail ho — us case mein err.description milta hai (koi
+      // response.data.message nahi hota, isliye pehle woh check karo)
       const message =
         err?.response?.data?.message ||
-        err?.message ||
-        err?.getMessage?.() ||
+        err?.description ||
         "Payment complete nahi ho paya";
 
       router.replace({

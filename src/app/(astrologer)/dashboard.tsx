@@ -121,14 +121,14 @@ export default function AstrologerDashboard() {
           </View>
         </View>
 
-        {/* ── Bank onboarding CTA — only once admin has verified ── */}
+        {/* ── Payout details CTA — only once admin has verified ── */}
         {isVerified && (
           <TouchableOpacity
             style={styles.bankCta}
             onPress={() => router.push("/(astrologer)/bank-onboarding" as any)}
             activeOpacity={0.8}
           >
-            <Text style={styles.bankCtaText}>🏦 Start Bank Onboarding</Text>
+            <Text style={styles.bankCtaText}>🏦 Payout Details</Text>
           </TouchableOpacity>
         )}
 

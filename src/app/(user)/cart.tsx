@@ -16,38 +16,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-// react-native-razorpay — commented out during the Cashfree migration,
-// kept installed (see package.json) for a quick rollback:
-// import RazorpayCheckout from "react-native-razorpay";
-import { CFPaymentGatewayService } from "react-native-cashfree-pg-sdk";
-import { CFEnvironment, CFSession } from "cashfree-pg-api-contract";
-
-const cashfreeEnvironment =
-  process.env.EXPO_PUBLIC_CASHFREE_ENV === "PRODUCTION"
-    ? CFEnvironment.PRODUCTION
-    : CFEnvironment.SANDBOX;
-
-// The SDK is callback-based (setCallback + doWebPayment), not a Promise
-// like RazorpayCheckout.open was.
-function openCashfreeCheckout(
-  orderId: string,
-  paymentSessionId: string,
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    CFPaymentGatewayService.setCallback({
-      onVerify: () => {
-        CFPaymentGatewayService.removeCallback();
-        resolve();
-      },
-      onError: (error: any) => {
-        CFPaymentGatewayService.removeCallback();
-        reject(error);
-      },
-    });
-    const session = new CFSession(paymentSessionId, orderId, cashfreeEnvironment);
-    CFPaymentGatewayService.doWebPayment(session);
-  });
-}
+// Plain Razorpay Standard Checkout — poora amount main Razorpay account mein
+// aata hai (no Route / split); astrologer payouts manually reconcile hote hain.
+import RazorpayCheckout from "react-native-razorpay";
 
 function formatSlot(iso: string) {
   const d = new Date(iso);
@@ -128,11 +99,26 @@ export default function CartScreen() {
         selectedItems.map((i) => i.id),
       );
 
-      await openCashfreeCheckout(order.orderId, order.paymentSessionId);
+      const razorpayResult = await RazorpayCheckout.open({
+        description: `${selectedItems.length} Astrobook Consultation(s)`,
+        currency: order.currency,
+        key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID as string,
+        amount: Math.round(order.amount * 100), // rupees → paise
+        name: "AstroBook",
+        order_id: order.orderId,
+        prefill: {
+          email: user?.email ?? undefined,
+          contact: user?.phone ?? undefined,
+          name: user?.name ?? undefined,
+        },
+        theme: { color: "#9d0399" },
+      });
 
-      // Status re-check — authoritative confirmation happens via Cashfree's
-      // webhook server-side, this just re-reads current state.
-      await cartService.verifyCheckout({ orderId: order.orderId });
+      await cartService.verifyCheckout({
+        razorpayOrderId: razorpayResult.razorpay_order_id,
+        razorpayPaymentId: razorpayResult.razorpay_payment_id,
+        razorpaySignature: razorpayResult.razorpay_signature,
+      });
 
       Alert.alert(
         "Bookings Confirmed!",
@@ -153,8 +139,7 @@ export default function CartScreen() {
       // abhi nahi hai (future improvement).
       const message =
         err?.response?.data?.message ||
-        err?.message ||
-        err?.getMessage?.() ||
+        err?.description ||
         "Payment complete nahi ho paya";
       Alert.alert(
         "Payment Nahi Hua",
