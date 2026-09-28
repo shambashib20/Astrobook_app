@@ -1,3 +1,4 @@
+import { ToastHost } from "@/components/toast";
 import { useAuthStore } from "@/features/auth/store/auth.store";
 import { usePushNotifications } from "@/features/notifications/hooks/usePushNotifications";
 import { queryClient } from "@/lib/queryClient";
@@ -12,6 +13,10 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
         <AppGate />
+        {/* Root ke bahar, ek hi baar mounted — kahin se bhi toast.show() call
+            karke non-blocking message dikha sakte hain (Alert.alert() ki
+            jagah), poori app ke upar overlay ki tarah render hota hai */}
+        <ToastHost />
       </QueryClientProvider>
     </SafeAreaProvider>
   );

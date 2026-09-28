@@ -1,5 +1,5 @@
+import { toast } from "@/components/toast";
 import { useState } from "react";
-import { Alert } from "react-native";
 import { consultationService } from "../service";
 import type { GroupedAppointments } from "../types";
 
@@ -31,9 +31,9 @@ export function useMyAppointments() {
         err?.response?.status,
         err?.response?.data ?? err?.message,
       );
-      Alert.alert(
-        "Error",
+      toast.show(
         err?.response?.data?.message || "Appointments load nahi hue",
+        "error",
       );
     } finally {
       setLoading(false);

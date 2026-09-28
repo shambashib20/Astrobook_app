@@ -1,6 +1,7 @@
+import { useCartCount } from "@/features/cart/hooks/useCartCount";
+import { useUnreadCount } from "@/features/notifications/hooks/useNotifications";
 import Feather from "@expo/vector-icons/Feather";
 import { LinearGradient } from "expo-linear-gradient";
-import { useUnreadCount } from "@/features/notifications/hooks/useNotifications";
 import { useFocusEffect, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import type { ReactNode } from "react";
@@ -12,16 +13,20 @@ export default function Header({ rightSlot }: { rightSlot?: ReactNode }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { count: unreadCount, fetchCount } = useUnreadCount();
+  const { count: cartCount, fetchCount: fetchCartCount } = useCartCount();
 
   // useEffect(() => {}, []) sirf PEHLI baar mount pe chalta — Header jin
   // screens (Feed, Profile) pe hai woh navigation stack mein back jaane pe
   // remount nahi hoti (React Navigation unhe memory mein rakhta hai), toh
   // notifications screen se "mark read" karke wapas aane pe badge purana hi
   // dikhta rehta tha. useFocusEffect har baar chalta hai jab yeh screen
-  // wapas focus mein aati hai — isliye badge hamesha fresh rehta hai.
+  // wapas focus mein aati hai — isliye badge hamesha fresh rehta hai. Cart
+  // count bhi isi wajah se yahan refresh hota hai (service detail page se
+  // "Add to Cart" karke feed pe wapas aane par turant naya number dikhe).
   useFocusEffect(
     useCallback(() => {
       fetchCount();
+      fetchCartCount();
     }, []),
   );
 
@@ -58,6 +63,13 @@ export default function Header({ rightSlot }: { rightSlot?: ReactNode }) {
             onPress={() => router.push("/(user)/cart")}
           >
             <Feather name="shopping-cart" size={22} color="#9d0399" />
+            {cartCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>
+                  {cartCount > 9 ? "9+" : cartCount}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
           
         </View>

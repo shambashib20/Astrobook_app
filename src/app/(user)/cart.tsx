@@ -1,12 +1,13 @@
 import Header from "@/components/header";
+import { toast } from "@/components/toast";
 import { useUser } from "@/features/auth/store/auth.store";
 import { useCart } from "@/features/cart/hooks/useCart";
 import { cartService } from "@/features/cart/service";
 import type { CartItem } from "@/features/cart/types";
+import { consultationService } from "@/features/consultation/service";
 import { Feather } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ActivityIndicator,
   Alert,
@@ -16,8 +17,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-// Plain Razorpay Standard Checkout — poora amount main Razorpay account mein
-// aata hai (no Route / split); astrologer payouts manually reconcile hote hain.
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+// Cashfree SDK — commented out during the Razorpay rollback, kept
+// installed (see package.json) for a quick re-migration:
+// import { CFPaymentGatewayService } from "react-native-cashfree-pg-sdk";
+// import { CFEnvironment, CFSession } from "cashfree-pg-api-contract";
 import RazorpayCheckout from "react-native-razorpay";
 
 function formatSlot(iso: string) {
@@ -48,10 +52,9 @@ export default function CartScreen() {
 
   const toggleSelect = (item: CartItem) => {
     if (!item.scheduledAt) {
-      Alert.alert(
-        "Slot Select Karo",
-        "Pehle is item ka date/time select karo.",
-      );
+      // Blocking Alert ki jagah — checkbox tap karte hi turant chhota nudge,
+      // user "Select Slot" button already dekh raha hai isi card pe
+      toast.show("Pehle is item ka date/time select karo", "info");
       return;
     }
     setSelectedIds((prev) => {
@@ -59,6 +62,22 @@ export default function CartScreen() {
       if (next.has(item.id)) next.delete(item.id);
       else next.add(item.id);
       return next;
+    });
+  };
+
+  // Cart item ka duration/price badalna — service-detail page pe hi
+  // le jaate hain (same page jahan pehli baar variant choose kiya tha).
+  // Wahan "Add to Cart" karne par backend isi cart row ko update kar deta
+  // hai (naya row nahi banta — cart.service.ts mein already handle hai),
+  // isliye yahan sirf sahi params ke saath navigate karna hai.
+  const goToEditVariant = (item: CartItem) => {
+    router.push({
+      pathname: "/(user)/service/[id]" as any,
+      params: {
+        id: item.serviceId,
+        astroId: item.astrologerId,
+        editVariantId: item.variantId ?? undefined,
+      },
     });
   };
 
@@ -94,30 +113,36 @@ export default function CartScreen() {
   const handleMakePayment = async () => {
     if (selectedItems.length === 0) return;
     setPayingOrder(true);
+    // try ke bahar rakha hai taaki catch block mein bhi access ho — Razorpay
+    // cancel/fail hone par inhi appointmentIds ko turant cancel karna hai
+    // (neeche dekho), state pe depend nahi kar sakte isi render cycle mein
+    let createdAppointmentIds: string[] = [];
     try {
       const order = await cartService.createCheckoutOrder(
         selectedItems.map((i) => i.id),
       );
+      createdAppointmentIds = order.appointmentIds;
 
-      const razorpayResult = await RazorpayCheckout.open({
-        description: `${selectedItems.length} Astrobook Consultation(s)`,
+      const result = await RazorpayCheckout.open({
+        key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID!,
+        amount: Math.round(order.amount * 100), // paise mein
         currency: order.currency,
-        key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID as string,
-        amount: Math.round(order.amount * 100), // rupees → paise
-        name: "AstroBook",
         order_id: order.orderId,
+        name: "AstroBook",
+        description: `${selectedItems.length} consultation(s)`,
         prefill: {
-          email: user?.email ?? undefined,
-          contact: user?.phone ?? undefined,
-          name: user?.name ?? undefined,
+          email: user?.email,
+          contact: user?.phone,
+          name: user?.name,
         },
         theme: { color: "#9d0399" },
       });
 
+      // Signature backend pe verify karo → sab appointments confirm hote hain
       await cartService.verifyCheckout({
-        razorpayOrderId: razorpayResult.razorpay_order_id,
-        razorpayPaymentId: razorpayResult.razorpay_payment_id,
-        razorpaySignature: razorpayResult.razorpay_signature,
+        razorpayOrderId: result.razorpay_order_id,
+        razorpayPaymentId: result.razorpay_payment_id,
+        razorpaySignature: result.razorpay_signature,
       });
 
       Alert.alert(
@@ -133,17 +158,34 @@ export default function CartScreen() {
       setSelectedIds(new Set());
       fetchCart();
     } catch (err: any) {
-      // NOTE: create-order step pe hi items "pending appointments" ban chuke
-      // hain aur cart se hat chuke hain — payment fail/cancel hone par bhi
-      // woh appointments My Bookings mein "pending" dikhengi. Cart-side retry
-      // abhi nahi hai (future improvement).
+      // Pehle yeh appointments 'pending' hi reh jaate the — jab tak user
+      // khud My Bookings se cancel na kare, ya 20-min wala stale-pending
+      // cron chal ke automatically cancel kare. Cart flow mein (checkout.tsx
+      // wale single-booking flow ke uljat) koi "retry same booking" screen
+      // nahi hai, isliye pending rakhne ka koi fayda nahi — Razorpay cancel/
+      // fail hote hi turant cancel kar dete hain taaki My Bookings mein turant
+      // sahi status (Cancelled, na ki 20 min tak Pending) dikhe.
+      if (createdAppointmentIds.length > 0) {
+        await Promise.all(
+          createdAppointmentIds.map((id) =>
+            consultationService.cancelAppointment(id).catch(() => {
+              // Cancel bhi fail ho jaye (rare) — stale-pending cron 20 min
+              // mein anyway cleanup kar dega, silently ignore karo
+            }),
+          ),
+        );
+      }
+
       const message =
         err?.response?.data?.message ||
         err?.description ||
+        err?.message ||
         "Payment complete nahi ho paya";
       Alert.alert(
         "Payment Nahi Hua",
-        `${message}\n\nTumhari bookings 'pending' status mein My Bookings mein safe hain.`,
+        createdAppointmentIds.length > 0
+          ? `${message}\n\nBooking cancel kar di gayi hai — cart mein wapas jaake dobara try kar sakte ho.`
+          : message,
       );
       fetchCart();
     } finally {
@@ -214,9 +256,23 @@ export default function CartScreen() {
                     </View>
 
                     <View style={styles.cardFooterRow}>
-                      <Text style={styles.itemPrice}>
-                        ₹ {item.service?.price ?? "—"}
-                      </Text>
+                      <TouchableOpacity
+                        style={styles.priceEditRow}
+                        onPress={() => goToEditVariant(item)}
+                        activeOpacity={0.7}
+                      >
+                        <View>
+                          <Text style={styles.itemPrice}>
+                            ₹ {item.service?.price ?? "—"}
+                          </Text>
+                          {item.service?.durationMinutes ? (
+                            <Text style={styles.itemDuration}>
+                              {item.service.durationMinutes} min
+                            </Text>
+                          ) : null}
+                        </View>
+                        <Feather name="edit-2" size={13} color="#9d0399" />
+                      </TouchableOpacity>
 
                       {hasSlot ? (
                         <TouchableOpacity
@@ -345,6 +401,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   itemPrice: { fontSize: 15, fontWeight: "700", color: "#9d0399" },
+  itemDuration: { fontSize: 10.5, color: "#9CA3AF", marginTop: 1 },
+  priceEditRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
 
   slotConfirmBtn: {
     borderWidth: 1.5,

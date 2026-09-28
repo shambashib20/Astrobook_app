@@ -1,8 +1,8 @@
 import Header from "@/components/header";
+import { toast } from "@/components/toast";
 import { cartService } from "@/features/cart/service";
 import { consultationService } from "@/features/consultation/service";
 import type { TimeSlot } from "@/features/consultation/types";
-import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -79,8 +79,15 @@ export default function CartSlotPickerScreen() {
       await cartService.setSlot(cartItemId, selectedSlot.startTime);
       router.back();
     } catch (err: any) {
-      // Simple inline error — cart pe wapas jaake retry kar sakte hain
+      // Pehle sirf console.log tha — fail hone par button spin band ho jaata
+      // tha lekin user ko pata hi nahi chalta tha kyun kuch nahi hua. Ab
+      // toast se batate hain, aur screen pe hi rehte hain taaki dobara try
+      // kar sake (router.back() sirf success pe hota hai).
       console.log("cart setSlot error:", err?.response?.data ?? err?.message);
+      toast.show(
+        err?.response?.data?.message || "Slot save nahi hua — dobara try karo",
+        "error",
+      );
     } finally {
       setSaving(false);
     }

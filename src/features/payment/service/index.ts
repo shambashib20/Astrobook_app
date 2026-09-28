@@ -1,14 +1,15 @@
 import { apiClient } from "@/services/apiClient";
 
 export type CreatePaymentOrderResponse = {
-  orderId: string; // Razorpay order id
+  orderId: string;
   amount: number; // rupees
   currency: string;
   appointmentId: string;
 };
 
-// RazorpayCheckout.open ka success response + appointmentId — backend
-// signature verify karke appointment confirm karta hai
+// Razorpay's checkout hands back a signed payment id client-side
+// (razorpay_order_id/payment_id/signature) — backend verifies the HMAC
+// signature itself, no webhook needed for this flow.
 export type VerifyPaymentPayload = {
   appointmentId: string;
   razorpayOrderId: string;

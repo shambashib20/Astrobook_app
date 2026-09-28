@@ -1,4 +1,5 @@
 import Header from "@/components/header";
+import { toast } from "@/components/toast";
 import { useUser } from "@/features/auth/store/auth.store";
 import { useMyAppointments } from "@/features/consultation/hooks/useAppointments";
 import { consultationService } from "@/features/consultation/service";
@@ -67,6 +68,12 @@ const STATUS_STYLES: Record<
     border: "#FECACA",
     text: "#DC2626",
     label: "Cancelled",
+  },
+  missed: {
+    bg: "#FEF2F2",
+    border: "#FECACA",
+    text: "#DC2626",
+    label: "Missed — Refunded",
   },
 };
 
@@ -252,11 +259,12 @@ export default function MyBookingsScreen() {
             try {
               await consultationService.cancelAppointment(id);
               await fetchAppointments();
+              toast.show("Booking cancel ho gayi", "success");
             } catch (err: any) {
-              Alert.alert(
-                "Error",
+              toast.show(
                 err?.response?.data?.message ||
                   "Booking cancel nahi ho payi",
+                "error",
               );
             } finally {
               setCancellingId(null);

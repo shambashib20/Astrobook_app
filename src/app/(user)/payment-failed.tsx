@@ -1,7 +1,11 @@
 import Header from "@/components/header";
+import { toast } from "@/components/toast";
+import { consultationService } from "@/features/consultation/service";
 import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
 import {
+  ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
@@ -21,6 +25,30 @@ export default function PaymentFailedScreen() {
       serviceId?: string;
       scheduledAt?: string;
     }>();
+  const [cancelling, setCancelling] = useState(false);
+
+  // Pehle yahan sirf "Dobara Try Karo" aur "My Bookings pe jao" the — koi
+  // seedha "cancel" option nahi tha. Jo user retry nahi karna chahta tha,
+  // use My Bookings jaake manually cancel karna padta tha — aksar log
+  // wahi step miss kar dete the, aur har "Book Now" attempt ek naya pending
+  // booking chhod jaata (Razorpay cancel karne ke baad bhi). Ab yahin se
+  // cancel ho sakta hai, isliye pending bookings jama nahi hongi.
+  const handleCancel = async () => {
+    if (!appointmentId) return;
+    setCancelling(true);
+    try {
+      await consultationService.cancelAppointment(appointmentId);
+      toast.show("Booking cancel ho gayi");
+      router.replace("/(user)/my-bookings" as any);
+    } catch (err: any) {
+      toast.show(
+        err?.response?.data?.message || "Cancel nahi ho paya — dobara try karo",
+        "error",
+      );
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   const handleRetry = () => {
     // Checkout screen pe wapas — pendingAppointmentId wahan state mein nahi
@@ -82,6 +110,19 @@ export default function PaymentFailedScreen() {
         >
           <Text style={styles.secondaryBtnText}>My Bookings pe jao</Text>
         </TouchableOpacity>
+        {appointmentId && (
+          <TouchableOpacity
+            style={styles.cancelBtn}
+            onPress={handleCancel}
+            disabled={cancelling}
+          >
+            {cancelling ? (
+              <ActivityIndicator color="#DC2626" size="small" />
+            ) : (
+              <Text style={styles.cancelBtnText}>Booking Cancel Karo</Text>
+            )}
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -168,4 +209,11 @@ const styles = StyleSheet.create({
     borderColor: "#9d0399",
   },
   secondaryBtnText: { color: "#9d0399", fontSize: 14, fontWeight: "700" },
+  cancelBtn: {
+    borderRadius: 12,
+    paddingVertical: 13,
+    width: "100%",
+    alignItems: "center",
+  },
+  cancelBtnText: { color: "#DC2626", fontSize: 13, fontWeight: "700" },
 });

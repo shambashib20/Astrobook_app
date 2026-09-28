@@ -16,9 +16,16 @@ export function useAstrologerApplicationStatus(enabled = true) {
     enabled,
   });
 
+  if (query.error) {
+    // Pehle ye silently swallow ho raha tha — button bina kisi error ke
+    // bas kabhi render hi nahi hota tha. Ab console mein dikhega.
+    console.error("astrologer-application status fetch failed:", query.error);
+  }
+
   return {
     status: query.data ?? null,
     loading: query.isLoading,
+    error: query.error,
     refetch: () => query.refetch(),
   };
 }

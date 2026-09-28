@@ -31,6 +31,7 @@ const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
   ongoing: { bg: "#EFF6FF", text: "#1D4ED8" },
   completed: { bg: "#F3F4F6", text: "#4B5563" },
   cancelled: { bg: "#FEF2F2", text: "#DC2626" },
+  missed: { bg: "#FEF2F2", text: "#DC2626" },
 };
 
 function formatDateTime(iso: string) {

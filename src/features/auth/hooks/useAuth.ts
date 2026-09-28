@@ -1,4 +1,6 @@
 import { AuthResult, useAuthStore } from "@/features/auth/store/auth.store";
+import { queryKeys } from "@/lib/queryClient";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert } from "react-native";
@@ -134,6 +136,7 @@ export function useGoogleLogin() {
 export function useOnboarding() {
   const router = useRouter();
   const { user, updateUser } = useAuthStore();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
 
   const onboard = async (payload: {
@@ -155,6 +158,12 @@ export function useOnboarding() {
         interests: payload.interests,
       });
       updateUser({ name: payload.name.trim(), isOnboarded: true });
+      // react-query ka profile.me cache 30s staleTime pe cached rehta hai —
+      // isse ho sakta hai onboarding se pehle ka (khaali dob/bio wala)
+      // snapshot cached mil jaaye. Invalidate karke turant fresh fetch
+      // force karo, warna Edit Profile/Profile tab purana data dikhate
+      // rehte hain jab tak koi manual save na ho.
+      queryClient.invalidateQueries({ queryKey: queryKeys.profile.me });
       redirectByRole(user?.role ?? "user", router);
     } catch (err: any) {
       const msg = err?.response?.data?.message || "";
@@ -162,6 +171,7 @@ export function useOnboarding() {
       // Already onboarded hai — toh bhi feed pe bhejo
       if (msg.includes("already onboarded") || err?.response?.status === 400) {
         updateUser({ name: payload.name.trim(), isOnboarded: true });
+        queryClient.invalidateQueries({ queryKey: queryKeys.profile.me });
         redirectByRole(user?.role ?? "user", router);
         return;
       }

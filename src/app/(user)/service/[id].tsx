@@ -1,4 +1,5 @@
 import Header from "@/components/header";
+import { toast } from "@/components/toast";
 import { useAstrologerProfile } from "@/features/astrologer/hooks/useAstrologerProfile";
 import { cartService } from "@/features/cart/service";
 import {
@@ -48,9 +49,14 @@ export default function ServiceDetailScreen() {
   const insets = useSafeAreaInsets();
   // NOTE: route ka file naam [id].tsx hai isliye param bhi "id" hi aata hai —
   // yahan "serviceId" ke naam se treat kar rahe hain saaf rehne ke liye
-  const { id: serviceId, astroId } = useLocalSearchParams<{
+  // `editVariantId` sirf tab aata hai jab cart se "edit" karke yahan aaye
+  // hon (cart.tsx ka pencil icon) — us variant ko default select karna hai,
+  // 30-min wale default ki jagah, taaki user ko wahi dikhe jo already cart
+  // mein set hai
+  const { id: serviceId, astroId, editVariantId } = useLocalSearchParams<{
     id: string;
     astroId: string;
+    editVariantId?: string;
   }>();
 
   const { astrologer, services, loading, fetchProfile } =
@@ -73,12 +79,17 @@ export default function ServiceDetailScreen() {
     null,
   );
 
-  // Variants load hote hi default (30-min) wala pre-select karo
+  // Variants load hote hi pre-select karo — cart se edit karke aaye hain to
+  // wahi variant jo already cart mein set tha, warna 30-min default
   useEffect(() => {
     if (variants.length === 0 || selectedVariantId) return;
-    const defaultVariant = variants.find((v) => v.isDefault) ?? variants[0];
+    const editVariant = editVariantId
+      ? variants.find((v) => v.id === editVariantId)
+      : undefined;
+    const defaultVariant =
+      editVariant ?? variants.find((v) => v.isDefault) ?? variants[0];
     if (defaultVariant) setSelectedVariantId(defaultVariant.id);
-  }, [variants]);
+  }, [variants, editVariantId]);
 
   const selectedVariant: ConsultationServiceVariant | null =
     variants.find((v) => v.id === selectedVariantId) ?? null;
@@ -87,15 +98,25 @@ export default function ServiceDetailScreen() {
     if (!service || !astrologer || !selectedVariant) return;
     setAddingToCart(true);
     try {
-      await cartService.addItem({
+      const item = await cartService.addItem({
         astrologerId: astrologer.id,
         serviceId: service.id,
         variantId: selectedVariant.id,
       });
-      Alert.alert("Cart mein add ho gaya", "Slot cart mein jaake select kar lena.", [
-        { text: "OK" },
-        { text: "Cart dekho", onPress: () => router.push("/(user)/cart" as any) },
-      ]);
+      // Blocking Alert ki jagah — cart icon ka badge count already batata
+      // hai ki item add ho gaya, isliye sirf ek chhota confirmation kaafi hai.
+      // Same consultancy already cart mein thi to backend usi row ka variant
+      // update kar deta hai (naya duplicate row nahi banta) — isliye message
+      // bhi us hisaab se alag dikhate hain.
+      toast.show(
+        item.wasAlreadyInCart
+          ? "Cart mein already tha — duration/price update ho gaya"
+          : "Cart mein add ho gaya",
+      );
+      // Cart se "edit" karke aaye the (pencil icon) — update ho gaya, wapas
+      // cart pe bhej do. Normal "Add to Cart" (feed/service browsing) mein
+      // yahin rehte hain taaki user browsing continue kar sake.
+      if (editVariantId) router.back();
     } catch (err: any) {
       Alert.alert(
         "Error",
@@ -174,7 +195,21 @@ export default function ServiceDetailScreen() {
           <View style={styles.variantsSection}>
             <Text style={styles.sectionTitle}>Choose Duration</Text>
             {variants.length === 0 ? (
-              <ActivityIndicator color="#9d0399" style={{ marginTop: 8 }} />
+              // NOTE: pehle yahan hamesha ActivityIndicator dikhta tha, chahe
+              // variants sach mein empty hi kyun na hon (loading state page
+              // ke bahar `loading` flag se already handle ho chuka hota hai
+              // is point tak — yeh spinner "abhi load ho raha hai" nahi,
+              // "variants hain hi nahi" wala permanent case tha, isliye kabhi
+              // khatam nahi hota tha). Ab clear message dikhate hain — Book
+              // Now/Add to Cart already `!selectedVariant` pe disabled hain,
+              // isliye koi extra check nahi lagana pada.
+              <View style={styles.noVariantsBox}>
+                <Feather name="alert-circle" size={18} color="#9CA3AF" />
+                <Text style={styles.noVariantsText}>
+                  Astrologer ne is service ka duration/price abhi set nahi
+                  kiya hai — thodi der baad try karo.
+                </Text>
+              </View>
             ) : (
               <View style={styles.variantsGrid}>
                 {variants.map((variant) => {
@@ -352,6 +387,17 @@ const styles = StyleSheet.create({
   ratingCount: { fontSize: 12, color: "#9CA3AF", marginTop: 4 },
 
   variantsSection: { paddingHorizontal: 16, paddingTop: 20, gap: 10 },
+  noVariantsBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    backgroundColor: "#F9FAFB",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    padding: 12,
+  },
+  noVariantsText: { flex: 1, fontSize: 12.5, color: "#6B7280", lineHeight: 18 },
   variantsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   variantCard: {
     width: "30.5%",

@@ -1,10 +1,10 @@
 import { apiClient } from "@/services/apiClient";
 import type {
-  CartItem,
   AddCartItemPayload,
   CartCheckoutOrderResponse,
   CartCheckoutVerifyPayload,
   CartCheckoutVerifyResponse,
+  CartItem,
 } from "../types";
 
 class CartServiceApi {

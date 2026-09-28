@@ -8,9 +8,9 @@ declare module "react-native-razorpay" {
     name: string;
     order_id: string;
     prefill?: {
-      email?: string;
-      contact?: string;
-      name?: string;
+      email?: string | null;
+      contact?: string | null;
+      name?: string | null;
     };
     theme?: { color?: string };
   };

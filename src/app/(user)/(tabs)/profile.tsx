@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -32,20 +33,25 @@ export default function ProfileScreen() {
   // login ke time hi pata chal jaata hai, isliye query load hone ka wait
   // nahi karna padta (flicker-free branch decision).
   const sessionUser = useUser();
+  const updateUser = useAuthStore((s) => s.updateUser);
   // Baaki sab display data (name/avatar/bio/phone) ab useMyProfile() se —
   // yehi cache Edit Profile screen bhi use karti hai, isliye dono hamesha
   // sync rehte hain, koi manual wiring nahi chahiye.
-  const { profile, loading: profileLoading } = useMyProfile();
+  const { profile, loading: profileLoading, fetchProfile } = useMyProfile();
   const { handleLogout } = useLogout();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const { isLoading } = useAuthStore();
   // Astrologer application ka current status — button/state isi se decide
   // hota hai. sessionUser.isAstrologer=false hone ke baad hi yeh relevant
   // hai (astrologer already ban chuke user ke liye upar hi return ho jaata
   // hai, isliye query yahan safe hai — enabled check apne aap ho jaata hai
   // kyunki hook sirf render hone par hi query fire karta hai).
-  const { status: applicationStatus, loading: applicationLoading } =
-    useAstrologerApplicationStatus(!sessionUser?.isAstrologer);
+  const {
+    status: applicationStatus,
+    loading: applicationLoading,
+    refetch: refetchApplicationStatus,
+  } = useAstrologerApplicationStatus(!sessionUser?.isAstrologer);
   // Yeh hook conditional early-returns (neeche) se PEHLE call hona zaroori
   // hai — warna astrologer accounts ke liye kabhi call hi nahi hota (early
   // return AstrologerProfileView pe chala jaata hai), lekin plain user ke
@@ -57,6 +63,35 @@ export default function ProfileScreen() {
   useEffect(() => {
     fetchCounts();
   }, [sessionUser?.id]);
+
+  // Pull-to-refresh — admin ne astrologer approve kar diya hai to bina app
+  // restart kiye yahi se pata chal jaaye. `isAstrologer`/`role` Zustand
+  // (sessionUser) se aate hain, jo sirf login ke time set hota hai —
+  // isliye sirf react-query refetch se kaam nahi chalta, fresh profile ko
+  // explicitly store mein bhi sync karna padta hai. Ek baar sync hone ke
+  // baad, upar wala `sessionUser?.isAstrologer` check khud re-render karke
+  // AstrologerProfileView pe switch kar dega.
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const [profileResult] = await Promise.all([
+        fetchProfile(),
+        refetchApplicationStatus(),
+        fetchCounts(),
+      ]);
+      if (profileResult?.data) {
+        updateUser({
+          isAstrologer: profileResult.data.isAstrologer,
+          role: profileResult.data.role,
+          name: profileResult.data.name,
+          avatarUrl: profileResult.data.avatarUrl,
+          bio: profileResult.data.bio,
+        });
+      }
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // Loading ho raha hai — kuch mat dikhao, flicker avoid karo
   if (isLoading) {
@@ -82,6 +117,14 @@ export default function ProfileScreen() {
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#9d0399"]}
+            tintColor="#9d0399"
+          />
+        }
       >
         <View style={styles.profileCard}>
           {user?.avatarUrl ? (

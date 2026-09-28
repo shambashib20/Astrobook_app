@@ -235,6 +235,8 @@ export type AppointmentWithChildren = AppointmentDetailed & {
 };
 
 // GET /consultation/appointments/mine → { upcoming, ongoing, completed, cancelled }
+// Note: 'missed' status appointments backend se 'cancelled' bucket mein fold
+// hoke aate hain (see appointment.repository.ts: findMineGrouped)
 export type GroupedAppointments = {
   upcoming: AppointmentDetailed[];
   ongoing: AppointmentDetailed[];

@@ -349,10 +349,8 @@ export default function AstrologerPostsScreen() {
         onRequestClose={() => setShowComposer(false)}
       >
         <View style={styles.modalOverlay}>
-          <ScrollView
-            style={styles.composerCard}
-            contentContainerStyle={{ paddingBottom: 30 }}
-          >
+          <View style={styles.composerCard}>
+            <ScrollView contentContainerStyle={{ paddingBottom: 16 }}>
             <View style={styles.composerHeader}>
               <Text style={styles.composerTitle}>Create Post</Text>
               <TouchableOpacity onPress={() => setShowComposer(false)} hitSlop={8}>
@@ -542,7 +540,9 @@ export default function AstrologerPostsScreen() {
               })}
             </View>
 
-            <View style={styles.composerActions}>
+            </ScrollView>
+
+            <View style={[styles.composerFooter, { paddingBottom: 12 + insets.bottom }]}>
               {!mediaUri && (
                 <TouchableOpacity
                   style={styles.imagePickerBtn}
@@ -577,7 +577,7 @@ export default function AstrologerPostsScreen() {
                 )}
               </TouchableOpacity>
             </View>
-          </ScrollView>
+          </View>
         </View>
       </Modal>
     </SafeAreaView>
@@ -656,7 +656,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    padding: 20,
+    paddingTop: 20,
+    paddingHorizontal: 20,
     maxHeight: "88%",
   },
   composerHeader: {
@@ -778,6 +779,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 10,
     marginTop: 16,
+  },
+  composerFooter: {
+    flexDirection: "row",
+    gap: 10,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#EDE9FF",
+    backgroundColor: "#FFF",
   },
   imagePickerBtn: {
     flexDirection: "row",
