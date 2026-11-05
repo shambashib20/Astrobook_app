@@ -139,8 +139,8 @@ export default function PostComposer({
   const close = () => {
     if (c.busy) return;
     if (!c.isDirty) return onClose();
-    Alert.alert(editing ? "Changes discard karein?" : "Post discard karein?", "Jo badla hai wo save nahi hoga.", [
-      { text: "Likhte raho", style: "cancel" },
+    Alert.alert(editing ? "Discard Changes?" : "Discard Post?", "Your unsaved changes will be lost.", [
+      { text: "Keep Editing", style: "cancel" },
       {
         text: "Discard",
         style: "destructive",
@@ -162,10 +162,10 @@ export default function PostComposer({
       <View style={[styles.root, { paddingTop: insets.top }]}>
         {/* Top bar — Publish hamesha upar, keyboard ke peeche kabhi nahi chhupta */}
         <View style={styles.bar}>
-          <TouchableOpacity style={styles.barBtn} onPress={close} accessibilityLabel="Band karo">
+          <TouchableOpacity style={styles.barBtn} onPress={close} accessibilityLabel="Close">
             <Feather name="x" size={22} color={AstroColors.ink} />
           </TouchableOpacity>
-          <Text style={styles.barTitle}>{editing ? "Post edit karo" : "Naya post"}</Text>
+          <Text style={styles.barTitle}>{editing ? "Edit Post" : "New Post"}</Text>
           <TouchableOpacity
             disabled={!c.canPublish}
             onPress={c.publish}
@@ -471,7 +471,7 @@ export default function PostComposer({
               <View style={styles.customTagRow}>
                 <TextInput
                   style={styles.customTagInput}
-                  placeholder="apna-tag-likho"
+                  placeholder="add-your-tag"
                   placeholderTextColor={AstroColors.textMuted}
                   value={c.customTagInput}
                   onChangeText={c.setCustomTagInput}
@@ -490,7 +490,7 @@ export default function PostComposer({
                   ]}
                   onPress={c.addCustomTag}
                   disabled={!c.customTagInput.trim() || c.customTags.length >= MAX_CUSTOM_TAGS}
-                  accessibilityLabel="Tag add karo"
+                  accessibilityLabel="Add tag"
                 >
                   <Feather name="plus" size={16} color={AstroColors.onBrand} />
                 </TouchableOpacity>

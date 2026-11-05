@@ -61,7 +61,7 @@ export default function CommentComposer({
         <TextInput
           ref={inputRef}
           style={styles.input}
-          placeholder="Comment likho…"
+          placeholder="Write a comment…"
           placeholderTextColor={AstroColors.textMuted}
           value={text}
           onChangeText={setText}

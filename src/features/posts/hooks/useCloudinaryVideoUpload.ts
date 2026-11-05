@@ -35,7 +35,7 @@ export function useCloudinaryVideoUpload() {
       // Fallback warning — env vars missing (setup nahi hua abhi tak)
       Alert.alert(
         "Video Upload Config Missing",
-        "EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME aur EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET .env mein set karo.",
+        "Set EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME and EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET in your .env file.",
       );
       return null;
     }
@@ -87,7 +87,7 @@ export function useCloudinaryVideoUpload() {
       return url;
     } catch (err: any) {
       console.error("Cloudinary video upload error:", err.message);
-      Alert.alert("Video Upload Error", err.message || "Video upload nahi hua — dobara try karo");
+      Alert.alert("Video Upload Error", err.message || "Video upload failed — please try again");
       return null;
     } finally {
       setUploading(false);

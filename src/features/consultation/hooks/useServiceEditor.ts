@@ -99,7 +99,7 @@ export function useServiceEditor(
     setTags((prev) => {
       if (prev.includes(id)) return prev.filter((t) => t !== id);
       if (prev.length >= MAX_TAGS) {
-        toast.show(`Max ${MAX_TAGS} categories chun sakte ho`, "error");
+        toast.show(`You can select up to ${MAX_TAGS} categories`, "error");
         return prev;
       }
       return [...prev, id];
@@ -122,7 +122,7 @@ export function useServiceEditor(
     else {
       setCoverLocal(prevLocal);
       setCoverUrl(prevUrl);
-      toast.show("Image upload nahi hui — dobara try karo", "error");
+      toast.show("Image upload failed — please try again", "error");
     }
   };
 
@@ -131,13 +131,13 @@ export function useServiceEditor(
 
   const errors: ServiceFormErrors = useMemo(() => {
     const e: ServiceFormErrors = {};
-    if (!title.trim()) e.title = "Service ka naam likho";
-    if (!shortDescription.trim()) e.shortDescription = "Ek chhota description likho";
-    if (!about.trim()) e.about = "Detail mein batao ki kya milega";
-    if (!isEdit && !coverUrl) e.cover = "Cover image lagao";
-    if (!isBasic && tags.length === 0) e.tags = "Kam se kam ek category chuno";
+    if (!title.trim()) e.title = "Enter a service name";
+    if (!shortDescription.trim()) e.shortDescription = "Add a short description";
+    if (!about.trim()) e.about = "Describe what the session covers";
+    if (!isEdit && !coverUrl) e.cover = "Add a cover image";
+    if (!isBasic && tags.length === 0) e.tags = "Select at least one category";
     if (VARIANT_DURATIONS.some((d) => parsePrice(drafts[d]) === null))
-      e.prices = "Har duration ka sahi price daalo";
+      e.prices = "Enter a valid price for each duration";
     return e;
   }, [title, shortDescription, about, coverUrl, tags, drafts, isEdit, isBasic]);
 
@@ -162,7 +162,7 @@ export function useServiceEditor(
   const save = async () => {
     setSubmitted(true);
     if (hasErrors) {
-      toast.show("Highlight ki hui cheezein theek karo", "error");
+      toast.show("Please fix the highlighted fields", "error");
       return;
     }
     setSaving(true);
@@ -197,16 +197,16 @@ export function useServiceEditor(
           price: parsePrice(drafts[v.durationMinutes as VariantDurationMinutes])!,
         });
       }
-      toast.show(isEdit ? "Service save ho gayi" : "Service ban gayi 🎉");
+      toast.show(isEdit ? "Service saved" : "Service created!");
       onSaved();
     } catch (e: any) {
       // Create ho chuka ho par price step fail → service list mein dikhegi;
       // user edit se price theek kar sakta hai
       if (!service && target) {
         onSaved();
-        toast.show("Service ban gayi, par kuch prices save nahi hui — Edit se dobara set karo", "error");
+        toast.show("Service created, but some prices could not be saved — use Edit to set them again", "error");
       } else {
-        toast.show(errMsg(e, "Save nahi ho paya — dobara try karo"), "error");
+        toast.show(errMsg(e, "Could not save — please try again"), "error");
       }
     } finally {
       setSaving(false);

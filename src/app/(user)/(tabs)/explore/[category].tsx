@@ -570,21 +570,21 @@ export default function CategoryScreen() {
         ) : astro.error ? (
           <View style={{ paddingHorizontal: PAD }}>
             <View style={styles.errorBox}>
-              <Text style={styles.errorText}>Astrologers load nahi hue</Text>
+              <Text style={styles.errorText}>Failed to load astrologers</Text>
               <TouchableOpacity
                 style={styles.retryBtn}
                 onPress={() => astro.refetch()}
                 accessibilityRole="button"
               >
-                <Text style={styles.retryBtnText}>Dobara try karo</Text>
+                <Text style={styles.retryBtnText}>Try Again</Text>
               </TouchableOpacity>
             </View>
           </View>
         ) : astro.astrologers.length === 0 ? (
           <EmptyPlaceholder
             icon="user"
-            title="Abhi koi astrologer nahi"
-            sub="Is category ke astrologers jaldi add honge"
+            title="No Astrologers Yet"
+            sub="Astrologers in this category will be added soon"
           />
         ) : (
           <FlatList
@@ -619,8 +619,8 @@ export default function CategoryScreen() {
         ) : services.length === 0 ? (
           <EmptyPlaceholder
             icon="briefcase"
-            title="Abhi koi consultancy nahi"
-            sub="Is category ke experts jaldi join honge"
+            title="No Consultancies Yet"
+            sub="Experts in this category will be joining soon"
           />
         ) : (
           <FlatList
@@ -651,8 +651,8 @@ export default function CategoryScreen() {
         ) : posts.length === 0 ? (
           <EmptyPlaceholder
             icon="image"
-            title="Koi post nahi mila"
-            sub="Astrologers is category mein post karenge toh yahan dikhega"
+            title="No Posts Found"
+            sub="Posts from astrologers in this category will appear here"
           />
         ) : (
           <FlatList

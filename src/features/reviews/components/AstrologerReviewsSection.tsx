@@ -93,12 +93,12 @@ export default function AstrologerReviewsSection({
         <ActivityIndicator color={AstroColors.brand} style={{ marginTop: 12 }} />
       ) : error ? (
         <TouchableOpacity style={styles.empty} onPress={() => refetch()}>
-          <Text style={styles.emptyText}>Reviews load nahi hue — dobara try karo</Text>
+          <Text style={styles.emptyText}>Failed to load reviews — tap to retry</Text>
         </TouchableOpacity>
       ) : !summary || summary.total === 0 ? (
         <View style={styles.empty}>
           <Text style={styles.emptyText}>
-            Abhi koi review nahi — session ke baad pehle aap rating do
+            No reviews yet — be the first to rate after your session
           </Text>
         </View>
       ) : (

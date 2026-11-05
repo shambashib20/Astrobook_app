@@ -50,7 +50,7 @@ export function useSubmitAstrologerApplication(onSuccess?: () => void) {
       const msg =
         err?.response?.data?.message ||
         err?.response?.data?.error?.[0]?.message ||
-        "Application submit nahi hui, dobara try karo";
+        "Failed to submit application. Please try again.";
       Alert.alert("Error", msg);
     },
   });

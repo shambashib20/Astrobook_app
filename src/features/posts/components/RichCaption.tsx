@@ -128,7 +128,7 @@ export default function RichCaption({
     <TouchableOpacity
       onPress={handleReadMore}
       hitSlop={8}
-      accessibilityLabel="Poora caption dekho"
+      accessibilityLabel="Show full caption"
     >
       <Text style={styles.more}>...more</Text>
     </TouchableOpacity>

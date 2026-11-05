@@ -32,7 +32,7 @@ export function useMyAppointments() {
         err?.response?.data ?? err?.message,
       );
       toast.show(
-        err?.response?.data?.message || "Appointments load nahi hue",
+        err?.response?.data?.message || "Failed to load appointments",
         "error",
       );
     } finally {

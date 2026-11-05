@@ -25,8 +25,8 @@ export function useMyAvailability() {
       );
       const msg =
         err?.response?.status === 403
-          ? "Astrologer permission nahi hai (role check fail) — DB mein role='astrologer' hai ya nahi check karo"
-          : err?.response?.data?.message || "Availability load nahi hui";
+          ? "Astrologer permission denied (role check failed) — verify that role='astrologer' is set in the DB"
+          : err?.response?.data?.message || "Failed to load availability";
       Alert.alert("Error", msg);
     } finally {
       setLoading(false);
@@ -41,7 +41,7 @@ export function useMyAvailability() {
     } catch (err: any) {
       Alert.alert(
         "Error",
-        err?.response?.data?.message || "Slot delete nahi hua",
+        err?.response?.data?.message || "Failed to delete slot",
       );
     }
   };
@@ -65,7 +65,7 @@ export function useSetAvailability(
 
   const setAvailability = async (dto: CreateAvailabilityPayload) => {
     if (!dto.date || !dto.startTime || !dto.endTime) {
-      Alert.alert("Required", "Date, start time aur end time daalo");
+      Alert.alert("Required", "Please enter a date, start time, and end time");
       return;
     }
     setLoading(true);
@@ -77,7 +77,7 @@ export function useSetAvailability(
       const msg =
         err?.response?.data?.message ||
         err?.response?.data?.error?.[0]?.message ||
-        "Availability save nahi hui";
+        "Failed to save availability";
       Alert.alert("Error", msg);
     } finally {
       setLoading(false);

@@ -3,10 +3,10 @@ import type { Transaction } from "../service";
 export type PeriodKey = "all" | "7d" | "month" | "lastMonth";
 
 export const PERIODS: { key: PeriodKey; label: string }[] = [
-  { key: "all", label: "Sab" },
-  { key: "7d", label: "7 din" },
-  { key: "month", label: "Is mahine" },
-  { key: "lastMonth", label: "Pichhle mahine" },
+  { key: "all", label: "All" },
+  { key: "7d", label: "Last 7 days" },
+  { key: "month", label: "This month" },
+  { key: "lastMonth", label: "Last month" },
 ];
 
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());

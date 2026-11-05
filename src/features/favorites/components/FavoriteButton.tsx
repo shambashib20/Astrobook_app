@@ -29,7 +29,7 @@ export default function FavoriteButton({
       activeOpacity={0.7}
       hitSlop={8}
       accessibilityRole="button"
-      accessibilityLabel={isFavorite ? "Favourites se hatao" : "Favourites me jodo"}
+      accessibilityLabel={isFavorite ? "Remove from favourites" : "Add to favourites"}
       accessibilityState={{ selected: isFavorite }}
       onPress={() => toggle.mutate({ itemId, isFavorite })}
     >

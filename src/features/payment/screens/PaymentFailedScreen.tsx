@@ -54,13 +54,13 @@ export default function PaymentFailedScreen() {
   // Primary action reason ke hisaab se badalta hai
   let primary: { label: string; onPress: () => void } | null = null;
   if (copy.kind === "verify") {
-    primary = { label: "My Bookings dekho", onPress: goBookings };
+    primary = { label: "View My Bookings", onPress: goBookings };
   } else if (copy.changeSlot) {
     primary = fromCart
-      ? { label: "Cart mein wapas jao", onPress: () => router.replace("/(user)/cart" as any) }
+      ? { label: "Back to Cart", onPress: () => router.replace("/(user)/cart" as any) }
       : canRebook
         ? {
-            label: "Doosra slot chuno",
+            label: "Pick a Different Slot",
             onPress: () =>
               router.replace({
                 pathname: "/(user)/book-slot" as any,
@@ -70,10 +70,10 @@ export default function PaymentFailedScreen() {
         : null;
   } else if (copy.canRetry) {
     primary = fromCart
-      ? { label: "Cart mein wapas jao", onPress: () => router.replace("/(user)/cart" as any) }
+      ? { label: "Back to Cart", onPress: () => router.replace("/(user)/cart" as any) }
       : canRebook
         ? {
-            label: "Dobara try karo",
+            label: "Try Again",
             onPress: () =>
               router.replace({
                 pathname: "/(user)/checkout" as any,

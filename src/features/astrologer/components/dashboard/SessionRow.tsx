@@ -34,7 +34,7 @@ export default function SessionRow({
           {appt.userName ?? "Client"} · {appt.service.title}
         </Text>
         <Text style={styles.meta}>
-          {live ? "Abhi chal raha hai" : time} · {appt.durationMinutes} min
+          {live ? "Live now" : time} · {appt.durationMinutes} min
         </Text>
       </View>
       {price ? <Text style={styles.price}>{price}</Text> : null}

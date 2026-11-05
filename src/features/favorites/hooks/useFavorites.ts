@@ -68,7 +68,7 @@ export function useToggleFavorite(itemType: FavoriteItemType = "service") {
       queryClient.setQueryData(idsKey, ctx?.prevIds);
       queryClient.setQueryData(listKey, ctx?.prevList);
       toast.show(
-        err?.response?.data?.message || "Favourite update nahi ho paya",
+        err?.response?.data?.message || "Failed to update favourite",
         "error",
       );
     },

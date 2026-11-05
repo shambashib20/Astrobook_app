@@ -451,7 +451,7 @@ export default function AstrologerProfileScreen() {
             <ActivityIndicator color={AstroColors.brand} style={{ marginTop: 12 }} />
           ) : posts.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>Koi post nahi hai abhi</Text>
+              <Text style={styles.emptyText}>No posts yet</Text>
             </View>
           ) : (
             <>

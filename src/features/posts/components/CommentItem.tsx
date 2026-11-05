@@ -19,9 +19,9 @@ export default function CommentItem({
   onReply?: (comment: Comment) => void;
 }) {
   const confirmDelete = () =>
-    Alert.alert("Comment hatana hai?", "Ye wapas nahi aayega.", [
-      { text: "Rehne do", style: "cancel" },
-      { text: "Hatao", style: "destructive", onPress: () => onDelete(comment.id) },
+    Alert.alert("Delete Comment?", "This cannot be undone.", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: () => onDelete(comment.id) },
     ]);
 
   return (
@@ -51,7 +51,7 @@ export default function CommentItem({
           onPress={confirmDelete}
           hitSlop={10}
           style={styles.deleteBtn}
-          accessibilityLabel="Comment hatao"
+          accessibilityLabel="Delete comment"
         >
           <Feather name="trash-2" size={16} color={AstroColors.textMuted} />
         </TouchableOpacity>

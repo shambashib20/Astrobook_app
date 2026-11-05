@@ -34,18 +34,18 @@ const PLANET_ORDER = [
 
 // ─── Daily insight by rashi ───────────────────────────────────────────────────
 const RASHI_INSIGHTS: Record<string, string[]> = {
-  Aries:       ["Aaj naye kaam shuru karne ke liye sahi din hai.", "Apni energy focus rakho — goal clear hai.", "Kisi purani baat pe mat rukna, aage badho."],
-  Taurus:      ["Aaj sabr rakho — kaam dheere sahi hoga.", "Ghar aur pariwar pe dhyan do.", "Koi naya nibandh aaj shuru mat karo."],
-  Gemini:      ["Communication bahut strong hai aaj.", "Dost ya colleague se baat karna faydemand rahega.", "Naya idea share karne ka waqt hai."],
-  Cancer:      ["Emotions pe dhyan do — kisi ki madad karo.", "Ghar ke kaam mein mann lagao.", "Intuition pe vishwas rakhna aaj sahi rahega."],
-  Leo:         ["Aaj spotlight aap par hai — bold raho.", "Creative kaam mein khoob energy milegi.", "Leadership dikhaao, dusre follow karenge."],
-  Virgo:       ["Details pe dhyan do — koi galti mat chhodna.", "Health aur routine pe focus karo.", "Planning karo, fir execute karo."],
-  Libra:       ["Relationships aaj important hain.", "Balance banao — sab ko sun ke faisla karo.", "Kala ya design mein mann lagega aaj."],
-  Scorpio:     ["Aaj ka din gehrai se sochne ke liye hai.", "Koi secret baat open mat karo.", "Research aur analysis mein khoob success milega."],
-  Sagittarius: ["Nayi jagah ya idea explore karo.", "Optimism high hai — doosron ko inspire karo.", "Padhai ya spiritual kaam faydemand rahega."],
-  Capricorn:   ["Kaam pe puri lagan lagao — mehnat rang laegi.", "Long-term goals pe focus rakho.", "Discipline hi aaj ka sabse bada hathiyar hai."],
-  Aquarius:    ["Doston ke saath mil ke kuch naya socho.", "Innovative idea kaafi powerful rahega.", "Samaj ke liye kuch karo — achha mehsoos hoga."],
-  Pisces:      ["Creativity aur spirituality mein din behtareen rahega.", "Sapne dekho, lekin realistic bhi raho.", "Kisi zarooritmand ki madad karo."],
+  Aries:       ["Today is a great day to start something new.", "Keep your energy focused — your goal is clear.", "Don't dwell on the past, move forward."],
+  Taurus:      ["Be patient today — things will work out at their own pace.", "Focus on home and family.", "Avoid starting a new project today."],
+  Gemini:      ["Your communication is very strong today.", "Talking to a friend or colleague will be beneficial.", "It's a good time to share a new idea."],
+  Cancer:      ["Pay attention to your emotions — help someone in need.", "Get involved in household tasks.", "Trusting your intuition will be the right call today."],
+  Leo:         ["Today the spotlight is on you — be bold.", "You'll have great energy for creative work.", "Show leadership and others will follow."],
+  Virgo:       ["Pay attention to details — don't miss a thing.", "Focus on health and routine.", "Plan first, then execute."],
+  Libra:       ["Relationships are important today.", "Find balance — listen to everyone before deciding.", "Art or design will captivate you today."],
+  Scorpio:     ["Today is a day for deep thinking.", "Keep secrets to yourself.", "You'll find great success in research and analysis."],
+  Sagittarius: ["Explore a new place or idea.", "Optimism is high — inspire those around you.", "Study or spiritual work will be rewarding today."],
+  Capricorn:   ["Put full dedication into your work — your efforts will pay off.", "Stay focused on long-term goals.", "Discipline is your greatest asset today."],
+  Aquarius:    ["Brainstorm something new with friends.", "An innovative idea will be quite powerful.", "Do something for others — it will feel rewarding."],
+  Pisces:      ["The day will be wonderful for creativity and spirituality.", "Dream big, but stay realistic.", "Help someone who needs it."],
 };
 
 const DOSHA_COLORS: Record<string, { bg: string; text: string; border: string }> = {
@@ -65,7 +65,7 @@ function formatDate(dateStr: string): string {
 }
 
 function getDailyInsight(rashi: string | null): string {
-  if (!rashi) return "Apni Kundli generate karo aur aaj ka insight pao.";
+  if (!rashi) return "Generate your Kundli to get today's cosmic insight.";
   const options = RASHI_INSIGHTS[rashi] ?? RASHI_INSIGHTS["Aries"]!;
   const idx = new Date().getDay() % options.length;
   return options[idx]!;
@@ -115,7 +115,7 @@ export default function AstroVerse() {
           <Text style={styles.emptyGradientIcon}>🔮</Text>
           <Text style={styles.emptyGradientTitle}>AstroVerse</Text>
           <Text style={styles.emptyGradientSub}>
-            Apni janm ki puri jankari dein aur unlock karein apna cosmic blueprint.
+            Add your full birth details to unlock your cosmic blueprint.
           </Text>
           <TouchableOpacity
             style={styles.emptyBtn}
@@ -137,7 +137,7 @@ export default function AstroVerse() {
         <Header />
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
           <ActivityIndicator size="large" color={AstroColors.brand} />
-          <Text style={{ color: AstroColors.textMuted, marginTop: 12 }}>Kundli load ho rahi hai...</Text>
+          <Text style={{ color: AstroColors.textMuted, marginTop: 12 }}>Loading your Kundli...</Text>
         </View>
       </View>
     );
@@ -157,13 +157,13 @@ export default function AstroVerse() {
             </Text>
           </LinearGradient>
           <View style={styles.generateBody}>
-            <Text style={styles.generateHeading}>Apni Kundli Generate Karo</Text>
+            <Text style={styles.generateHeading}>Generate Your Kundli</Text>
             <Text style={styles.generateDesc}>
-              Vedic astrology ke anusar, tumhare janm ke waqt ke graho ki sthiti tumhara
-              bhavishya aur swabhaav batati hai. Ab sirf ek click mein pata karo!
+              According to Vedic astrology, the position of planets at the time of your birth
+              reveals your destiny and personality. Discover it in just one click!
             </Text>
             <View style={styles.benefitList}>
-              {["Lagna, Rashi aur Sun sign", "9 graho ki sthiti aur rashi", "Mahadasha aur Antardasha", "Manglik, Kaal Sarp jaise doshas"].map((b) => (
+              {["Lagna, Rashi & Sun Sign", "9 planetary positions & signs", "Mahadasha & Antardasha", "Doshas like Manglik & Kaal Sarp"].map((b) => (
                 <View key={b} style={styles.benefitRow}>
                   <Feather name="check-circle" size={14} color={AstroColors.success} />
                   <Text style={styles.benefitText}>{b}</Text>
@@ -187,7 +187,7 @@ export default function AstroVerse() {
             </TouchableOpacity>
             {generating && (
               <Text style={styles.generatingHint}>
-                Graho ki sthiti calculate ho rahi hai... 5-10 second lega
+                Calculating planetary positions... this takes 5–10 seconds
               </Text>
             )}
           </View>
@@ -410,9 +410,9 @@ export default function AstroVerse() {
                   <Feather name="shield" size={20} color={AstroColors.success} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.noDoshaTitle}>Koi Major Dosha Nahi</Text>
+                  <Text style={styles.noDoshaTitle}>No Major Doshas Found</Text>
                   <Text style={styles.noDoshaDesc}>
-                    Tumhari Kundli mein koi bada dosha nahi mila — yeh ek achhi nishani hai!
+                    Your Kundli has no major doshas — that's a great sign!
                   </Text>
                 </View>
               </View>

@@ -89,7 +89,7 @@ function DetailVideo({
         style={styles.muteBadge}
         onPress={() => setMuted((m) => !m)}
         hitSlop={8}
-        accessibilityLabel={muted ? "Awaaz chalu karo" : "Awaaz band karo"}
+        accessibilityLabel={muted ? "Unmute" : "Mute"}
       >
         <Feather
           name={muted ? "volume-x" : "volume-2"}
@@ -104,7 +104,7 @@ function DetailVideo({
           style={styles.expandBadge}
           onPress={onExpand}
           hitSlop={8}
-          accessibilityLabel="Fullscreen mein dekho"
+          accessibilityLabel="View fullscreen"
         >
           <Feather name="maximize-2" size={13} color="#fff" />
         </TouchableOpacity>

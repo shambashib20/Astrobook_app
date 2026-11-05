@@ -54,15 +54,15 @@ export function useBecomeAstrologerForm() {
 
   // Kya kya baaki hai — button disabled karne ki jagah yahi dikhate hain
   const errors1 = {
-    bio: bio.trim().length < MIN_BIO ? `Apne baare mein kam se kam ${MIN_BIO} akshar likho` : undefined,
-    experience: experience.trim().length === 0 ? "Experience likho (naye ho to 0)" : undefined,
-    languages: languages.length === 0 ? "Kam se kam ek language chuno" : undefined,
-    specs: specs.length === 0 ? "Kam se kam ek expertise chuno" : undefined,
+    bio: bio.trim().length < MIN_BIO ? `Bio must be at least ${MIN_BIO} characters` : undefined,
+    experience: experience.trim().length === 0 ? "Enter your experience (enter 0 if you're new)" : undefined,
+    languages: languages.length === 0 ? "Select at least one language" : undefined,
+    specs: specs.length === 0 ? "Select at least one area of expertise" : undefined,
   };
   const errors2 = {
-    video: !video ? "Intro video lagao" : undefined,
-    doc1: !doc1 ? "ID proof lagao" : undefined,
-    doc2: !doc2 ? "Certificate lagao" : undefined,
+    video: !video ? "Please upload an intro video" : undefined,
+    doc1: !doc1 ? "Please upload your ID proof" : undefined,
+    doc2: !doc2 ? "Please upload your certificate" : undefined,
   };
 
   // "Aage" / "Submit" hamesha dabta hai; kuch baaki ho to batata hai
@@ -104,7 +104,7 @@ export function useBecomeAstrologerForm() {
     try {
       const sec = asset.duration ? Math.round(asset.duration / 1000) : 0;
       if (sec > MAX_VIDEO_SEC) {
-        Alert.alert("Video bahut lambi hai", `Max ${MAX_VIDEO_SEC} second ki video chalegi — thodi chhoti chuno.`);
+        Alert.alert("Video Too Long", `Maximum video length is ${MAX_VIDEO_SEC} seconds — please choose a shorter one.`);
         return;
       }
       let size = (asset as any).fileSize ?? (asset as any).filesize;
@@ -113,7 +113,7 @@ export function useBecomeAstrologerForm() {
         size = (info as any).size ?? 0;
       }
       if (size > MAX_VIDEO_MB * 1024 * 1024) {
-        Alert.alert("Video bahut badi hai", `Max ${MAX_VIDEO_MB}MB tak ki video chalegi.`);
+        Alert.alert("Video Too Large", `Maximum file size is ${MAX_VIDEO_MB}MB.`);
         return;
       }
       setVideo({ uri: asset.uri, duration: sec });
@@ -143,7 +143,7 @@ export function useBecomeAstrologerForm() {
       uploadImage(doc2.uri, `doc2-${ts}.jpg`, "/astrobook/astrologer-applications", "image/jpeg"),
     ]);
     if (!videoUrl || !document1Url || !document2Url) {
-      toast.show("Upload nahi ho paya — internet check karke dobara try karo", "error");
+      toast.show("Upload failed — please check your internet and try again", "error");
       return;
     }
     await submit({

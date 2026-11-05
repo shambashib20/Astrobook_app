@@ -46,7 +46,7 @@ export default function ServiceDetailScreen() {
     return (
       <ServiceStateView
         onBack={goBack}
-        message={error ?? "Yeh service nahi mili ya ab available nahi hai"}
+        message={error ?? "This service was not found or is no longer available"}
         onRetry={fetchProfile}
       />
     );
@@ -63,15 +63,15 @@ export default function ServiceDetailScreen() {
       });
       toast.show(
         item.wasAlreadyInCart
-          ? "Cart mein already tha — duration/price update ho gaya"
-          : "Cart mein add ho gaya",
+          ? "Already in cart — duration and price updated"
+          : "Added to cart",
       );
       // Cart se edit karke aaye the → wapas cart pe
       if (editVariantId) router.back();
     } catch (err: any) {
       Alert.alert(
         "Error",
-        err?.response?.data?.message || "Cart mein add nahi ho paya",
+        err?.response?.data?.message || "Failed to add to cart",
       );
     } finally {
       setAdding(false);

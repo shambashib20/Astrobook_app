@@ -122,8 +122,8 @@ export default function ProfileScreen() {
             {!applicationStatus.hasApplied ? (
               <ProfileCtaCard
                 icon="star"
-                title="Astrologer bano"
-                subtitle="Apni services list karo aur bookings pao"
+                title="Become an Astrologer"
+                subtitle="List your services and start receiving bookings"
                 onPress={goApply}
               />
             ) : null}

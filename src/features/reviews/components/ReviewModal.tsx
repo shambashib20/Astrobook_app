@@ -84,16 +84,16 @@ export default function ReviewModal({
         <View style={styles.sheet}>
           <View style={styles.grabber} />
           <Text style={styles.title}>
-            {isEdit ? "Apni rating badlo" : "Session kaisa raha?"}
+            {isEdit ? "Update your rating" : "How was your session?"}
           </Text>
           {target.astrologerName ? (
-            <Text style={styles.sub}>{target.astrologerName} ke saath</Text>
+            <Text style={styles.sub}>with {target.astrologerName}</Text>
           ) : null}
 
           <View style={styles.pickerWrap}>
             <StarPicker value={rating} onChange={setRating} />
             <Text style={styles.ratingText}>
-              {rating > 0 ? ratingLabel(rating) : "Star pe tap karo"}
+              {rating > 0 ? ratingLabel(rating) : "Tap a star to rate"}
             </Text>
           </View>
 
@@ -101,7 +101,7 @@ export default function ReviewModal({
             style={styles.input}
             value={comment}
             onChangeText={setComment}
-            placeholder="Kuch likhna chaho to likho (optional)"
+            placeholder="Add a comment (optional)"
             placeholderTextColor={AstroColors.textMuted}
             multiline
             maxLength={MAX}
@@ -121,7 +121,7 @@ export default function ReviewModal({
               <ActivityIndicator color="#FFF" />
             ) : (
               <Text style={styles.saveText}>
-                {isEdit ? "Update karo" : "Submit karo"}
+                {isEdit ? "Update" : "Submit"}
               </Text>
             )}
           </TouchableOpacity>
@@ -136,7 +136,7 @@ export default function ReviewModal({
               {remove.isPending ? (
                 <ActivityIndicator color={AstroColors.danger} />
               ) : (
-                <Text style={styles.deleteText}>Review hatao</Text>
+                <Text style={styles.deleteText}>Remove Review</Text>
               )}
             </TouchableOpacity>
           )}

@@ -75,11 +75,11 @@ export function useSubmitReview() {
       reviewsService.submit(v.appointmentId, v.rating, v.comment),
     onSuccess: (_r, v) => {
       invalidate(v.astrologerId);
-      toast.show("Review save ho gaya, shukriya!", "success");
+      toast.show("Review submitted — thank you!", "success");
     },
     onError: (err: any) =>
       toast.show(
-        err?.response?.data?.message || "Review save nahi ho paya",
+        err?.response?.data?.message || "Failed to submit review",
         "error",
       ),
   });
@@ -92,11 +92,11 @@ export function useDeleteReview() {
       reviewsService.remove(v.appointmentId),
     onSuccess: (_r, v) => {
       invalidate(v.astrologerId);
-      toast.show("Review hata diya", "success");
+      toast.show("Review removed", "success");
     },
     onError: (err: any) =>
       toast.show(
-        err?.response?.data?.message || "Review hata nahi paya",
+        err?.response?.data?.message || "Failed to remove review",
         "error",
       ),
   });

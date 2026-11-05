@@ -120,7 +120,7 @@ export default function PostDetailScreen() {
 
   if (isError || !post) {
     const msg =
-      (error as any)?.response?.data?.message ?? "Post load nahi hua";
+      (error as any)?.response?.data?.message ?? "Failed to load post";
     return (
       <SafeAreaView style={styles.root} edges={["top"]}>
         {header}
@@ -128,7 +128,7 @@ export default function PostDetailScreen() {
           <Feather name="alert-circle" size={32} color={AstroColors.danger} />
           <Text style={styles.errorText}>{msg}</Text>
           <TouchableOpacity style={styles.retryBtn} onPress={() => refetch()}>
-            <Text style={styles.retryText}>Dobara try karo</Text>
+            <Text style={styles.retryText}>Try Again</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>

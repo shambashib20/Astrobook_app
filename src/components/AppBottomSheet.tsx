@@ -170,7 +170,7 @@ export default function AppBottomSheet({
         <Pressable
           style={StyleSheet.absoluteFill}
           onPress={onClose}
-          accessibilityLabel="Band karo"
+          accessibilityLabel="Close"
         />
       </Animated.View>
 

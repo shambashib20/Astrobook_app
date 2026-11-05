@@ -50,7 +50,7 @@ export default function AstrologerTransactionsScreen() {
     <View>
       <View style={styles.summary}>
         <Text style={styles.summaryLabel}>
-          {isFiltered ? "Is filter ka total" : "Total mila"}
+          {isFiltered ? "Total for this filter" : "Total earned"}
         </Text>
         <Text style={styles.summaryValue}>{inr(total)}</Text>
         <Text style={styles.summarySub}>
@@ -65,13 +65,13 @@ export default function AstrologerTransactionsScreen() {
           style={styles.searchInput}
           value={query}
           onChangeText={setQuery}
-          placeholder="Client ya service dhundo"
+          placeholder="Search by client or service"
           placeholderTextColor={AstroColors.textMuted}
           returnKeyType="search"
           autoCorrect={false}
         />
         {query ? (
-          <TouchableOpacity onPress={() => setQuery("")} hitSlop={10} accessibilityLabel="Search clear karo">
+          <TouchableOpacity onPress={() => setQuery("")} hitSlop={10} accessibilityLabel="Clear search">
             <Feather name="x" size={17} color={AstroColors.textMuted} />
           </TouchableOpacity>
         ) : null}
@@ -124,7 +124,7 @@ export default function AstrologerTransactionsScreen() {
           <Feather name="alert-circle" size={30} color={AstroColors.danger} />
           <Text style={styles.stateText}>{error}</Text>
           <TouchableOpacity style={styles.outBtn} onPress={() => refetch()}>
-            <Text style={styles.outBtnText}>Dobara try karo</Text>
+            <Text style={styles.outBtnText}>Try Again</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -165,16 +165,16 @@ export default function AstrologerTransactionsScreen() {
                 <Feather name={isFiltered ? "search" : "credit-card"} size={22} color={AstroColors.brand} />
               </View>
               <Text style={styles.emptyTitle}>
-                {isFiltered ? "Kuch nahi mila" : "Abhi tak koi payment nahi"}
+                {isFiltered ? "No results found" : "No payments yet"}
               </Text>
               <Text style={styles.emptyText}>
                 {isFiltered
-                  ? "Filter ya search badal ke dekho."
-                  : "Jab koi user booking ka payment karega, yahan dikhega."}
+                  ? "Try adjusting your filter or search."
+                  : "Payments will appear here once a user completes a booking."}
               </Text>
               {isFiltered ? (
                 <TouchableOpacity style={styles.outBtn} onPress={clear}>
-                  <Text style={styles.outBtnText}>Filter hatao</Text>
+                  <Text style={styles.outBtnText}>Clear filter</Text>
                 </TouchableOpacity>
               ) : null}
             </View>

@@ -18,8 +18,8 @@ export default function PrivacySecurityScreen() {
 
   const confirmLogoutAll = () =>
     Alert.alert(
-      "Sabhi devices se logout?",
-      "Aap is phone samet har jagah se logout ho jaoge. Dobara login karna padega.",
+      "Logout of all devices?",
+      "You will be logged out everywhere, including this phone. You will need to log in again.",
       [
         { text: "Cancel", style: "cancel" },
         { text: "Logout", style: "destructive", onPress: logoutAllDevices },
@@ -28,8 +28,8 @@ export default function PrivacySecurityScreen() {
 
   const confirmDelete = () =>
     Alert.alert(
-      "Account delete karein?",
-      "Yeh wapas nahi ho sakta. Aapki personal details, follows aur posts hamesha ke liye hat jaayengi.",
+      "Delete account?",
+      "This cannot be undone. Your personal details, follows, and posts will be permanently removed.",
       [
         { text: "Cancel", style: "cancel" },
         { text: "Delete", style: "destructive", onPress: deleteAccount },
@@ -42,7 +42,7 @@ export default function PrivacySecurityScreen() {
     <SafeAreaView style={styles.root} edges={["top"]}>
       <ScreenHeader
         title="Privacy & Security"
-        subtitle="Apna account surakshit rakho"
+        subtitle="Keep your account secure"
         fallbackHref="/(user)/(tabs)/profile"
       />
 
@@ -65,9 +65,9 @@ export default function PrivacySecurityScreen() {
               )}
             </View>
             <View style={styles.rowText}>
-              <Text style={styles.rowTitle}>Sabhi devices se logout</Text>
+              <Text style={styles.rowTitle}>Sign out of all devices</Text>
               <Text style={styles.rowSub}>
-                Kisi aur phone pe login hai to yahin se hata do
+                Remove access from any other device you're logged in on
               </Text>
             </View>
             <Feather name="chevron-right" size={20} color="#B8B0D0" />
@@ -84,20 +84,20 @@ export default function PrivacySecurityScreen() {
             </View>
             <View style={styles.rowText}>
               <Text style={styles.rowTitle}>App permissions</Text>
-              <Text style={styles.rowSub}>Camera aur microphone access</Text>
+              <Text style={styles.rowSub}>Camera and microphone access</Text>
             </View>
             <Feather name="chevron-right" size={20} color="#B8B0D0" />
           </TouchableOpacity>
         </View>
 
         <View style={styles.dangerCard}>
-          <Text style={styles.dangerTitle}>Account delete karo</Text>
+          <Text style={styles.dangerTitle}>Delete account</Text>
           <Text style={styles.dangerText}>
-            Aapki personal details, follows aur posts hamesha ke liye hat
-            jaayengi. Booking aur payment ka record hisaab-kitaab ke liye bina
-            aapke naam ke rakha jaata hai. Upcoming session ho to pehle use
-            complete ya cancel karna hoga. Kisi payment ya payout ko lekar
-            sawaal ho to pehle Help & Support se baat kar lo.
+            Your personal details, follows, and posts will be permanently
+            removed. Booking and payment records are retained anonymously for
+            accounting purposes. Complete or cancel any upcoming sessions first.
+            For payment or payout questions, contact Help & Support before
+            proceeding.
           </Text>
           <TouchableOpacity
             style={[styles.deleteBtn, disabled && { opacity: 0.6 }]}

@@ -18,7 +18,7 @@ export function usePhoneVerification() {
 
   const sendOtp = async (phone: string) => {
     if (!phone.trim() || phone.trim().length < 10) {
-      Alert.alert("Error", "Valid phone number daalo");
+      Alert.alert("Error", "Please enter a valid phone number.");
       return { success: false } as const;
     }
     setSending(true);
@@ -31,13 +31,13 @@ export function usePhoneVerification() {
       const status = err?.response?.status;
       if (status === 409) {
         Alert.alert(
-          "Number already linked",
-          "Yeh number pehle se kisi aur account se juda hai. Koi doosra number try karo.",
+          "Number Already Linked",
+          "This number is already associated with another account. Please try a different number.",
         );
       } else if (status === 429) {
-        Alert.alert("Ruko thoda", "Bahut zyada requests. 10 min baad try karo.");
+        Alert.alert("Too Many Requests", "Please wait 10 minutes before trying again.");
       } else {
-        Alert.alert("Error", err?.response?.data?.message || "OTP nahi gaya");
+        Alert.alert("Error", err?.response?.data?.message || "Failed to send OTP.");
       }
       return { success: false } as const;
     } finally {
@@ -56,13 +56,13 @@ export function usePhoneVerification() {
       const status = err?.response?.status;
       if (status === 409) {
         Alert.alert(
-          "Number already linked",
-          "Yeh number pehle se kisi aur account se juda hai. Koi doosra number try karo.",
+          "Number Already Linked",
+          "This number is already associated with another account. Please try a different number.",
         );
       } else if (status === 429) {
-        Alert.alert("Attempts khatam", "OTP dobara bhejo");
+        Alert.alert("Too Many Attempts", "Please request a new OTP.");
       } else {
-        Alert.alert("Wrong OTP", "OTP galat hai, dobara try karo");
+        Alert.alert("Incorrect OTP", "The OTP you entered is wrong. Please try again.");
       }
       return { success: false } as const;
     } finally {

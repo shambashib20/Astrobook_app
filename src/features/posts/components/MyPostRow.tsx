@@ -58,7 +58,7 @@ function MyPostRowImpl({
       style={[styles.card, AstroShadow.soft]}
       activeOpacity={0.85}
       onPress={() => onOpen(post)}
-      accessibilityLabel="Post kholo"
+      accessibilityLabel="Open post"
     >
       <Thumb post={post} />
 
@@ -91,7 +91,7 @@ function MyPostRowImpl({
           style={styles.edit}
           onPress={() => onEdit(post)}
           hitSlop={6}
-          accessibilityLabel="Post edit karo"
+          accessibilityLabel="Edit post"
         >
           <Feather name="edit-2" size={17} color={AstroColors.brand} />
         </TouchableOpacity>
@@ -99,7 +99,7 @@ function MyPostRowImpl({
           style={styles.del}
           onPress={() => onDelete(post)}
           hitSlop={6}
-          accessibilityLabel="Post delete karo"
+          accessibilityLabel="Delete post"
         >
           <Feather name="trash-2" size={17} color={AstroColors.danger} />
         </TouchableOpacity>

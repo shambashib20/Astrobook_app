@@ -122,7 +122,7 @@ export default function SessionScreen() {
   // ── Load appointment + countdown-before-join ticker ──────────────────────
   const loadAppointment = useCallback(async () => {
     if (!appointmentId) {
-      setErrorMsg("Session ID missing hai — link galat lagta hai");
+      setErrorMsg("Session ID is missing — this link appears to be invalid");
       setScreenState("error");
       return;
     }
@@ -132,7 +132,7 @@ export default function SessionScreen() {
 
       if (data.status === "completed" || data.status === "cancelled") {
         setScreenState(data.status === "completed" ? "ended" : "error");
-        if (data.status === "cancelled") setErrorMsg("Yeh booking cancel ho chuki hai");
+        if (data.status === "cancelled") setErrorMsg("This booking has been cancelled");
         return;
       }
 
@@ -149,7 +149,7 @@ export default function SessionScreen() {
       }
     } catch (err: any) {
       setErrorMsg(
-        err?.response?.data?.message || "Session details load nahi hui",
+        err?.response?.data?.message || "Failed to load session details",
       );
       setScreenState("error");
     }
@@ -277,12 +277,12 @@ export default function SessionScreen() {
         return true;
       }
       Alert.alert(
-        "Session Chhodna Hai?",
-        "Agar tum ab call se bahar gaye toh session end nahi hoga, lekin video/audio ruk jaayega. Dobara isi booking se join kar sakte ho.",
+        "Leave Session?",
+        "Leaving now won't end the session, but your video and audio will stop. You can rejoin from this booking.",
         [
-          { text: "Nahi, wapas jao", style: "cancel" },
+          { text: "Stay", style: "cancel" },
           {
-            text: "Haan, chhodo",
+            text: "Leave",
             style: "destructive",
             onPress: async () => {
               await teardownAgora();
@@ -317,8 +317,8 @@ export default function SessionScreen() {
 
     if (!cameraOk || !micOk) {
       Alert.alert(
-        "Permission Chahiye",
-        "Video session ke liye Camera aur Microphone dono ki permission zaroori hai. Settings mein jaake manually allow kar do.",
+        "Permissions Required",
+        "Camera and Microphone permissions are required for a video session. Please allow them manually in Settings.",
       );
       return false;
     }
@@ -436,8 +436,8 @@ export default function SessionScreen() {
         return;
       }
       Alert.alert(
-        "Join Nahi Ho Paya",
-        err?.response?.data?.message || "Session join nahi ho paya",
+        "Could Not Join",
+        err?.response?.data?.message || "Failed to join the session",
       );
       setScreenState("ready_to_join");
     }
@@ -502,20 +502,20 @@ export default function SessionScreen() {
   const confirmEndOrLeave = () => {
     if (isAstrologer) {
       Alert.alert(
-        "Session End Karna Hai?",
-        "Yeh session dono ke liye poori tarah khatam ho jaayega — dobara join nahi ho payega.",
+        "End Session?",
+        "This will end the session for both parties — you will not be able to rejoin.",
         [
-          { text: "Nahi", style: "cancel" },
-          { text: "Haan, end karo", style: "destructive", onPress: handleEndCall },
+          { text: "Cancel", style: "cancel" },
+          { text: "End Session", style: "destructive", onPress: handleEndCall },
         ],
       );
     } else {
       Alert.alert(
-        "Call Chhodni Hai?",
-        "Session chalta rahega — tum isi booking se My Bookings mein jaake dobara join kar sakte ho.",
+        "Leave Call?",
+        "The session will keep running — you can rejoin from My Bookings.",
         [
-          { text: "Nahi", style: "cancel" },
-          { text: "Haan, chhodo", onPress: handleLeave },
+          { text: "Cancel", style: "cancel" },
+          { text: "Leave", onPress: handleLeave },
         ],
       );
     }
@@ -567,7 +567,7 @@ export default function SessionScreen() {
       Keyboard.dismiss();
     } catch (err) {
       console.log("sendStreamMessage error:", err);
-      Alert.alert("Message nahi gaya", "Dobara try karo.");
+      Alert.alert("Message Not Sent", "Please try again.");
     }
   };
 
@@ -586,12 +586,12 @@ export default function SessionScreen() {
       <View style={[styles.root, styles.centerFill, { padding: 24 }]}>
         <Header />
         <Feather name="alert-circle" size={32} color="#DC2626" />
-        <Text style={styles.errorText}>{errorMsg ?? "Kuch galat ho gaya"}</Text>
+        <Text style={styles.errorText}>{errorMsg ?? "Something went wrong"}</Text>
         <TouchableOpacity
           style={styles.primaryBtn}
           onPress={() => router.replace("/(user)/my-bookings" as any)}
         >
-          <Text style={styles.primaryBtnText}>My Bookings pe jao</Text>
+          <Text style={styles.primaryBtnText}>Go to My Bookings</Text>
         </TouchableOpacity>
       </View>
     );
@@ -604,15 +604,15 @@ export default function SessionScreen() {
         <View style={styles.endedIconCircle}>
           <Feather name="phone-off" size={36} color="#4B5563" />
         </View>
-        <Text style={styles.endedTitle}>Session Khatam Ho Gaya</Text>
+        <Text style={styles.endedTitle}>Session Ended</Text>
         <Text style={styles.errorText}>
-          Consultation complete ho chuki hai.
+          Your consultation has been completed.
         </Text>
         <TouchableOpacity
           style={styles.primaryBtn}
           onPress={() => router.replace("/(user)/my-bookings" as any)}
         >
-          <Text style={styles.primaryBtnText}>My Bookings pe jao</Text>
+          <Text style={styles.primaryBtnText}>Go to My Bookings</Text>
         </TouchableOpacity>
       </View>
     );

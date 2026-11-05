@@ -48,7 +48,7 @@ let googleSigninConfigured = false;
 export default function LoginScreen() {
   const router = useRouter();
   const [phone, setPhone] = useState("");
-  const [remember, setRemember] = useState(false);
+  const [remember, setRemember] = useState(true);
   const [selectedCode, setSelectedCode] = useState(COUNTRY_CODES[0]);
   const [showDropdown, setShowDropdown] = useState(false);
 
@@ -69,7 +69,11 @@ export default function LoginScreen() {
     if (success) {
       router.push({
         pathname: "/(auth)/otp",
-        params: { contact: fullPhone, ...(debugOtp ? { debugOtp } : {}) },
+        params: {
+          contact: fullPhone,
+          remember: remember ? "1" : "0",
+          ...(debugOtp ? { debugOtp } : {}),
+        },
       });
     }
   };

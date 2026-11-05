@@ -10,7 +10,7 @@ export function useCreatePost(onSuccess?: (post: Post) => void) {
 
   const createPost = async (payload: CreatePostPayload) => {
     if (!payload.content.trim()) {
-      Alert.alert("Required", "Post content likhna zaroori hai");
+      Alert.alert("Required", "Please write some content for your post");
       return;
     }
     setLoading(true);
@@ -19,7 +19,7 @@ export function useCreatePost(onSuccess?: (post: Post) => void) {
       onSuccess?.(post);
       return post;
     } catch (err: any) {
-      Alert.alert("Error", err?.response?.data?.message || "Post nahi bana");
+      Alert.alert("Error", err?.response?.data?.message || "Failed to create post");
     } finally {
       setLoading(false);
     }
@@ -95,7 +95,7 @@ export function useImageKitUpload() {
       return url;
     } catch (err: any) {
       console.log("Upload error:", err.message);
-      Alert.alert("Upload Error", err.message || "Image upload nahi hua");
+      Alert.alert("Upload Error", err.message || "Image upload failed");
       return null;
     } finally {
       setUploading(false);
@@ -161,7 +161,7 @@ export function useComments(postId: string | undefined) {
       setComments((prev) => [...prev, comment]);
       return true;
     } catch (err: any) {
-      Alert.alert("Error", err?.response?.data?.message || "Comment nahi ho paya");
+      Alert.alert("Error", err?.response?.data?.message || "Failed to post comment");
       return false;
     } finally {
       setPosting(false);

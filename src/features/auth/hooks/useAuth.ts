@@ -29,7 +29,7 @@ export function useOtpLogin() {
 
   const sendOtp = async (phone: string) => {
     if (!phone.trim() || phone.trim().length < 10) {
-      Alert.alert("Error", "Valid phone number daalo");
+      Alert.alert("Error", "Please enter a valid phone number");
       return { success: false } as const;
     }
     setSending(true);
@@ -40,11 +40,11 @@ export function useOtpLogin() {
     } catch (err: any) {
       if (err?.response?.status === 429) {
         Alert.alert(
-          "Ruko thoda",
-          "Bahut zyada requests. 10 min baad try karo.",
+          "Too Many Requests",
+          "Please wait 10 minutes before trying again.",
         );
       } else {
-        Alert.alert("Error", err?.response?.data?.message || "OTP nahi gaya");
+        Alert.alert("Error", err?.response?.data?.message || "Failed to send OTP");
       }
       return { success: false } as const;
     } finally {
@@ -52,12 +52,12 @@ export function useOtpLogin() {
     }
   };
 
-  const verifyOtp = async (phone: string, otp: string) => {
+  const verifyOtp = async (phone: string, otp: string, rememberMe = true) => {
     if (otp.length !== 4) return;
     setVerifying(true);
     try {
       const data: AuthResult = await authService.verifyOtp(phone, otp);
-      await loginSuccess(data);
+      await loginSuccess(data, rememberMe);
 
       // isNewUser sirf account banne ki pehli baar true hota hai — doosri baar
       // login pe false aata, isliye adhoora onboarding (phone verify nahi hua)
@@ -69,9 +69,9 @@ export function useOtpLogin() {
       }
     } catch (err: any) {
       if (err?.response?.status === 429) {
-        Alert.alert("Attempts khatam", "OTP dobara bhejo");
+        Alert.alert("Too Many Attempts", "Please request a new OTP.");
       } else {
-        Alert.alert("Wrong OTP", "OTP galat hai, dobara try karo");
+        Alert.alert("Incorrect OTP", "The OTP you entered is wrong. Please try again.");
       }
       throw err;
     } finally {
@@ -84,7 +84,7 @@ export function useOtpLogin() {
       const { debugOtp } = await authService.getOtp(phone);
       setDebugOtp(debugOtp);
     } catch {
-      Alert.alert("Error", "Resend nahi hua, dobara try karo");
+      Alert.alert("Error", "Failed to resend OTP. Please try again.");
     }
   };
 
@@ -109,7 +109,7 @@ export function useGoogleLogin() {
       await GoogleSignin.hasPlayServices();
       const result = await GoogleSignin.signIn();
       const idToken = result.data?.idToken;
-      if (!idToken) throw new Error("Token nahi mila");
+      if (!idToken) throw new Error("Could not retrieve Google ID token");
 
       const data: AuthResult = await authService.googleLogin(idToken);
       await loginSuccess(data);
@@ -159,7 +159,7 @@ export function useOnboarding() {
     interests?: string[];
   }) => {
     if (!payload.name.trim()) {
-      Alert.alert("Required", "Apna naam daalo");
+      Alert.alert("Required", "Please enter your name");
       return;
     }
     setLoading(true);
@@ -189,7 +189,7 @@ export function useOnboarding() {
         return;
       }
 
-      Alert.alert("Error", msg || "Kuch gadbad hui");
+      Alert.alert("Error", msg || "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }

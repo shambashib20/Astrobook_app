@@ -1,13 +1,13 @@
-// Help & Support ka saara content ek jagah — screen mein hardcode nahi.
+// Help & Support content — single source of truth for all FAQ and contact info.
 
-// TODO(launch se pehle bharna): support ka asli WhatsApp number aur email.
-// Khaali chhodne pe screen mein woh button dikhega hi nahi.
+// TODO(before launch): fill in real WhatsApp number and email.
+// If left empty, those contact buttons won't appear on the screen.
 export const SUPPORT_CONTACT = {
-  // Country code ke saath, bina + ya space ke. Example: "919876543210"
+  // Include country code, no + or spaces. Example: "919876543210"
   whatsappNumber: "",
   email: "",
-  // Support kab available hai — user ko expectation set karne ke liye
-  hours: "Roz subah 10 baje se raat 8 baje tak",
+  // Support availability — sets user expectations
+  hours: "Every day, 10 AM – 8 PM",
 };
 
 export type FaqItem = {
@@ -16,44 +16,43 @@ export type FaqItem = {
   answer: string;
 };
 
-// Refund wali line backend ke rule se match karti hai
-// (booking.service.ts → USER_CANCEL_REFUND_WINDOW_MS = 48 ghante).
-// Us rule ko badlo to yeh FAQ bhi badalna mat bhoolna.
+// Keep the refund window in sync with the backend rule:
+// booking.service.ts → USER_CANCEL_REFUND_WINDOW_MS = 48 hours
 export const FAQ_ITEMS: FaqItem[] = [
   {
     id: "join",
-    question: "Session kaise join karun?",
+    question: "How do I join a session?",
     answer:
-      "Profile → My Bookings mein apni booking kholo aur session ke time pe Join button dabao. Session shuru hone ke time se pehle join nahi ho sakta, isliye time pe aana.",
+      "Go to Profile → My Bookings, open your booking, and tap the Join button at the scheduled time. You cannot join before the session starts, so make sure to be on time.",
   },
   {
     id: "cancel-refund",
-    question: "Booking cancel karne pe refund milega?",
+    question: "Will I get a refund if I cancel my booking?",
     answer:
-      "Session se kam se kam 48 ghante pehle cancel karoge to poora refund milega. Isse kam time mein cancel karne, ya session miss karne pe refund nahi milta. Agar astrologer khud cancel kare to hamesha poora refund milta hai.",
+      "You will receive a full refund if you cancel at least 48 hours before the session. Cancellations within 48 hours, or missed sessions, are not eligible for a refund. If the astrologer cancels, you will always receive a full refund.",
   },
   {
     id: "payment-no-booking",
-    question: "Payment ho gaya par booking confirm nahi dikh rahi",
+    question: "Payment went through but booking isn't showing",
     answer:
-      "Kuch der wait karo aur My Bookings ko neeche kheench kar refresh karo. Confirmation kabhi kabhi thodi der se aati hai. 10-15 minute baad bhi booking na dikhe to humein payment ka screenshot bhejo.",
+      "Wait a moment and pull down to refresh My Bookings — confirmation can sometimes take a little time. If the booking still doesn't appear after 10–15 minutes, send us a screenshot of your payment.",
   },
   {
     id: "payment-failed",
-    question: "Payment fail hua par paise kat gaye",
+    question: "Payment failed but money was deducted",
     answer:
-      "Aisa hone pe bank aam taur par kuch working days mein paise apne aap wapas kar deta hai. Uske baad bhi paise na aayein to humein transaction ID ke saath contact karo.",
+      "Your bank will usually reverse the amount automatically within a few working days. If the money hasn't returned after that, contact us with your transaction ID.",
   },
   {
     id: "call-issue",
-    question: "Session mein audio ya video nahi chal raha",
+    question: "Audio or video isn't working in the session",
     answer:
-      "Check karo ki app ko camera aur microphone ki permission mili hai aur internet theek chal raha hai. Phir bhi dikkat ho to session se bahar aake dobara join karo, ya app band karke phir kholo.",
+      "Make sure the app has camera and microphone permissions and that your internet connection is stable. If the issue persists, leave the session and rejoin, or close and reopen the app.",
   },
   {
     id: "become-astrologer",
-    question: "Main astrologer kaise ban sakta hun?",
+    question: "How can I become an astrologer on AstroBook?",
     answer:
-      "Profile screen pe Upgrade to Astrologer dabao aur form bharo. Hamari team details verify karti hai, aur approve hote hi tumhe notification milega.",
+      "Tap Upgrade to Astrologer on the Profile screen and fill in the form. Our team will review your details and send you a notification once you are approved.",
   },
 ];

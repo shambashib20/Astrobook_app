@@ -35,7 +35,7 @@ const STATUS_META: Record<
     border: "#FDE68A",
     color: "#B45309",
     title: "Booking Pending",
-    subtitle: "Astrologer confirm karega, tab tak yeh 'pending' rahegi.",
+    subtitle: "Waiting for the astrologer to confirm your booking.",
   },
   confirmed: {
     icon: "check-circle",
@@ -43,7 +43,7 @@ const STATUS_META: Record<
     border: "#BBF7D0",
     color: "#15803D",
     title: "Booking Confirmed!",
-    subtitle: "Payment successful — tumhari booking confirm ho chuki hai.",
+    subtitle: "Payment successful — your booking is confirmed.",
   },
   ongoing: {
     icon: "video",
@@ -51,7 +51,7 @@ const STATUS_META: Record<
     border: "#BFDBFE",
     color: "#1D4ED8",
     title: "Session Ongoing",
-    subtitle: "Tumhara session abhi chal raha hai.",
+    subtitle: "Your session is currently ongoing.",
   },
   completed: {
     icon: "check",
@@ -59,7 +59,7 @@ const STATUS_META: Record<
     border: "#E5E7EB",
     color: "#4B5563",
     title: "Session Completed",
-    subtitle: "Yeh consultation complete ho chuki hai.",
+    subtitle: "This consultation has been completed.",
   },
   cancelled: {
     icon: "x-circle",
@@ -67,7 +67,7 @@ const STATUS_META: Record<
     border: "#FECACA",
     color: "#DC2626",
     title: "Booking Cancelled",
-    subtitle: "Yeh booking cancel kar di gayi thi.",
+    subtitle: "This booking was cancelled.",
   },
 };
 
@@ -115,7 +115,7 @@ function RefundSection({
       return;
     }
     if (action === "refund" && !upiInput.trim()) {
-      setError("UPI ID daalo pehle");
+      setError("Please enter your UPI ID");
       return;
     }
     setSubmitting(true);
@@ -132,7 +132,7 @@ function RefundSection({
       setShowUpiField(false);
       onClaimed?.();
     } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Kuch galat ho gaya — dobara try karo");
+      setError(e?.response?.data?.message ?? "Something went wrong — please try again");
     } finally {
       setSubmitting(false);
     }
@@ -181,7 +181,7 @@ function RefundSection({
             ) : (
               <>
                 <Feather name="zap" size={14} color="#FFF" />
-                <Text style={rs.btnPrimaryText}>Wallet mein lo</Text>
+                <Text style={rs.btnPrimaryText}>Add to Wallet</Text>
               </>
             )}
           </TouchableOpacity>
@@ -199,7 +199,7 @@ function RefundSection({
               <>
                 <Feather name="smartphone" size={14} color="#9d0399" />
                 <Text style={rs.btnSecondaryText}>
-                  {showUpiField ? "Submit" : "UPI pe lo"}
+                  {showUpiField ? "Submit" : "Get via UPI"}
                 </Text>
               </>
             )}
@@ -218,8 +218,8 @@ function RefundSection({
           <Text style={[rs.cardTitle, { color: "#B45309" }]}>UPI Refund Pending</Text>
         </View>
         <Text style={rs.subtitleAmber}>
-          ₹{netStr} tumhare UPI
-          {cancellation.upiId ? ` (${cancellation.upiId})` : ""} pe 2 din mein aa jaayega.
+          ₹{netStr} will be refunded to your UPI
+          {cancellation.upiId ? ` (${cancellation.upiId})` : ""} within 2 business days.
         </Text>
       </View>
     );
@@ -234,7 +234,7 @@ function RefundSection({
           <Text style={[rs.cardTitle, { color: "#B45309" }]}>Wallet Credit Pending</Text>
         </View>
         <Text style={rs.subtitleAmber}>
-          ₹{netStr} ka wallet credit request admin ke paas hai — jald hi aa jaayega.
+          ₹{netStr} wallet credit is pending admin approval — it will be added shortly.
         </Text>
       </View>
     );
@@ -246,10 +246,10 @@ function RefundSection({
       <View style={[rs.card, rs.cardGreen]}>
         <View style={rs.headerRow}>
           <Feather name="check-circle" size={15} color="#15803D" />
-          <Text style={[rs.cardTitle, { color: "#15803D" }]}>Wallet Credit Ho Gaya ✓</Text>
+          <Text style={[rs.cardTitle, { color: "#15803D" }]}>Wallet Credited ✓</Text>
         </View>
         <Text style={rs.subtitleGreen}>
-          ₹{netStr} tumhare AstroBook wallet mein aa gaya.
+          ₹{netStr} has been added to your AstroBook wallet.
         </Text>
       </View>
     );
@@ -261,10 +261,10 @@ function RefundSection({
       <View style={[rs.card, rs.cardGreen]}>
         <View style={rs.headerRow}>
           <Feather name="check-circle" size={15} color="#15803D" />
-          <Text style={[rs.cardTitle, { color: "#15803D" }]}>Refund Ho Gaya ✓</Text>
+          <Text style={[rs.cardTitle, { color: "#15803D" }]}>Refund Processed ✓</Text>
         </View>
         <Text style={rs.subtitleGreen}>
-          ₹{netStr} UPI pe bhej diya gaya hai.
+          ₹{netStr} has been sent to your UPI.
           {cancellation.upiId ? ` (${cancellation.upiId})` : ""}
         </Text>
       </View>
@@ -277,10 +277,10 @@ function RefundSection({
       <View style={[rs.card, rs.cardRed]}>
         <View style={rs.headerRow}>
           <Feather name="x-circle" size={15} color="#DC2626" />
-          <Text style={[rs.cardTitle, { color: "#DC2626" }]}>Request Reject Ho Gayi</Text>
+          <Text style={[rs.cardTitle, { color: "#DC2626" }]}>Request Rejected</Text>
         </View>
         <Text style={rs.subtitleRed}>
-          Zyada jankari ke liye support se contact karo.
+          Please contact support for more information.
         </Text>
       </View>
     );
@@ -310,7 +310,7 @@ export default function BookingConfirmationScreen() {
       .then(setAppointment)
       .catch((err: any) =>
         setError(
-          err?.response?.data?.message || "Booking details load nahi hui",
+          err?.response?.data?.message || "Failed to load booking details",
         ),
       )
       .finally(() => setLoading(false));
@@ -330,12 +330,12 @@ export default function BookingConfirmationScreen() {
     return (
       <View style={[styles.root, styles.centerFill, { padding: 24 }]}>
         <Feather name="alert-circle" size={32} color="#DC2626" />
-        <Text style={styles.errorText}>{error ?? "Booking nahi mili"}</Text>
+        <Text style={styles.errorText}>{error ?? "Booking not found"}</Text>
         <TouchableOpacity
           style={styles.errorBtn}
           onPress={() => router.replace("/(user)/my-bookings" as any)}
         >
-          <Text style={styles.errorBtnText}>My Bookings pe jao</Text>
+          <Text style={styles.errorBtnText}>Go to My Bookings</Text>
         </TouchableOpacity>
       </View>
     );

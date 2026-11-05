@@ -42,7 +42,7 @@ export default function PostActionsBar({
         <TouchableOpacity
           style={[styles.pill, liked && styles.pillLiked]}
           onPress={onLike}
-          accessibilityLabel={liked ? "Like hatao" : "Like karo"}
+          accessibilityLabel={liked ? "Unlike" : "Like"}
         >
           <MaterialCommunityIcons
             name={liked ? "heart" : "heart-outline"}
@@ -57,7 +57,7 @@ export default function PostActionsBar({
         <TouchableOpacity
           style={styles.pill}
           onPress={onComment}
-          accessibilityLabel="Comments dekho"
+          accessibilityLabel="View comments"
         >
           <MaterialCommunityIcons
             name="comment-outline"
@@ -70,7 +70,7 @@ export default function PostActionsBar({
         <TouchableOpacity
           style={styles.pill}
           onPress={onShare}
-          accessibilityLabel="Share karo"
+          accessibilityLabel="Share"
         >
           <MaterialCommunityIcons
             name="share-outline"

@@ -32,10 +32,12 @@ const OTP_LENGTH = 4;
 
 export default function OtpScreen() {
   const router = useRouter();
-  const { contact, debugOtp: debugOtpParam } = useLocalSearchParams<{
+  const { contact, debugOtp: debugOtpParam, remember: rememberParam } = useLocalSearchParams<{
     contact: string;
     debugOtp?: string;
+    remember?: string;
   }>();
+  const rememberMe = rememberParam !== "0";
 
   const [otp, setOtp] = useState("");
   const { verifyOtp, resendOtp, verifying, debugOtp: debugOtpFromResend } =
@@ -119,7 +121,7 @@ export default function OtpScreen() {
   const handleVerify = async () => {
     if (otp.length !== OTP_LENGTH || verifying) return;
     try {
-      await verifyOtp(contact, otp);
+      await verifyOtp(contact, otp, rememberMe);
     } catch {
       setOtp("");
       inputRef.current?.focus();

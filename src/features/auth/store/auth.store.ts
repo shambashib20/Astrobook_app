@@ -36,7 +36,7 @@ type AuthStore = {
   // dekh ke login pe bhejta hai. Normal logout pe ye true NAHI hota.
   sessionExpired: boolean;
 
-  loginSuccess: (data: AuthResult) => Promise<void>;
+  loginSuccess: (data: AuthResult, rememberMe?: boolean) => Promise<void>;
   updateUser: (updates: Partial<AuthUser>) => void;
   setLoading: (val: boolean) => void;
   logout: () => Promise<void>;
@@ -62,8 +62,10 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   isLoading: true,
   sessionExpired: false,
 
-  loginSuccess: async ({ accessToken, refreshToken, user, isNewUser }) => {
-    await tokenStorage.setTokens(accessToken, refreshToken);
+  loginSuccess: async ({ accessToken, refreshToken, user, isNewUser }, rememberMe = true) => {
+    if (rememberMe) {
+      await tokenStorage.setTokens(accessToken, refreshToken);
+    }
     set({
       isLoggedIn: true,
       isNewUser,

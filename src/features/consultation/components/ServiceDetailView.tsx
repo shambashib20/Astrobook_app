@@ -91,7 +91,7 @@ export function ServiceStateView({
             <Text style={styles.stateText}>{message}</Text>
             {onRetry ? (
               <TouchableOpacity style={styles.retryBtn} onPress={onRetry}>
-                <Text style={styles.retryText}>Dobara try karo</Text>
+                <Text style={styles.retryText}>Try Again</Text>
               </TouchableOpacity>
             ) : null}
           </>
@@ -189,7 +189,7 @@ export default function ServiceDetailView(p: ServiceDetailViewProps) {
           style={[styles.cartBtn, !canAct && styles.disabled]}
           disabled={!canAct}
           onPress={p.onAddToCart}
-          accessibilityLabel="Cart mein daalo"
+          accessibilityLabel="Add to cart"
         >
           {p.adding ? (
             <ActivityIndicator size="small" color={AstroColors.brand} />

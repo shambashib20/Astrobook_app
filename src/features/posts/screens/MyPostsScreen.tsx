@@ -48,7 +48,7 @@ export default function MyPostsScreen() {
 
   const confirmDelete = useCallback(
     (p: Post) =>
-      Alert.alert("Post delete karein?", "Ye wapas nahi aayega.", [
+      Alert.alert("Delete Post?", "This cannot be undone.", [
         { text: "Cancel", style: "cancel" },
         { text: "Delete", style: "destructive", onPress: () => list.deletePost(p.id) },
       ]),
@@ -122,7 +122,7 @@ export default function MyPostsScreen() {
           <Feather name="alert-circle" size={30} color={AstroColors.danger} />
           <Text style={styles.emptyText}>Posts load nahi hue</Text>
           <TouchableOpacity style={styles.retry} onPress={list.refresh}>
-            <Text style={styles.retryText}>Dobara try karo</Text>
+            <Text style={styles.retryText}>Try Again</Text>
           </TouchableOpacity>
         </View>
       ) : (

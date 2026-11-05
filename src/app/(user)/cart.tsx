@@ -59,7 +59,7 @@ export default function CartScreen() {
     if (!item.scheduledAt) {
       // Blocking Alert ki jagah — checkbox tap karte hi turant chhota nudge,
       // user "Select Slot" button already dekh raha hai isi card pe
-      toast.show("Pehle is item ka date/time select karo", "info");
+      toast.show("Please select a date and time for this item first", "info");
       return;
     }
     setSelectedIds((prev) => {
@@ -158,7 +158,7 @@ export default function CartScreen() {
         `${order.appointmentIds.length} consultation(s) confirm ho gayi hain.`,
         [
           {
-            text: "My Bookings dekho",
+            text: "View My Bookings",
             onPress: () => router.replace("/(user)/my-bookings" as any),
           },
         ],
@@ -238,7 +238,7 @@ export default function CartScreen() {
           {items.length === 0 ? (
             <View style={styles.emptyState}>
               <Feather name="shopping-cart" size={32} color="#D1D5DB" />
-              <Text style={styles.emptyText}>Tumhara cart khali hai</Text>
+              <Text style={styles.emptyText}>Your cart is empty</Text>
             </View>
           ) : (
             items.map((item) => {

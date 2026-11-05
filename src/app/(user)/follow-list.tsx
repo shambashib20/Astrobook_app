@@ -54,7 +54,7 @@ export default function FollowListScreen() {
           : await followsService.getFollowing(userId);
       setList(data);
     } catch (err: any) {
-      setError(err?.response?.data?.message || "List load nahi hui");
+      setError(err?.response?.data?.message || "Failed to load list");
     } finally {
       setLoading(false);
     }
@@ -132,8 +132,8 @@ export default function FollowListScreen() {
           <Text style={styles.emptyEmoji}>👥</Text>
           <Text style={styles.emptyText}>
             {activeTab === "followers"
-              ? "Abhi koi follower nahi hai"
-              : "Abhi kisi ko follow nahi kiya"}
+              ? "No followers yet"
+              : "Not following anyone yet"}
           </Text>
         </View>
       ) : (

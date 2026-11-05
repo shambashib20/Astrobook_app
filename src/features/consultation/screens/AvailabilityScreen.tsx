@@ -109,9 +109,9 @@ export default function AvailabilityScreen() {
     try {
       await removeRecurring.mutateAsync(r.id);
       await createRecurring.mutateAsync({ daysOfWeek: [r.dayOfWeek], startTime: newStart, endTime: newEnd });
-      toast.show("Slot update ho gaya", "success");
+      toast.show("Slot updated", "success");
     } catch {
-      toast.show("Slot update nahi hua, dobara try karo", "error");
+      toast.show("Failed to update slot. Please try again.", "error");
     }
   };
 
@@ -120,9 +120,9 @@ export default function AvailabilityScreen() {
     try {
       await remove.mutateAsync(w.id);
       await create.mutateAsync({ dates: [w.date], startTime: newStart, endTime: newEnd });
-      toast.show("Slot update ho gaya", "success");
+      toast.show("Slot updated", "success");
     } catch {
-      toast.show("Slot update nahi hua, dobara try karo", "error");
+      toast.show("Failed to update slot. Please try again.", "error");
     }
   };
 
@@ -131,12 +131,12 @@ export default function AvailabilityScreen() {
     const total = windows.length + recurringPatterns.length;
     if (total === 0) return;
     Alert.alert(
-      "Sab slots hatao?",
-      `${total} slot hat jaayenge — specific aur recurring dono. Yeh wapas nahi ayenge.`,
+      "Remove All Slots?",
+      `${total} slots will be removed — both specific and recurring. This cannot be undone.`,
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Sab hatao",
+          text: "Remove All",
           style: "destructive",
           onPress: async () => {
             try {
@@ -144,9 +144,9 @@ export default function AvailabilityScreen() {
                 ...windows.map((w) => remove.mutateAsync(w.id)),
                 ...recurringPatterns.map((r) => removeRecurring.mutateAsync(r.id)),
               ]);
-              toast.show("Sab slots hat gaye", "success");
+              toast.show("All slots removed", "success");
             } catch {
-              toast.show("Kuch slots nahi hataye, dobara try karo", "error");
+              toast.show("Some slots could not be removed. Please try again.", "error");
             }
           },
         },
@@ -157,16 +157,16 @@ export default function AvailabilityScreen() {
   // ── Delete handlers ──────────────────────────────────────────
   const confirmDeleteRecurring = (r: RecurringAvailability) =>
     Alert.alert(
-      "Recurring slot hataayein?",
-      `${DOW_LABEL[r.dayOfWeek]} · ${displayTime(r.startTime)} – ${displayTime(r.endTime)} — weekly schedule se hat jaayega.`,
+      "Remove Recurring Slot?",
+      `${DOW_LABEL[r.dayOfWeek]} · ${displayTime(r.startTime)} – ${displayTime(r.endTime)} will be removed from your weekly schedule.`,
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Hatao",
+          text: "Remove",
           style: "destructive",
           onPress: () =>
             removeRecurring.mutate(r.id, {
-              onError: () => toast.show("Slot hata nahi paaye, dobara try karo", "error"),
+              onError: () => toast.show("Failed to remove slot. Please try again.", "error"),
             }),
         },
       ],
@@ -174,16 +174,16 @@ export default function AvailabilityScreen() {
 
   const confirmDeleteOverride = (w: AvailabilityWindow) =>
     Alert.alert(
-      "Slot hataayein?",
-      `${displayTime(w.startTime ?? "")} – ${displayTime(w.endTime ?? "")} ka slot hat jaayega.`,
+      "Remove Slot?",
+      `The slot from ${displayTime(w.startTime ?? "")} – ${displayTime(w.endTime ?? "")} will be removed.`,
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Hatao",
+          text: "Remove",
           style: "destructive",
           onPress: () =>
             remove.mutate(w.id, {
-              onError: () => toast.show("Slot hata nahi paaye, dobara try karo", "error"),
+              onError: () => toast.show("Failed to remove slot. Please try again.", "error"),
             }),
         },
       ],
@@ -194,12 +194,12 @@ export default function AvailabilityScreen() {
     try {
       const { created, failed } = await create.mutateAsync({ dates, startTime, endTime });
       if (created > 0) {
-        toast.show(failed ? `${created} din ke slot ban gaye, ${failed} nahi bane` : "Slot add ho gaya", failed ? "error" : "success");
+        toast.show(failed ? `${created} slots added, ${failed} failed` : "Slot added", failed ? "error" : "success");
         return true;
       }
-      toast.show("Slot save nahi hua, dobara try karo", "error");
+      toast.show("Failed to save slot. Please try again.", "error");
     } catch {
-      toast.show("Slot save nahi hua, dobara try karo", "error");
+      toast.show("Failed to save slot. Please try again.", "error");
     }
     return false;
   };
@@ -209,14 +209,14 @@ export default function AvailabilityScreen() {
       const { created, failed } = await createRecurring.mutateAsync({ daysOfWeek, startTime, endTime });
       if (created > 0) {
         toast.show(
-          failed ? `${created} din ka recurring slot ban gaya, ${failed} nahi bana` : "Recurring slot add ho gaya",
+          failed ? `${created} recurring slots added, ${failed} failed` : "Recurring slot added",
           failed ? "error" : "success",
         );
         return true;
       }
-      toast.show("Recurring slot save nahi hua, dobara try karo", "error");
+      toast.show("Failed to save recurring slot. Please try again.", "error");
     } catch {
-      toast.show("Recurring slot save nahi hua, dobara try karo", "error");
+      toast.show("Failed to save recurring slot. Please try again.", "error");
     }
     return false;
   };
@@ -270,12 +270,12 @@ export default function AvailabilityScreen() {
               onPress={handleClearAll}
               style={styles.clearBtn}
               hitSlop={8}
-              accessibilityLabel="Sab slots hatao"
+              accessibilityLabel="Remove all slots"
             >
               <Feather name="trash-2" size={16} color={AstroColors.danger} />
             </TouchableOpacity>
           )}
-          <TouchableOpacity style={styles.addWrap} onPress={() => setSheetOpen(true)} activeOpacity={0.85} accessibilityLabel="Slot add karo">
+          <TouchableOpacity style={styles.addWrap} onPress={() => setSheetOpen(true)} activeOpacity={0.85} accessibilityLabel="Add slot">
             <LinearGradient colors={[AstroColors.brandLight, AstroColors.brandDark]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.add}>
               <Feather name="plus" size={16} color={AstroColors.onBrand} />
               <Text style={styles.addText}>Slot</Text>
@@ -306,8 +306,8 @@ export default function AvailabilityScreen() {
               <View style={[styles.emptyIcon, { backgroundColor: AstroColors.dangerTint }]}>
                 <Feather name="wifi-off" size={22} color={AstroColors.danger} />
               </View>
-              <Text style={styles.emptyTitle}>Availability load nahi hui</Text>
-              <Text style={styles.emptyText}>Internet check karke dobara try karo.</Text>
+              <Text style={styles.emptyTitle}>Failed to Load Availability</Text>
+              <Text style={styles.emptyText}>Please check your internet and try again.</Text>
               <TouchableOpacity style={styles.emptyBtn} onPress={() => refetch()}>
                 <Text style={styles.emptyBtnText}>Retry</Text>
               </TouchableOpacity>
@@ -317,12 +317,12 @@ export default function AvailabilityScreen() {
               <View style={styles.emptyIcon}>
                 <Feather name="calendar" size={22} color={AstroColors.brand} />
               </View>
-              <Text style={styles.emptyTitle}>Koi slot khula nahi hai</Text>
+              <Text style={styles.emptyTitle}>No Open Slots</Text>
               <Text style={styles.emptyText}>
-                Jin ghanton mein tum available ho wo add karo — users sirf unhi mein book kar paayenge.
+                Add the hours you're available — users can only book within those times.
               </Text>
               <TouchableOpacity style={styles.emptyBtn} onPress={() => setSheetOpen(true)}>
-                <Text style={styles.emptyBtnText}>Slot add karo</Text>
+                <Text style={styles.emptyBtnText}>Add Slot</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -331,7 +331,7 @@ export default function AvailabilityScreen() {
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                   <Feather name="clock" size={12} color={AstroColors.textMuted} />
-                  <Text style={styles.sectionTitle}>3 din ka nazar</Text>
+                  <Text style={styles.sectionTitle}>Next 3 Days</Text>
                 </View>
                 <View style={styles.quickRow}>
                   {quickDays.map(({ dateStr, label, dayLabel, dateNum, recurringSlots, overrideSlots, delta }) => {

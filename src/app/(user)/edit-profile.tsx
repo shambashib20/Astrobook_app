@@ -163,7 +163,7 @@ export default function EditProfileScreen() {
     if (url) {
       setAvatarUrl(url);
     } else {
-      Alert.alert("Error", "Photo upload nahi hui, dobara try karo");
+      Alert.alert("Error", "Failed to upload photo. Please try again.");
       setAvatarUrl(prevUrl);
     }
   };
@@ -192,7 +192,7 @@ export default function EditProfileScreen() {
     return false;
   })();
 
-  const nameError = nameTouched && !name.trim() ? "Naam zaroori hai" : null;
+  const nameError = nameTouched && !name.trim() ? "Name is required" : null;
   const canSave = isDirty && !nameError && name.trim().length > 0;
 
   const handleSave = async () => {
@@ -214,7 +214,7 @@ export default function EditProfileScreen() {
       <SafeAreaView style={styles.root} edges={["top"]}>
         <ScreenHeader
           title="Edit Profile"
-          subtitle="Apni details update karo"
+          subtitle="Update your details"
           fallbackHref="/(user)/profile"
         />
         <View style={styles.centerFill}>
@@ -228,7 +228,7 @@ export default function EditProfileScreen() {
     <SafeAreaView style={styles.root} edges={["top"]}>
       <ScreenHeader
         title="Edit Profile"
-        subtitle="Apni details update karo"
+        subtitle="Update your details"
         fallbackHref="/(user)/profile"
       />
 
@@ -268,10 +268,10 @@ export default function EditProfileScreen() {
 
           {/* ── Name ── */}
           <View style={styles.fieldBlock}>
-            <Text style={styles.fieldLabel}>NAAM</Text>
+            <Text style={styles.fieldLabel}>NAME</Text>
             <TextInput
               style={[styles.input, nameError ? styles.inputError : null]}
-              placeholder="Apna naam likho"
+              placeholder="Enter your name"
               placeholderTextColor="#9CA3AF"
               value={name}
               onChangeText={setName}
@@ -308,7 +308,7 @@ export default function EditProfileScreen() {
             </View>
             <TextInput
               style={[styles.input, styles.bioInput]}
-              placeholder="Apne baare mein kuch likho..."
+              placeholder="Tell us a bit about yourself..."
               placeholderTextColor="#9CA3AF"
               value={bio}
               onChangeText={setBio}
@@ -365,7 +365,7 @@ export default function EditProfileScreen() {
                       minute: "2-digit",
                       hour12: true,
                     })
-                  : "Janm ka samay chuno"}
+                  : "Select birth time"}
               </Text>
             </TouchableOpacity>
             {showTimePicker && (
@@ -386,7 +386,7 @@ export default function EditProfileScreen() {
             <Text style={styles.fieldLabel}>BIRTH PLACE</Text>
             <TextInput
               style={styles.input}
-              placeholder="Janm ka sheher, jaise Mumbai, Maharashtra"
+              placeholder="Birth city, e.g. Mumbai, Maharashtra"
               placeholderTextColor="#9CA3AF"
               value={birthPlace}
               onChangeText={setBirthPlace}

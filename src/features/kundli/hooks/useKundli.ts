@@ -45,7 +45,7 @@ export function useGenerateKundli(onSuccess?: () => void) {
       const msg =
         err?.response?.data?.message ||
         err?.response?.data?.error ||
-        "Kundli generate nahi hua — dobara try karo";
+        "Failed to generate Kundli — please try again";
       Alert.alert("Error", msg);
     },
   });
@@ -75,7 +75,7 @@ export function useKundliVisibility() {
       );
     },
     onError: (err: any) => {
-      const msg = err?.response?.data?.message || "Visibility update nahi hua";
+      const msg = err?.response?.data?.message || "Failed to update visibility";
       Alert.alert("Error", msg);
     },
   });

@@ -40,7 +40,7 @@ export default function HelpSupportScreen() {
     <SafeAreaView style={styles.root} edges={["top"]}>
       <ScreenHeader
         title="Help & Support"
-        subtitle="Hum madad ke liye yahin hain"
+        subtitle="We're here to help"
         fallbackHref="/(user)/(tabs)/profile"
       />
 
@@ -54,17 +54,17 @@ export default function HelpSupportScreen() {
             <Feather name="headphones" size={22} color="#9d0399" />
           </View>
           <View style={styles.heroText}>
-            <Text style={styles.heroTitle}>Kuch dikkat aa rahi hai?</Text>
+            <Text style={styles.heroTitle}>Having trouble?</Text>
             <Text style={styles.heroSub}>
               {hasContact
-                ? "Pehle neeche apna sawaal dhundo. Jawab na mile to humse seedha baat karo."
-                : "Neeche apna sawaal dhundo, zyadatar dikkatein yahin suljh jaati hain."}
+                ? "Browse the questions below first. If you can't find an answer, reach out to us directly."
+                : "Browse the questions below — most issues can be resolved here."}
             </Text>
           </View>
         </View>
 
         <View>
-          <Text style={styles.sectionLabel}>Aksar puche jaane wale sawaal</Text>
+          <Text style={styles.sectionLabel}>Frequently Asked Questions</Text>
           <View style={styles.card}>
             {FAQ_ITEMS.map((item, index) => {
               const open = openId === item.id;
@@ -102,7 +102,7 @@ export default function HelpSupportScreen() {
 
         {hasContact && (
           <View>
-            <Text style={styles.sectionLabel}>Jawab nahi mila?</Text>
+            <Text style={styles.sectionLabel}>Didn't find an answer?</Text>
             <View style={styles.card}>
               <Text style={styles.hours}>{hours}</Text>
 
@@ -113,9 +113,9 @@ export default function HelpSupportScreen() {
                   onPress={() =>
                     openLink(
                       `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
-                        "Hi Astrobook, mujhe help chahiye.",
+                        "Hi Astrobook, I need some help.",
                       )}`,
-                      "WhatsApp install hai ya nahi, check karo.",
+                      "Make sure WhatsApp is installed on your device.",
                     )
                   }
                 >

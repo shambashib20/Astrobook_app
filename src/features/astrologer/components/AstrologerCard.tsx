@@ -105,10 +105,10 @@ function AstrologerCardBase({
 
   const a11yLabel = [
     model.name,
-    model.isOnline ? "abhi available" : "offline",
+    model.isOnline ? "available now" : "offline",
     hasReviews({ totalReviews: model.totalReviews })
       ? `rating ${formatRating(model.rating)}, ${model.totalReviews} reviews`
-      : "naya astrologer",
+      : "new astrologer",
     model.startsAt,
   ]
     .filter(Boolean)

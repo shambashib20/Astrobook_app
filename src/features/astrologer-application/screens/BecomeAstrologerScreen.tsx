@@ -38,9 +38,9 @@ export default function BecomeAstrologerScreen() {
     if (f.busy) return;
     if (f.step === 2) return f.setStep(1);
     if (!f.isDirty) return exit();
-    Alert.alert("Application chhod rahe ho?", "Jo bhara hai wo save nahi hoga.", [
-      { text: "Bharte raho", style: "cancel" },
-      { text: "Chhodo", style: "destructive", onPress: exit },
+    Alert.alert("Discard Application?", "Your progress will not be saved.", [
+      { text: "Keep Editing", style: "cancel" },
+      { text: "Discard", style: "destructive", onPress: exit },
     ]);
   };
 
@@ -53,13 +53,13 @@ export default function BecomeAstrologerScreen() {
               <Feather name="check" size={34} color={AstroColors.successDark} />
             </View>
           </View>
-          <Text style={styles.doneTitle}>Application bhej di</Text>
+          <Text style={styles.doneTitle}>Application Submitted</Text>
           <Text style={styles.doneText}>
-            Humari team tumhari details review karegi. Verify hote hi tumhe update milega.
+            Our team will review your details. You'll get an update once verified.
           </Text>
           <TouchableOpacity style={styles.doneBtn} onPress={exit} activeOpacity={0.85}>
             <LinearGradient colors={[AstroColors.brandLight, AstroColors.brand]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.doneBtnIn}>
-              <Text style={styles.doneBtnText}>Profile pe jao</Text>
+              <Text style={styles.doneBtnText}>Go to Profile</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -77,14 +77,14 @@ export default function BecomeAstrologerScreen() {
     <SafeAreaView style={styles.root} edges={["top"]}>
       {/* Top bar — action hamesha upar (keyboard/scroll se kabhi nahi chhupta) */}
       <View style={styles.bar}>
-        <TouchableOpacity style={styles.barBtn} onPress={back} accessibilityLabel="Wapas jao">
+        <TouchableOpacity style={styles.barBtn} onPress={back} accessibilityLabel="Go back">
           <Feather name={f.step === 2 ? "arrow-left" : "x"} size={22} color={AstroColors.ink} />
         </TouchableOpacity>
         <View style={styles.barMid}>
-          <Text style={styles.barTitle}>Astrologer bano</Text>
-          <Text style={styles.barSub}>Step {f.step}/2 · {f.step === 1 ? "Tumhare baare mein" : "Verification"}</Text>
+          <Text style={styles.barTitle}>Become an Astrologer</Text>
+          <Text style={styles.barSub}>Step {f.step}/2 · {f.step === 1 ? "About You" : "Verification"}</Text>
         </View>
-        <TouchableOpacity disabled={!canNext} onPress={onNext} activeOpacity={0.85} accessibilityLabel={f.step === 1 ? "Aage" : "Submit"}>
+        <TouchableOpacity disabled={!canNext} onPress={onNext} activeOpacity={0.85} accessibilityLabel={f.step === 1 ? "Next" : "Submit"}>
           <LinearGradient
             colors={canNext ? [AstroColors.brandLight, AstroColors.brandDark] : [AstroColors.offline, AstroColors.offline]}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
@@ -93,7 +93,7 @@ export default function BecomeAstrologerScreen() {
             {f.busy && f.step === 2 ? (
               <ActivityIndicator size="small" color={AstroColors.onBrand} />
             ) : (
-              <Text style={styles.nextText}>{f.step === 1 ? "Aage" : "Submit"}</Text>
+              <Text style={styles.nextText}>{f.step === 1 ? "Next" : "Submit"}</Text>
             )}
           </LinearGradient>
         </TouchableOpacity>
@@ -110,12 +110,12 @@ export default function BecomeAstrologerScreen() {
         {f.step === 1 ? (
           <>
             <Text style={styles.intro}>
-              Thodi si jaankari do — humari team review karke tumhe astrologer ke taur pe verify karegi.
+              Share a little about yourself — our team will review and verify you as an astrologer.
             </Text>
 
             <View>
               <View style={styles.labelRow}>
-                <Text style={styles.label}>Apne baare mein</Text>
+                <Text style={styles.label}>About You</Text>
                 <Text style={[styles.counter, bioShort && styles.counterWarn]}>
                   {f.bio.trim().length}/1000
                 </Text>
@@ -124,13 +124,13 @@ export default function BecomeAstrologerScreen() {
                 style={[styles.input, styles.multi]}
                 value={f.bio}
                 onChangeText={f.setBio}
-                placeholder="Tumhara experience, style, aur khaasiyat…"
+                placeholder="Your experience, style, and specialties…"
                 placeholderTextColor={AstroColors.textMuted}
                 multiline
                 maxLength={1000}
                 textAlignVertical="top"
               />
-              {bioShort || E.bio ? <Text style={styles.warn}>{E.bio ?? `Kam se kam ${MIN_BIO} akshar likho`}</Text> : null}
+              {bioShort || E.bio ? <Text style={styles.warn}>{E.bio ?? `Minimum ${MIN_BIO} characters required`}</Text> : null}
             </View>
 
             <View>
@@ -145,7 +145,7 @@ export default function BecomeAstrologerScreen() {
                   keyboardType="number-pad"
                   maxLength={2}
                 />
-                <Text style={styles.expSuffix}>saal</Text>
+                <Text style={styles.expSuffix}>years</Text>
               </View>
               {E.experience ? <Text style={styles.warn}>{E.experience}</Text> : null}
             </View>
@@ -153,7 +153,7 @@ export default function BecomeAstrologerScreen() {
             <View>
               <View style={styles.labelRow}>
                 <Text style={styles.label}>Languages</Text>
-                {f.languages.length ? <Text style={styles.counter}>{f.languages.length} chuni</Text> : null}
+                {f.languages.length ? <Text style={styles.counter}>{f.languages.length} selected</Text> : null}
               </View>
               <View style={styles.chips}>
                 {LANGUAGE_OPTIONS.map((l) => (
@@ -165,16 +165,16 @@ export default function BecomeAstrologerScreen() {
 
             <View>
               <View style={styles.labelRow}>
-                <Text style={styles.label}>Kis mein expert ho?</Text>
-                {f.specs.length ? <Text style={styles.counter}>{f.specs.length} chuni</Text> : null}
+                <Text style={styles.label}>Areas of Expertise</Text>
+                {f.specs.length ? <Text style={styles.counter}>{f.specs.length} selected</Text> : null}
               </View>
               {f.catLoading && f.categories.length === 0 ? (
                 <ActivityIndicator color={AstroColors.brand} style={{ marginVertical: 12 }} />
               ) : f.categories.length === 0 ? (
                 <View style={styles.retry}>
-                  <Text style={styles.hint}>{f.catError ?? "Categories load nahi hui"}</Text>
+                  <Text style={styles.hint}>{f.catError ?? "Failed to load categories"}</Text>
                   <TouchableOpacity style={styles.retryBtn} onPress={f.fetchCategories}>
-                    <Text style={styles.retryText}>Dobara try karo</Text>
+                    <Text style={styles.retryText}>Try Again</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -190,7 +190,7 @@ export default function BecomeAstrologerScreen() {
         ) : (
           <>
             <Text style={styles.intro}>
-              Verification ke liye ek chhota intro video aur do documents chahiye.
+              We need a short intro video and two documents for verification.
             </Text>
 
             <View>
@@ -198,9 +198,9 @@ export default function BecomeAstrologerScreen() {
               <MediaPickCard
                 wide
                 icon="video"
-                title="Video upload karo"
-                hint={`Max ${MAX_VIDEO_SEC} sec · ${MAX_VIDEO_MB}MB tak`}
-                pickedLabel={f.video ? `Video chuna gaya · ${f.video.duration}s` : undefined}
+                title="Upload Intro Video"
+                hint={`Max ${MAX_VIDEO_SEC} sec · Up to ${MAX_VIDEO_MB}MB`}
+                pickedLabel={f.video ? `Video selected · ${f.video.duration}s` : undefined}
                 loading={f.picking}
                 disabled={f.busy}
                 onPick={f.pickVideo}
@@ -215,7 +215,7 @@ export default function BecomeAstrologerScreen() {
                 <MediaPickCard
                   icon="credit-card"
                   title="ID proof"
-                  hint="Aadhaar, PAN…"
+                  hint="Aadhaar, PAN, etc."
                   imageUri={f.doc1?.uri}
                   disabled={f.busy}
                   onPick={() => f.pickDoc(1)}
@@ -224,7 +224,7 @@ export default function BecomeAstrologerScreen() {
                 <MediaPickCard
                   icon="award"
                   title="Certificate"
-                  hint="Course ya experience"
+                  hint="Course or experience proof"
                   imageUri={f.doc2?.uri}
                   disabled={f.busy}
                   onPick={() => f.pickDoc(2)}
@@ -237,7 +237,7 @@ export default function BecomeAstrologerScreen() {
             {f.uploading ? (
               <View style={styles.uploading}>
                 <ActivityIndicator size="small" color={AstroColors.brand} />
-                <Text style={styles.uploadingText}>Upload ho raha hai… {f.progress}%</Text>
+                <Text style={styles.uploadingText}>Uploading… {f.progress}%</Text>
               </View>
             ) : null}
           </>

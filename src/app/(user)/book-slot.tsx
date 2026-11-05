@@ -185,7 +185,7 @@ export default function BookSlotScreen() {
     if (!acquired) {
       // Koi aur pehle se dekh raha hai — refresh karke latest state dikhao
       if (selectedDate) fetchSlots(selectedDate);
-      toast.show("Yeh slot abhi koi aur dekh raha hai, doosra try karo", "error");
+      toast.show("This slot is currently being viewed by someone else. Please try another.", "error");
       return;
     }
 
@@ -339,7 +339,7 @@ export default function BookSlotScreen() {
             <ActivityIndicator color="#9d0399" style={{ marginTop: 8 }} />
           ) : availableDates.length === 0 ? (
             <Text style={styles.noDatesText}>
-              Is astrologer ne abhi koi availability set nahi ki hai
+              This astrologer has not set any availability yet
             </Text>
           ) : (
             <ScrollView

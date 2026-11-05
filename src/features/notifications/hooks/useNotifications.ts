@@ -20,7 +20,7 @@ export function useNotifications() {
       const data = await notificationsService.getList();
       setNotifications(data);
     } catch {
-      setError("Notifications load nahi hui");
+      setError("Failed to load notifications");
     } finally {
       setLoading(false);
       setRefreshing(false);

@@ -48,7 +48,7 @@ export default function CommentsSheet({
     } catch (err: any) {
       Alert.alert(
         "Error",
-        err?.response?.data?.message || "Comment nahi ho paya",
+        err?.response?.data?.message || "Failed to post comment",
       );
       return false;
     }
@@ -59,7 +59,7 @@ export default function CommentsSheet({
       onError: (err: any) =>
         Alert.alert(
           "Error",
-          err?.response?.data?.message || "Comment hata nahi",
+          err?.response?.data?.message || "Failed to remove comment",
         ),
     });
 
@@ -110,7 +110,7 @@ export default function CommentsSheet({
                   />
                   <Text style={styles.emptyText}>Comments load nahi hue</Text>
                   <Text style={styles.retry} onPress={() => refetch()}>
-                    Dobara try karo
+                    Try Again
                   </Text>
                 </View>
               ) : (

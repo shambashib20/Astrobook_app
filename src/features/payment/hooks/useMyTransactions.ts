@@ -15,7 +15,7 @@ export function useMyTransactions() {
     loading: q.isLoading,
     refreshing: q.isRefetching,
     error: q.isError
-      ? ((q.error as any)?.response?.data?.message ?? "Transactions load nahi hui")
+      ? ((q.error as any)?.response?.data?.message ?? "Failed to load transactions")
       : null,
     refetch: q.refetch,
   };

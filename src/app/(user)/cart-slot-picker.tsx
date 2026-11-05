@@ -85,7 +85,7 @@ export default function CartSlotPickerScreen() {
       // kar sake (router.back() sirf success pe hota hai).
       console.log("cart setSlot error:", err?.response?.data ?? err?.message);
       toast.show(
-        err?.response?.data?.message || "Slot save nahi hua — dobara try karo",
+        err?.response?.data?.message || "Failed to save slot — please try again",
         "error",
       );
     } finally {
@@ -103,7 +103,7 @@ export default function CartSlotPickerScreen() {
             <ActivityIndicator color="#9d0399" style={{ marginTop: 8 }} />
           ) : availableDates.length === 0 ? (
             <Text style={styles.noDatesText}>
-              Is astrologer ne abhi koi availability set nahi ki hai
+              This astrologer has not set any availability yet
             </Text>
           ) : (
             <ScrollView
@@ -143,7 +143,7 @@ export default function CartSlotPickerScreen() {
             {slotsLoading ? (
               <ActivityIndicator color="#9d0399" style={{ marginTop: 8 }} />
             ) : slots.length === 0 ? (
-              <Text style={styles.noDatesText}>Is din koi slot available nahi hai</Text>
+              <Text style={styles.noDatesText}>No slots available on this day</Text>
             ) : (
               <View style={styles.slotsGrid}>
                 {slots.map((slot) => {

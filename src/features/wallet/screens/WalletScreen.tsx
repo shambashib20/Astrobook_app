@@ -44,7 +44,7 @@ function BalanceCard({ balance, loading }: { balance: string; loading: boolean }
         <Text style={styles.balanceAmount}>₹{parseFloat(balance || '0').toFixed(2)}</Text>
       )}
       <Text style={styles.balanceNote}>
-        Wallet credits sirf AstroBook bookings mein use ho sakte hain
+        Wallet credits can only be used for AstroBook bookings
       </Text>
     </View>
   )
@@ -108,7 +108,7 @@ export default function WalletScreen() {
           ) : transactions.length === 0 ? (
             <View style={styles.emptyWrap}>
               <Feather name="inbox" size={32} color={AstroColors.border} />
-              <Text style={styles.emptyText}>Abhi koi transaction nahi</Text>
+              <Text style={styles.emptyText}>No transactions yet</Text>
             </View>
           ) : (
             transactions.map((tx) => <TxRow key={tx.id} tx={tx} />)

@@ -51,7 +51,7 @@ export function useMyPostsList() {
       );
       qc.invalidateQueries({ queryKey: queryKeys.posts.feed });
     },
-    onError: () => Alert.alert("Error", "Post delete nahi hua"),
+    onError: () => Alert.alert("Error", "Failed to delete post"),
   });
 
   return {

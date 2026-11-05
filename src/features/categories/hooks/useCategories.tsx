@@ -16,7 +16,7 @@ export function useCategories() {
       setFilters(data.filters);
       setCategories(data.categories);
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Categories load nahi hui");
+      setError(err?.response?.data?.message || "Failed to load categories");
     } finally {
       setLoading(false);
     }

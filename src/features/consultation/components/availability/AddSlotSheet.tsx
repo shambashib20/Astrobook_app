@@ -93,8 +93,8 @@ export default function AddSlotSheet({ visible, existing, saving, savingRecurrin
       if (problem) { setError(problem); return; }
       if (await onSubmit(dates, startStr, endStr)) onClose();
     } else {
-      if (selectedDays.length === 0) { setError("Kam se kam ek din chuno"); return; }
-      if (timeToMinutes(startStr) >= timeToMinutes(endStr)) { setError("Khatam hone ka time shuru ke baad hona chahiye"); return; }
+      if (selectedDays.length === 0) { setError("Select at least one day"); return; }
+      if (timeToMinutes(startStr) >= timeToMinutes(endStr)) { setError("End time must be after start time"); return; }
       if (await onSubmitRecurring(selectedDays, startStr, endStr)) onClose();
     }
   };
@@ -111,9 +111,9 @@ export default function AddSlotSheet({ visible, existing, saving, savingRecurrin
     }
   };
 
-  const specificSummary = dates.length > 0 && dur ? `${dates.length} din · ${dur} har din` : null;
+  const specificSummary = dates.length > 0 && dur ? `${dates.length} day${dates.length !== 1 ? "s" : ""} · ${dur} each` : null;
   const recurringSummary = selectedDays.length > 0 && dur
-    ? `${selectedDays.length} din · ${dur} har hafte`
+    ? `${selectedDays.length} day${selectedDays.length !== 1 ? "s" : ""} · ${dur} every week`
     : null;
 
   const switchTab = (t: Tab) => {
@@ -123,16 +123,16 @@ export default function AddSlotSheet({ visible, existing, saving, savingRecurrin
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose} statusBarTranslucent>
-      <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel="Band karo" />
+      <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel="Close" />
       <View style={[styles.sheet, { paddingBottom: insets.bottom + 20 }]}>
         <View style={styles.grab} />
 
         {/* Header bar */}
         <View style={styles.bar}>
-          <TouchableOpacity style={styles.barBtn} onPress={onClose} accessibilityLabel="Band karo">
+          <TouchableOpacity style={styles.barBtn} onPress={onClose} accessibilityLabel="Close">
             <Feather name="x" size={22} color={AstroColors.ink} />
           </TouchableOpacity>
-          <Text style={styles.barTitle}>Slot add karo</Text>
+          <Text style={styles.barTitle}>Add Slot</Text>
           <TouchableOpacity onPress={save} disabled={isBusy} activeOpacity={0.85} accessibilityLabel="Save">
             <LinearGradient colors={[AstroColors.brandLight, AstroColors.brandDark]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.save}>
               {isBusy ? <ActivityIndicator size="small" color={AstroColors.onBrand} /> : <Text style={styles.saveText}>Save</Text>}
@@ -179,7 +179,7 @@ export default function AddSlotSheet({ visible, existing, saving, savingRecurrin
             </>
           ) : (
             <>
-              <Text style={styles.label}>Kaunse din? (har hafte)</Text>
+              <Text style={styles.label}>Which days? (every week)</Text>
               <View style={styles.dowRow}>
                 {DOW_CHIPS.map(({ label, day }) => (
                   <TouchableOpacity

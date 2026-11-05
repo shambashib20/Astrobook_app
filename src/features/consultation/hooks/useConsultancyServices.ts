@@ -30,8 +30,8 @@ export function useMyServices() {
       );
       const msg =
         err?.response?.status === 403
-          ? "Astrologer permission nahi hai (role check fail) — DB mein role='astrologer' hai ya nahi check karo"
-          : err?.response?.data?.message || "Services load nahi hui";
+          ? "Astrologer permission denied (role check failed) — verify that role='astrologer' is set in the DB"
+          : err?.response?.data?.message || "Failed to load services";
       Alert.alert("Error", msg);
     } finally {
       setLoading(false);
@@ -47,7 +47,7 @@ export function useMyServices() {
       // Basic consultancy delete nahi ho sakti — backend BadRequestError deta hai
       Alert.alert(
         "Error",
-        err?.response?.data?.message || "Service delete nahi hui",
+        err?.response?.data?.message || "Failed to delete service",
       );
     }
   };
@@ -69,15 +69,15 @@ export function useCreateService(
       !dto.shortDescription.trim() ||
       !dto.about.trim()
     ) {
-      Alert.alert("Required", "Title, description aur about zaroori hai");
+      Alert.alert("Required", "Title, description, and about are required");
       return;
     }
     if (!dto.coverImage) {
-      Alert.alert("Required", "Cover image upload karo");
+      Alert.alert("Required", "Please upload a cover image");
       return;
     }
     if (!dto.tags || dto.tags.length === 0) {
-      Alert.alert("Required", "Kam se kam ek tag/category select karo");
+      Alert.alert("Required", "Select at least one tag or category");
       return;
     }
     try {
@@ -89,7 +89,7 @@ export function useCreateService(
       const msg =
         err?.response?.data?.message ||
         err?.response?.data?.error?.[0]?.message ||
-        "Service create nahi hui";
+        "Failed to create service";
       Alert.alert("Error", msg);
     } finally {
       setLoading(false);
@@ -118,7 +118,7 @@ export function useUpdateService(
       const msg =
         err?.response?.data?.message ||
         err?.response?.data?.error?.[0]?.message ||
-        "Service update nahi hui";
+        "Failed to update service";
       Alert.alert("Error", msg);
     } finally {
       setLoading(false);
@@ -183,7 +183,7 @@ export function useUpdateServiceVariant(
       const msg =
         err?.response?.data?.message ||
         err?.response?.data?.error?.[0]?.message ||
-        "Price update nahi hua";
+        "Failed to update price";
       Alert.alert("Error", msg);
     } finally {
       setLoading(false);

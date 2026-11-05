@@ -217,7 +217,7 @@ export function usePostComposer(onPublished: () => void, editing?: Post) {
       invalidate(editing.id);
       onPublished();
     } catch (err: any) {
-      Alert.alert("Error", err?.response?.data?.message || "Post save nahi hua");
+      Alert.alert("Error", err?.response?.data?.message || "Failed to save post");
     } finally {
       setSaving(false);
     }

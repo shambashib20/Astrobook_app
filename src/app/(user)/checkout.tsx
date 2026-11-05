@@ -355,7 +355,7 @@ export default function CheckoutScreen() {
             <Text style={styles.policyTitle}>Cancellation Policy</Text>
           </View>
           <Text style={styles.policyText}>
-            • Booking cancel karne ke liye "My Bookings" mein jaake cancel karo.
+            • To cancel a booking, go to "My Bookings" and select cancel.
           </Text>
         </View>
 

@@ -50,7 +50,7 @@ export function AstrologerProfileView() {
         <ProfileCtaCard
           icon="bar-chart-2"
           title="Go to Dashboard"
-          subtitle="Services, sessions aur earnings"
+          subtitle="Services, sessions and earnings"
           onPress={() => router.push("/(astrologer)/dashboard" as any)}
         />
 

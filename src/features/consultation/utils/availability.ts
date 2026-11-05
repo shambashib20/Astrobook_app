@@ -121,11 +121,11 @@ export function validateSlot(
   existing: AvailabilityWindow[],
   now = new Date(),
 ): string | null {
-  if (dates.length === 0) return "Kam se kam ek din chuno";
-  if (timeToMinutes(start) >= timeToMinutes(end)) return "Khatam hone ka time shuru ke baad hona chahiye";
+  if (dates.length === 0) return "Select at least one day";
+  if (timeToMinutes(start) >= timeToMinutes(end)) return "End time must be after start time";
   const today = toApiDate(now);
   if (dates.includes(today) && timeToMinutes(start) <= now.getHours() * 60 + now.getMinutes()) {
-    return "Aaj ka jo time nikal chuka hai, uska slot nahi ban sakta";
+    return "Cannot create a slot for a time that has already passed today";
   }
   for (const date of [...dates].sort()) {
     const clash = existing.find(
@@ -137,7 +137,7 @@ export function validateSlot(
         rangesOverlap(start, end, w.startTime, w.endTime),
     );
     if (clash) {
-      return `${dayTitle(date, now)} ko ${displayTime(clash.startTime ?? "")} – ${displayTime(clash.endTime ?? "")} ka slot pehle se hai`;
+      return `A slot already exists on ${dayTitle(date, now)} from ${displayTime(clash.startTime ?? "")} – ${displayTime(clash.endTime ?? "")}`;
     }
   }
   return null;

@@ -92,12 +92,12 @@ export default function FavoritesScreen() {
         <Feather name="heart" size={30} color="#9d0399" />
       </View>
       <Text style={styles.emptyTitle}>
-        {tab === "astrologer" ? "Abhi koi astrologer save nahi hai" : "Abhi kuch favourite nahi hai"}
+        {tab === "astrologer" ? "No saved astrologers yet" : "No favourites yet"}
       </Text>
       <Text style={styles.emptyText}>
         {tab === "astrologer"
-          ? "Astrologer ke card pe heart dabao, wo yahin jama ho jayega — baad me dhundhna nahi padega."
-          : "Koi consultation pasand aaye to uspe heart dabao, wo yahin jama ho jaayegi."}
+          ? "Tap the heart on any astrologer's card to save them here for easy access later."
+          : "Tap the heart on any consultation to save it here."}
       </Text>
     </View>
   );
@@ -115,7 +115,7 @@ export default function FavoritesScreen() {
     <SafeAreaView style={styles.root} edges={["top"]}>
       <ScreenHeader
         title="Favourites"
-        subtitle="Jo aapko pasand aaya"
+        subtitle="Things you've saved"
         fallbackHref="/(user)/(tabs)/feed"
       />
 
@@ -147,7 +147,7 @@ export default function FavoritesScreen() {
         <View style={styles.center}>
           <Text style={styles.emptyText}>Favourites load nahi hue</Text>
           <TouchableOpacity style={styles.retryBtn} onPress={() => active.refetch()}>
-            <Text style={styles.retryText}>Dobara try karo</Text>
+            <Text style={styles.retryText}>Try Again</Text>
           </TouchableOpacity>
         </View>
       ) : tab === "astrologer" ? (

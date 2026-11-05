@@ -30,7 +30,7 @@ export function useAstrologersList(
     isSwitching: query.isPlaceholderData && query.isFetching,
     refreshing: query.isRefetching && !query.isPlaceholderData,
     error: query.isError
-      ? ((query.error as any)?.response?.data?.message ?? "Astrologers load nahi hue")
+      ? ((query.error as any)?.response?.data?.message ?? "Failed to load astrologers")
       : null,
     refetch: query.refetch,
   };

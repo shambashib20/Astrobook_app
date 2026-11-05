@@ -85,7 +85,7 @@ export default function AstrologersListScreen() {
   const loading = showingSaved ? saved.isLoading : list.loading;
   const error = showingSaved
     ? saved.isError
-      ? "Saved astrologers load nahi hue"
+      ? "Failed to load saved astrologers"
       : null
     : list.error;
   const refreshing = showingSaved ? saved.isRefetching : list.refreshing;
@@ -99,9 +99,9 @@ export default function AstrologersListScreen() {
   }, []);
 
   const subtitle = showingSaved
-    ? "Aapke saved astrologers"
+    ? "Your saved astrologers"
     : loading
-      ? "Astrologers dhundh rahe hain…"
+      ? "Finding astrologers…"
       : `${data.length} ${data.length === 1 ? "astrologer" : "astrologers"}`;
 
   const empty = (() => {
@@ -110,22 +110,22 @@ export default function AstrologersListScreen() {
         icon: "alert-circle-outline" as const,
         title: error,
         hint: null,
-        action: { label: "Dobara try karo", onPress: onRefresh },
+        action: { label: "Try Again", onPress: onRefresh },
       };
     }
     if (showingSaved && savedAstrologers.length === 0) {
       return {
         icon: "heart-outline" as const,
-        title: "Abhi koi saved astrologer nahi",
-        hint: "Kisi astrologer ke card pe heart dabao, wo yahan jama ho jayega — baad me dhundhna nahi padega.",
+        title: "No Saved Astrologers Yet",
+        hint: "Tap the heart on any astrologer's card to save them here for easy access later.",
         action: null,
       };
     }
     return {
       icon: "search-outline" as const,
-      title: "Koi astrologer nahi mila",
-      hint: filtersActive || showingSaved ? "Filter ya search badalkar dekho." : null,
-      action: filtersActive || showingSaved ? { label: "Filters hatao", onPress: clearAll } : null,
+      title: "No Astrologers Found",
+      hint: filtersActive || showingSaved ? "Try changing your filters or search." : null,
+      action: filtersActive || showingSaved ? { label: "Clear Filters", onPress: clearAll } : null,
     };
   })();
 
@@ -156,7 +156,7 @@ export default function AstrologersListScreen() {
               onPress={() => setSearch("")}
               hitSlop={10}
               accessibilityRole="button"
-              accessibilityLabel="Search saaf karo"
+              accessibilityLabel="Clear search"
             >
               <Ionicons name="close-circle" size={18} color={AstroColors.brand} />
             </TouchableOpacity>

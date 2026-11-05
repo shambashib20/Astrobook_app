@@ -52,7 +52,7 @@ function CancelledByChip({ cancelledBy }: { cancelledBy?: "user" | "astrologer" 
         color={byAstrologer ? AstroColors.danger : AstroColors.textSecondary}
       />
       <Text style={[styles.chipText, byAstrologer ? styles.chipTextAstrologer : styles.chipTextUser]}>
-        {byAstrologer ? "Astrologer ne cancel kiya" : "User ne cancel kiya"}
+        {byAstrologer ? "Cancelled by astrologer" : "Cancelled by user"}
       </Text>
     </View>
   );
@@ -128,7 +128,7 @@ function SessionCard({ item }: { item: AppointmentDetailed }) {
       {canJoin && (
         <View style={styles.joinRow}>
           <Feather name="video" size={13} color="#FFF" />
-          <Text style={styles.joinText}>Session join karo</Text>
+          <Text style={styles.joinText}>Join Session</Text>
           <Feather name="arrow-right" size={13} color="#FFF" />
         </View>
       )}
@@ -148,7 +148,7 @@ export default function AstrologerSessionsScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={["top"]}>
-      <ScreenHeader title="Sessions" subtitle="Apni saari bookings ek jagah" />
+      <ScreenHeader title="Sessions" subtitle="All your bookings in one place" />
 
       {/* Tabs */}
       <View style={styles.tabBar}>
@@ -204,7 +204,7 @@ export default function AstrologerSessionsScreen() {
               <View style={styles.emptyIcon}>
                 <Feather name="inbox" size={22} color={AstroColors.brand} />
               </View>
-              <Text style={styles.emptyTitle}>Kuch nahi mila</Text>
+              <Text style={styles.emptyTitle}>Nothing here yet</Text>
               <Text style={styles.emptyText}>
                 Is tab mein abhi koi session nahi hai.
               </Text>

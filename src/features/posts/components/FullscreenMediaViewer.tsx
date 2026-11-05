@@ -315,7 +315,7 @@ function FullscreenVideo({
             style={styles.muteBtn}
             onPress={() => setMuted((m) => !m)}
             hitSlop={8}
-            accessibilityLabel={muted ? "Awaaz chalu karo" : "Awaaz band karo"}
+            accessibilityLabel={muted ? "Unmute" : "Mute"}
           >
             <Feather
               name={muted ? "volume-x" : "volume-2"}

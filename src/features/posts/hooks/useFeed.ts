@@ -78,7 +78,7 @@ export function useFeedPosts() {
     loadingMore: query.isFetchingNextPage,
     hasMore: query.hasNextPage ?? false,
     error: query.isError
-      ? ((query.error as any)?.response?.data?.message ?? "Feed load nahi hua")
+      ? ((query.error as any)?.response?.data?.message ?? "Failed to load feed")
       : null,
     fetchFeed,
     loadMore,
@@ -113,7 +113,7 @@ export function useCategoryPosts(tag: string | undefined) {
       setHasMore(more);
       offsetRef.current = data.length;
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Posts load nahi hue");
+      setError(err?.response?.data?.message || "Failed to load posts");
     } finally {
       setLoading(false);
     }
@@ -161,7 +161,7 @@ export function useAstrologerPosts(astrologerId: string | undefined) {
       const data = await postsService.getByAstrologer(astrologerId);
       setPosts(data);
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Posts load nahi hue");
+      setError(err?.response?.data?.message || "Failed to load posts");
     } finally {
       setLoading(false);
     }
@@ -197,7 +197,7 @@ export function usePost(id: string | undefined) {
       const enrichedRelated = enrichWithAstrologers(related);
       setRelatedPosts(enrichedRelated);
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Post load nahi hua");
+      setError(err?.response?.data?.message || "Failed to load post");
     } finally {
       setLoading(false);
     }

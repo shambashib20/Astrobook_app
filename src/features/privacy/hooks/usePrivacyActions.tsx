@@ -20,8 +20,8 @@ export function usePrivacyActions() {
     } catch (err: any) {
       setBusy(null);
       Alert.alert(
-        "Logout nahi ho paya",
-        err?.response?.data?.message || "Thodi der baad dobara try karo.",
+        "Logout failed",
+        err?.response?.data?.message || "Please try again in a moment.",
       );
       return;
     }
@@ -35,8 +35,8 @@ export function usePrivacyActions() {
     } catch (err: any) {
       setBusy(null);
       Alert.alert(
-        "Account delete nahi ho paya",
-        err?.response?.data?.message || "Thodi der baad dobara try karo.",
+        "Account deletion failed",
+        err?.response?.data?.message || "Please try again in a moment.",
       );
       return;
     }

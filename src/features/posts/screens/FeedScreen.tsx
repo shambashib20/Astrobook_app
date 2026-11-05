@@ -22,7 +22,9 @@ import {
   type ViewToken,
 } from "react-native";
 import CommentsSheet from "../components/CommentsSheet";
-import FeedPostCard, { type FeedCardHandlers } from "../components/FeedPostCard";
+import FeedPostCard, {
+  type FeedCardHandlers,
+} from "../components/FeedPostCard";
 import FeedSkeleton from "../components/FeedSkeleton";
 import PostComposer from "../components/PostComposer";
 import { useFeedPosts } from "../hooks/useFeed";
@@ -37,8 +39,17 @@ export default function FeedScreen() {
   const user = useUser();
   const { toggleLike } = useLikePost();
   const { toggleFollow } = useToggleFollow();
-  const { posts, loading, refreshing, loadingMore, hasMore, error, fetchFeed, loadMore, updatePost } =
-    useFeedPosts();
+  const {
+    posts,
+    loading,
+    refreshing,
+    loadingMore,
+    hasMore,
+    error,
+    fetchFeed,
+    loadMore,
+    updatePost,
+  } = useFeedPosts();
 
   const [visibleVideoId, setVisibleVideoId] = useState<string | null>(null);
   // Screen focus track — navigate away hone par sab videos pause ho jayein
@@ -62,9 +73,16 @@ export default function FeedScreen() {
     () => ({
       onLike: (p) => latest.current.toggleLike(p, latest.current.updatePost),
       onFollow: (p) =>
-        latest.current.toggleFollow(p.astrologerId, p, latest.current.updatePost),
+        latest.current.toggleFollow(
+          p.astrologerId,
+          p,
+          latest.current.updatePost,
+        ),
       onOpenPost: (p) =>
-        router.push({ pathname: "/(user)/post/[id]" as any, params: { id: p.id } }),
+        router.push({
+          pathname: "/(user)/post/[id]" as any,
+          params: { id: p.id },
+        }),
       onOpenAuthor: (p) =>
         router.push({
           pathname: "/(user)/astrologer-profile" as any,
@@ -153,14 +171,17 @@ export default function FeedScreen() {
         <View style={styles.center}>
           <Feather name="alert-circle" size={30} color={AstroColors.danger} />
           <Text style={styles.emptyText}>{error}</Text>
-          <TouchableOpacity style={styles.retry} onPress={() => fetchFeed(true)}>
-            <Text style={styles.retryText}>Dobara try karo</Text>
+          <TouchableOpacity
+            style={styles.retry}
+            onPress={() => fetchFeed(true)}
+          >
+            <Text style={styles.retryText}>Try Again</Text>
           </TouchableOpacity>
         </View>
       ) : posts.length === 0 ? (
         <View style={styles.center}>
           <Feather name="inbox" size={30} color={AstroColors.offline} />
-          <Text style={styles.emptyText}>Abhi tak koi post nahi hai</Text>
+          <Text style={styles.emptyText}>No posts yet</Text>
         </View>
       ) : (
         <FlatList
@@ -186,9 +207,12 @@ export default function FeedScreen() {
           contentContainerStyle={styles.listContent}
           ListFooterComponent={
             loadingMore ? (
-              <ActivityIndicator color={AstroColors.brand} style={styles.footerPad} />
+              <ActivityIndicator
+                color={AstroColors.brand}
+                style={styles.footerPad}
+              />
             ) : !hasMore ? (
-              <Text style={styles.endText}>Bas itna hi — aur posts nahi hain</Text>
+              <Text style={styles.endText}>You're all caught up</Text>
             ) : null
           }
         />
@@ -220,8 +244,18 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: AstroColors.canvas },
   addPostBtn: { padding: 4 },
   listContent: { paddingBottom: 24 },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 24 },
-  emptyText: { ...AstroType.body, color: AstroColors.textSecondary, textAlign: "center" },
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    padding: 24,
+  },
+  emptyText: {
+    ...AstroType.body,
+    color: AstroColors.textSecondary,
+    textAlign: "center",
+  },
   retry: {
     minHeight: MIN_TOUCH,
     justifyContent: "center",

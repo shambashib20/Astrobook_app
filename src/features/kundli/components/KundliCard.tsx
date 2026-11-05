@@ -38,10 +38,10 @@ export default function KundliCard({
     return (
       <View style={styles.emptyState}>
         <Text style={styles.emptyIcon}>🔮</Text>
-        <Text style={styles.emptyTitle}>Apni Kundli Dekhein</Text>
+        <Text style={styles.emptyTitle}>View Your Kundli</Text>
         <Text style={styles.emptySubtitle}>
-          "Edit Profile" se janm ka samay aur jagah add karo — phir apni Kundli
-          bilkul free mein dekhein.
+          Add your birth time and place in "Edit Profile" — then view your
+          Kundli for free.
         </Text>
       </View>
     );
@@ -53,7 +53,7 @@ export default function KundliCard({
       <View style={styles.generateWrapper}>
         <Text style={styles.headerTitle}>✨ Vedic Kundli</Text>
         <Text style={styles.generateText}>
-          Janm details save ho gayi hain. Ab apni Kundli generate karo!
+          Birth details saved. Generate your Kundli now!
         </Text>
         <TouchableOpacity
           style={styles.generateBtn}
@@ -72,7 +72,7 @@ export default function KundliCard({
         </TouchableOpacity>
         {loading && (
           <Text style={styles.loadingHint}>
-            Kundlit se data aa raha hai — 5-10 second lega...
+            Fetching your Kundli — this takes 5–10 seconds…
           </Text>
         )}
       </View>

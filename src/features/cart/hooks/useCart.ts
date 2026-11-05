@@ -35,7 +35,7 @@ export function useCart() {
 
       setItems(enriched);
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Cart load nahi hua");
+      setError(err?.response?.data?.message || "Failed to load cart");
     } finally {
       setLoading(false);
     }

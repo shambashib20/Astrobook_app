@@ -26,19 +26,19 @@ export default function ApplicationStatusCard({
           color={pending ? AstroColors.goldDeep : AstroColors.danger}
         />
         <Text style={[styles.title, { color: pending ? AstroColors.goldDeep : AstroColors.danger }]}>
-          {pending ? "Application review mein hai" : "Application reject hui"}
+          {pending ? "Application under review" : "Application rejected"}
         </Text>
       </View>
       <Text style={styles.text}>
         {pending
-          ? "Verify hote hi aapko notification mil jayega."
+          ? "You'll receive a notification as soon as you're verified."
           : reason
-            ? `Wajah: ${reason}`
-            : "Details sudhaar kar dobara apply kar sakte hain."}
+            ? `Reason: ${reason}`
+            : "You can fix your details and apply again."}
       </Text>
       {!pending ? (
         <TouchableOpacity style={styles.reapply} onPress={onReapply} activeOpacity={0.8}>
-          <Text style={styles.reapplyText}>Dobara apply karo</Text>
+          <Text style={styles.reapplyText}>Apply Again</Text>
         </TouchableOpacity>
       ) : null}
     </View>

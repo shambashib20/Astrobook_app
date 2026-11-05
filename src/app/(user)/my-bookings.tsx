@@ -197,7 +197,7 @@ function BookingCard({
                 }}
               >
                 <Feather name="star" size={13} color="#9d0399" />
-                <Text style={styles.rateBtnText}>Rate karo</Text>
+                <Text style={styles.rateBtnText}>Leave a Review</Text>
               </TouchableOpacity>
             </>
           )}
@@ -322,22 +322,22 @@ export default function MyBookingsScreen() {
 
   const handleCancel = (id: string) => {
     Alert.alert(
-      "Booking Cancel Karein?",
-      "Kya tum sach mein yeh booking cancel karna chahte ho?",
+      "Cancel Booking?",
+      "Are you sure you want to cancel this booking?",
       [
-        { text: "Nahi", style: "cancel" },
+        { text: "No", style: "cancel" },
         {
-          text: "Haan, Cancel Karo",
+          text: "Yes, Cancel",
           style: "destructive",
           onPress: async () => {
             setCancellingId(id);
             try {
               await consultationService.cancelAppointment(id);
               await fetchAppointments();
-              toast.show("Booking cancel ho gayi", "success");
+              toast.show("Booking cancelled", "success");
             } catch (err: any) {
               toast.show(
-                err?.response?.data?.message || "Booking cancel nahi ho payi",
+                err?.response?.data?.message || "Failed to cancel booking",
                 "error",
               );
             } finally {

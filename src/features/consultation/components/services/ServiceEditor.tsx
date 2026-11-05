@@ -48,8 +48,8 @@ export default function ServiceEditor({ visible, service, commissionPercentage, 
   const close = () => {
     if (f.saving) return;
     if (!f.isDirty) return onClose();
-    Alert.alert("Changes discard karein?", "Jo badla hai wo save nahi hoga.", [
-      { text: "Likhte raho", style: "cancel" },
+    Alert.alert("Discard Changes?", "Your unsaved changes will be lost.", [
+      { text: "Keep Editing", style: "cancel" },
       { text: "Discard", style: "destructive", onPress: onClose },
     ]);
   };
@@ -61,10 +61,10 @@ export default function ServiceEditor({ visible, service, commissionPercentage, 
       <View style={[styles.root, { paddingTop: insets.top }]}>
         {/* Top bar — Save hamesha upar, scroll ya keyboard se kabhi nahi chhupta */}
         <View style={styles.bar}>
-          <TouchableOpacity style={styles.barBtn} onPress={close} accessibilityLabel="Band karo">
+          <TouchableOpacity style={styles.barBtn} onPress={close} accessibilityLabel="Close">
             <Feather name="x" size={22} color={AstroColors.ink} />
           </TouchableOpacity>
-          <Text style={styles.barTitle}>{f.isEdit ? "Service edit karo" : "Nayi service"}</Text>
+          <Text style={styles.barTitle}>{f.isEdit ? "Edit Service" : "New Service"}</Text>
           <TouchableOpacity
             disabled={!f.canSave}
             onPress={f.save}
@@ -80,7 +80,7 @@ export default function ServiceEditor({ visible, service, commissionPercentage, 
               {f.saving ? (
                 <ActivityIndicator size="small" color={AstroColors.onBrand} />
               ) : (
-                <Text style={styles.saveText}>{f.isEdit ? "Save" : "Banao"}</Text>
+                <Text style={styles.saveText}>{f.isEdit ? "Save" : "Create"}</Text>
               )}
             </LinearGradient>
           </TouchableOpacity>
@@ -111,7 +111,7 @@ export default function ServiceEditor({ visible, service, commissionPercentage, 
                     <Image source={{ uri: f.coverLocal }} style={styles.coverImg} />
                     <View style={styles.coverChange}>
                       <Feather name="camera" size={14} color={AstroColors.onBrand} />
-                      <Text style={styles.coverChangeText}>Badlo</Text>
+                      <Text style={styles.coverChangeText}>Change</Text>
                     </View>
                   </>
                 ) : (
@@ -119,8 +119,8 @@ export default function ServiceEditor({ visible, service, commissionPercentage, 
                     <View style={styles.coverIcon}>
                       <Feather name="image" size={22} color={AstroColors.brand} />
                     </View>
-                    <Text style={styles.coverEmptyText}>Cover image lagao</Text>
-                    <Text style={styles.hint}>16:9 photo sabse achhi dikhti hai</Text>
+                    <Text style={styles.coverEmptyText}>Add a cover image</Text>
+                    <Text style={styles.hint}>16:9 looks best</Text>
                   </View>
                 )}
                 {f.uploading ? (
@@ -134,23 +134,23 @@ export default function ServiceEditor({ visible, service, commissionPercentage, 
           ) : null}
 
           {/* ── Details ── */}
-          <Field label="Service ka naam" error={err("title")}>
+          <Field label="Service name" error={err("title")}>
             <TextInput
               style={styles.input}
               value={f.title}
               onChangeText={f.setTitle}
-              placeholder="Jaise: Kundli Reading"
+              placeholder="e.g. Kundli Reading"
               placeholderTextColor={AstroColors.textMuted}
               maxLength={255}
             />
           </Field>
 
-          <Field label="Chhota description" error={err("shortDescription")} counter={`${f.shortDescription.length}/500`}>
+          <Field label="Short description" error={err("shortDescription")} counter={`${f.shortDescription.length}/500`}>
             <TextInput
               style={[styles.input, styles.multi]}
               value={f.shortDescription}
               onChangeText={f.setShort}
-              placeholder="Ek-do line mein batao kya milega"
+              placeholder="One or two lines about what the client will get"
               placeholderTextColor={AstroColors.textMuted}
               maxLength={500}
               multiline
@@ -158,12 +158,12 @@ export default function ServiceEditor({ visible, service, commissionPercentage, 
             />
           </Field>
 
-          <Field label="Detail mein" error={err("about")}>
+          <Field label="Full details" error={err("about")}>
             <TextInput
               style={[styles.input, styles.multi, styles.multiTall]}
               value={f.about}
               onChangeText={f.setAbout}
-              placeholder="Session mein kya hoga, kis ke liye hai, kya tayyari chahiye…"
+              placeholder="What happens in the session, who it's for, what to prepare…"
               placeholderTextColor={AstroColors.textMuted}
               multiline
               textAlignVertical="top"
@@ -211,7 +211,7 @@ export default function ServiceEditor({ visible, service, commissionPercentage, 
               <View style={styles.retryBox}>
                 <Text style={styles.hint}>Prices load nahi hue.</Text>
                 <TouchableOpacity style={styles.retryBtn} onPress={f.loadVariants}>
-                  <Text style={styles.retryText}>Dobara try karo</Text>
+                  <Text style={styles.retryText}>Try Again</Text>
                 </TouchableOpacity>
               </View>
             ) : (

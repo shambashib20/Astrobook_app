@@ -1,9 +1,5 @@
 import Header from "@/components/header";
-import {
-  AstroColors,
-  AstroRadius,
-  AstroType,
-} from "@/constants/astro-theme";
+import { AstroColors, AstroRadius, AstroType } from "@/constants/astro-theme";
 import CategoryCard from "@/features/categories/components/CategoryCard";
 import { useCategories } from "@/features/categories/hooks/useCategories";
 import { Feather } from "@expo/vector-icons";
@@ -94,9 +90,7 @@ export default function ExploreScreen() {
       >
         <View style={styles.titleBlock}>
           <Text style={styles.title}>Explore</Text>
-          <Text style={styles.subtitle}>
-            Kis vishay me margdarshan chahiye?
-          </Text>
+          <Text style={styles.subtitle}>What would you like guidance on?</Text>
         </View>
 
         {/* Search */}
@@ -106,7 +100,7 @@ export default function ExploreScreen() {
             style={styles.searchInput}
             value={query}
             onChangeText={setQuery}
-            placeholder="Category dhundo — Tarot, Vastu, Kundli…"
+            placeholder="Search categories — Tarot, Vastu, Kundli…"
             placeholderTextColor={AstroColors.textMuted}
             returnKeyType="search"
             autoCorrect={false}
@@ -116,7 +110,7 @@ export default function ExploreScreen() {
             <TouchableOpacity
               hitSlop={10}
               onPress={() => setQuery("")}
-              accessibilityLabel="Search saaf karo"
+              accessibilityLabel="Clear search"
             >
               <Feather name="x" size={17} color={AstroColors.textMuted} />
             </TouchableOpacity>
@@ -144,7 +138,9 @@ export default function ExploreScreen() {
                   accessibilityRole="button"
                   accessibilityState={{ selected: active }}
                 >
-                  <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                  <Text
+                    style={[styles.chipText, active && styles.chipTextActive]}
+                  >
                     {f.label}
                   </Text>
                 </TouchableOpacity>
@@ -154,16 +150,21 @@ export default function ExploreScreen() {
         )}
 
         {loading ? (
-          <ActivityIndicator color={AstroColors.brand} style={{ marginTop: 40 }} />
+          <ActivityIndicator
+            color={AstroColors.brand}
+            style={{ marginTop: 40 }}
+          />
         ) : error ? (
           <TouchableOpacity onPress={fetchCategories}>
-            <Text style={styles.emptyText}>{error} — dobara try karo</Text>
+            <Text style={styles.emptyText}>{error} — tap to retry</Text>
           </TouchableOpacity>
         ) : displayed.length === 0 ? (
           <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>Koi category nahi mili</Text>
+            <Text style={styles.emptyTitle}>No Categories Found</Text>
             <Text style={styles.emptyText}>
-              {searching ? `"${query.trim()}" se kuch match nahi hua` : "Abhi yahan kuch nahi hai"}
+              {searching
+                ? `No results for "${query.trim()}"`
+                : "Nothing here yet"}
             </Text>
           </View>
         ) : (
@@ -180,18 +181,23 @@ export default function ExploreScreen() {
           </View>
         )}
 
-        {!loading && !searching && !showAll && filtered.length > INITIAL_COUNT && (
-          <TouchableOpacity
-            style={styles.showMoreBtn}
-            onPress={() => setShowAll(true)}
-            accessibilityRole="button"
-          >
-            <Text style={styles.showMoreText}>
-              Sab {filtered.length} dekho
-            </Text>
-            <Feather name="chevron-down" size={16} color={AstroColors.brand} />
-          </TouchableOpacity>
-        )}
+        {!loading &&
+          !searching &&
+          !showAll &&
+          filtered.length > INITIAL_COUNT && (
+            <TouchableOpacity
+              style={styles.showMoreBtn}
+              onPress={() => setShowAll(true)}
+              accessibilityRole="button"
+            >
+              <Text style={styles.showMoreText}>See all {filtered.length}</Text>
+              <Feather
+                name="chevron-down"
+                size={16}
+                color={AstroColors.brand}
+              />
+            </TouchableOpacity>
+          )}
 
         <View style={{ height: 32 }} />
       </ScrollView>
@@ -205,7 +211,11 @@ const styles = StyleSheet.create({
 
   titleBlock: { marginBottom: 14 },
   title: { ...AstroType.title, fontSize: 26, color: AstroColors.ink },
-  subtitle: { ...AstroType.body, color: AstroColors.textSecondary, marginTop: 2 },
+  subtitle: {
+    ...AstroType.body,
+    color: AstroColors.textSecondary,
+    marginTop: 2,
+  },
 
   searchBox: {
     flexDirection: "row",
@@ -218,7 +228,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     minHeight: 46,
   },
-  searchInput: { flex: 1, fontSize: 14, color: AstroColors.text, paddingVertical: 8 },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: AstroColors.text,
+    paddingVertical: 8,
+  },
 
   filtersScroll: { marginTop: 12, marginHorizontal: -PADDING },
   filtersRow: { paddingHorizontal: PADDING, gap: 8 },
@@ -230,8 +245,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: AstroColors.border,
   },
-  chipActive: { backgroundColor: AstroColors.brand, borderColor: AstroColors.brand },
-  chipText: { fontSize: 13, color: AstroColors.textSecondary, fontWeight: "600" },
+  chipActive: {
+    backgroundColor: AstroColors.brand,
+    borderColor: AstroColors.brand,
+  },
+  chipText: {
+    fontSize: 13,
+    color: AstroColors.textSecondary,
+    fontWeight: "600",
+  },
   chipTextActive: { color: AstroColors.onBrand, fontWeight: "800" },
 
   grid: { flexDirection: "row", flexWrap: "wrap", gap: GAP, marginTop: 16 },
@@ -248,5 +270,10 @@ const styles = StyleSheet.create({
 
   empty: { alignItems: "center", marginTop: 48, gap: 4 },
   emptyTitle: { ...AstroType.heading, color: AstroColors.ink },
-  emptyText: { fontSize: 13, color: AstroColors.textMuted, textAlign: "center", marginTop: 4 },
+  emptyText: {
+    fontSize: 13,
+    color: AstroColors.textMuted,
+    textAlign: "center",
+    marginTop: 4,
+  },
 });

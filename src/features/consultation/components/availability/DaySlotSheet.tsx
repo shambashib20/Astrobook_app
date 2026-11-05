@@ -79,7 +79,7 @@ export default function DaySlotSheet({
             <View>
               <Text style={styles.dateLabel}>{date ? formatDateHeader(date) : ""}</Text>
               <Text style={styles.dateSub}>
-                {hasAny ? `${recurringSlots.length + overrideSlots.length} slot` : "Koi slot nahi"}
+                {hasAny ? `${recurringSlots.length + overrideSlots.length} slot${recurringSlots.length + overrideSlots.length !== 1 ? "s" : ""}` : "No slots"}
               </Text>
             </View>
             <TouchableOpacity onPress={onClose} hitSlop={8} style={styles.closeBtn}>
@@ -108,7 +108,7 @@ export default function DaySlotSheet({
                         style={styles.actionBtn}
                         onPress={() => setEditTarget({ kind: "recurring", slot: r })}
                         hitSlop={4}
-                        accessibilityLabel="Slot edit karo"
+                        accessibilityLabel="Edit slot"
                       >
                         <Feather name="edit-2" size={15} color={AstroColors.brand} />
                       </TouchableOpacity>
@@ -116,7 +116,7 @@ export default function DaySlotSheet({
                         style={styles.actionBtn}
                         onPress={() => onDeleteRecurring(r)}
                         hitSlop={4}
-                        accessibilityLabel="Slot hatao"
+                        accessibilityLabel="Remove slot"
                       >
                         <Feather name="trash-2" size={15} color={AstroColors.danger} />
                       </TouchableOpacity>
@@ -131,7 +131,7 @@ export default function DaySlotSheet({
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                   <Feather name="calendar" size={12} color="#F59E0B" />
-                  <Text style={[styles.sectionTitle, { color: "#F59E0B" }]}>Sirf is din</Text>
+                  <Text style={[styles.sectionTitle, { color: "#F59E0B" }]}>This day only</Text>
                 </View>
                 {overrideSlots.map((w) => (
                   <View key={w.id} style={styles.slotRow}>
@@ -146,7 +146,7 @@ export default function DaySlotSheet({
                         style={styles.actionBtn}
                         onPress={() => setEditTarget({ kind: "override", slot: w })}
                         hitSlop={4}
-                        accessibilityLabel="Slot edit karo"
+                        accessibilityLabel="Edit slot"
                       >
                         <Feather name="edit-2" size={15} color={AstroColors.brand} />
                       </TouchableOpacity>
@@ -154,7 +154,7 @@ export default function DaySlotSheet({
                         style={styles.actionBtn}
                         onPress={() => onDeleteOverride(w)}
                         hitSlop={4}
-                        accessibilityLabel="Slot hatao"
+                        accessibilityLabel="Remove slot"
                       >
                         <Feather name="trash-2" size={15} color={AstroColors.danger} />
                       </TouchableOpacity>

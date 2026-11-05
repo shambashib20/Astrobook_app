@@ -36,8 +36,8 @@ function formatCountdown(expiresAt: string): string {
   if (diff <= 0) return 'Expired'
   const h = Math.floor(diff / 3_600_000)
   const m = Math.floor((diff % 3_600_000) / 60_000)
-  if (h > 0) return `${h}h ${m}m baaki`
-  return `${m} min baaki`
+  if (h > 0) return `${h}h ${m}m left`
+  return `${m} min left`
 }
 
 function formatDate(iso: string) {
@@ -93,13 +93,13 @@ export default function CancellationChoiceSheet({
       await walletService.claimCancellation(request.id, action, upiIdValue)
       toast.show(
         action === 'refund'
-          ? '2 din mein UPI pe aa jaayega — request submit ho gayi'
-          : 'Request submit ho gayi — admin approve karte hi wallet mein aa jaayega',
+          ? 'Request submitted — you'll receive the amount via UPI within 2 business days'
+          : 'Request submitted — funds will be added to your wallet once approved',
       )
       onClaimed()
       handleClose()
     } catch {
-      toast.show('Kuch gadbad hui, dobara try karo')
+      toast.show('Something went wrong. Please try again.')
     } finally {
       setSubmitting(false)
     }
@@ -108,24 +108,24 @@ export default function CancellationChoiceSheet({
   const handleMoneyRefundSubmit = () => {
     const trimmed = upiId.trim()
     if (!trimmed) {
-      toast.show('UPI ID daalo')
+      toast.show('Please enter your UPI ID')
       return
     }
     // Basic UPI format check: something@something
     if (!trimmed.includes('@')) {
-      toast.show('Valid UPI ID daalo (e.g. name@upi)')
+      toast.show('Enter a valid UPI ID (e.g. name@upi)')
       return
     }
     claim('refund', trimmed)
   }
 
-  const title = isUserCancel ? 'Aapne Session Cancel Kiya' : 'Session Cancel Ho Gayi'
+  const title = isUserCancel ? 'You Cancelled the Session' : 'Session Was Cancelled'
 
   return (
     <AppBottomSheet
       visible={visible}
       onClose={handleClose}
-      title={step === 'upi_input' ? 'UPI ID Daalo' : title}
+      title={step === 'upi_input' ? 'Enter UPI ID' : title}
       heightRatio={0.65}
     >
       <ScrollView
@@ -142,8 +142,8 @@ export default function CancellationChoiceSheet({
               <View style={styles.infoText}>
                 <Text style={styles.infoTitle}>
                   {isUserCancel
-                    ? 'Aapne ye session cancel kiya tha'
-                    : `${request?.appointment?.astrologerName ?? 'Astrologer'} ne session cancel kiya`}
+                    ? 'You cancelled this session'
+                    : `${request?.appointment?.astrologerName ?? 'Astrologer'} cancelled the session`}
                 </Text>
                 {request?.appointment?.scheduledAt ? (
                   <Text style={styles.infoSub}>
@@ -161,7 +161,7 @@ export default function CancellationChoiceSheet({
               <View style={styles.deductionCard}>
                 <Feather name="info" size={14} color={AstroColors.textSecondary} />
                 <Text style={styles.deductionText}>
-                  ₹{deduction.toFixed(0)} processing fee kategi (10 min ke baad cancel kiya)
+                  ₹{deduction.toFixed(0)} processing fee applies (cancelled after 10 minutes)
                 </Text>
               </View>
             )}
@@ -187,7 +187,7 @@ export default function CancellationChoiceSheet({
               </View>
             ) : null}
 
-            <Text style={styles.chooseLbl}>Kya karna chahte ho?</Text>
+            <Text style={styles.chooseLbl}>What would you like to do?</Text>
 
             {/* Option: Wallet credit */}
             <Pressable
@@ -205,7 +205,7 @@ export default function CancellationChoiceSheet({
               <View style={styles.optionBody}>
                 <Text style={styles.optionTitle}>AstroBook Wallet</Text>
                 <Text style={styles.optionDesc}>
-                  Admin approve karte hi credit — agli booking mein seedha use karo
+                  Credited instantly once approved — use it on your next booking
                 </Text>
               </View>
               {submitting ? (
@@ -225,8 +225,8 @@ export default function CancellationChoiceSheet({
                 <Feather name="credit-card" size={22} color={AstroColors.textSecondary} />
               </View>
               <View style={styles.optionBody}>
-                <Text style={styles.optionTitle}>Original Payment Pe Refund</Text>
-                <Text style={styles.optionDesc}>2 din mein UPI / bank mein aayega</Text>
+                <Text style={styles.optionTitle}>Refund to Original Payment</Text>
+                <Text style={styles.optionDesc}>Returned to your UPI / bank within 2 business days</Text>
               </View>
               {submitting ? (
                 <ActivityIndicator size="small" color={AstroColors.textSecondary} />
@@ -236,7 +236,7 @@ export default function CancellationChoiceSheet({
             </Pressable>
 
             <Text style={styles.autoNote}>
-              1 din mein koi choice nahi kiya toh automatic money refund request ho jaati hai.
+              If no choice is made within 1 day, a money refund will be requested automatically.
             </Text>
           </>
         )}
@@ -247,9 +247,9 @@ export default function CancellationChoiceSheet({
             <View style={styles.upiInfoCard}>
               <Feather name="info" size={16} color={AstroColors.brand} />
               <Text style={styles.upiInfoText}>
-                Admin aapke UPI par manually{' '}
-                <Text style={{ fontWeight: '700' }}>₹{netAmount.toFixed(0)}</Text> transfer
-                karega — usually 2 din ke andar.
+                Our team will manually transfer{' '}
+                <Text style={{ fontWeight: '700' }}>₹{netAmount.toFixed(0)}</Text> to your UPI
+                — usually within 2 business days.
               </Text>
             </View>
 
@@ -274,7 +274,7 @@ export default function CancellationChoiceSheet({
                 onPress={() => setStep('choice')}
                 disabled={submitting}
               >
-                <Text style={styles.btnSecondaryText}>Wapas Jao</Text>
+                <Text style={styles.btnSecondaryText}>Go Back</Text>
               </Pressable>
 
               <Pressable
@@ -289,7 +289,7 @@ export default function CancellationChoiceSheet({
                 {submitting ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text style={styles.btnPrimaryText}>Submit Karo</Text>
+                  <Text style={styles.btnPrimaryText}>Submit</Text>
                 )}
               </Pressable>
             </View>

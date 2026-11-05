@@ -20,7 +20,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 const OTP_LENGTH = 4;
 
@@ -35,8 +38,8 @@ export default function OnboardingScreen() {
   // screen pe wapas (dusre account se login karne ke liye).
   const confirmSwitchAccount = () =>
     Alert.alert(
-      "Account badalna hai?",
-      "Aap logout ho jaoge aur login screen pe wapas jaoge.",
+      "Switch Account?",
+      "You will be logged out and taken back to the login screen.",
       [
         { text: "Cancel", style: "cancel" },
         { text: "Logout", style: "destructive", onPress: handleLogout },
@@ -98,8 +101,11 @@ export default function OnboardingScreen() {
 
   // ─── Interests ──────────────────────────────────────────────────────────
   const [selected, setSelected] = useState<string[]>([]);
-  const { categories, loading: categoriesLoading, fetchCategories } =
-    useCategories();
+  const {
+    categories,
+    loading: categoriesLoading,
+    fetchCategories,
+  } = useCategories();
 
   useEffect(() => {
     fetchCategories();
@@ -151,7 +157,10 @@ export default function OnboardingScreen() {
           behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
           <ScrollView
-            contentContainerStyle={[styles.content, { paddingBottom: 32 + insets.bottom }]}
+            contentContainerStyle={[
+              styles.content,
+              { paddingBottom: 32 + insets.bottom },
+            ]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
@@ -173,10 +182,15 @@ export default function OnboardingScreen() {
                 <Text style={styles.stepLabel}>Your Details</Text>
               </View>
               <View
-                style={[styles.stepConnector, step === 2 && styles.stepConnectorActive]}
+                style={[
+                  styles.stepConnector,
+                  step === 2 && styles.stepConnectorActive,
+                ]}
               />
               <View style={styles.stepItem}>
-                <View style={[styles.stepDot, step === 2 && styles.stepDotActive]}>
+                <View
+                  style={[styles.stepDot, step === 2 && styles.stepDotActive]}
+                >
                   <Text style={styles.stepDotText}>2</Text>
                 </View>
                 <Text style={styles.stepLabel}>Interests</Text>
@@ -224,7 +238,9 @@ export default function OnboardingScreen() {
                           />
                           {verified ? (
                             <View style={styles.verifiedBadge}>
-                              <Text style={styles.verifiedBadgeText}>✓ Verified</Text>
+                              <Text style={styles.verifiedBadgeText}>
+                                ✓ Verified
+                              </Text>
                             </View>
                           ) : (
                             <TouchableOpacity
@@ -238,7 +254,10 @@ export default function OnboardingScreen() {
                               activeOpacity={0.8}
                             >
                               {sending ? (
-                                <ActivityIndicator color="#9d0399" size="small" />
+                                <ActivityIndicator
+                                  color="#9d0399"
+                                  size="small"
+                                />
                               ) : (
                                 <Text style={styles.verifyBtnText}>
                                   {otpSent ? "Resend" : "Verify"}
@@ -252,7 +271,7 @@ export default function OnboardingScreen() {
                         {otpSent && !verified && (
                           <View style={styles.otpBox}>
                             <Text style={styles.fieldHint}>
-                              {phone} pe OTP bheja gaya hai
+                              OTP sent to {phone}
                               {debugOtp ? ` (dev: ${debugOtp})` : ""}
                             </Text>
                             <View style={styles.phoneRow}>
@@ -272,14 +291,21 @@ export default function OnboardingScreen() {
                                   (otp.length !== OTP_LENGTH || verifying) &&
                                     styles.verifyBtnDisabled,
                                 ]}
-                                disabled={otp.length !== OTP_LENGTH || verifying}
+                                disabled={
+                                  otp.length !== OTP_LENGTH || verifying
+                                }
                                 onPress={handleVerifyOtp}
                                 activeOpacity={0.8}
                               >
                                 {verifying ? (
-                                  <ActivityIndicator color="#9d0399" size="small" />
+                                  <ActivityIndicator
+                                    color="#9d0399"
+                                    size="small"
+                                  />
                                 ) : (
-                                  <Text style={styles.verifyBtnText}>Verify</Text>
+                                  <Text style={styles.verifyBtnText}>
+                                    Verify
+                                  </Text>
                                 )}
                               </TouchableOpacity>
                             </View>
@@ -313,14 +339,17 @@ export default function OnboardingScreen() {
                       activeOpacity={0.8}
                     >
                       <Text
-                        style={[styles.dateBtnText, !dob && styles.datePlaceholder]}
+                        style={[
+                          styles.dateBtnText,
+                          !dob && styles.datePlaceholder,
+                        ]}
                       >
                         {dob ? formatDate(dob) : "Select your date of birth"}
                       </Text>
                       <Text style={styles.calendarIcon}>📅</Text>
                     </TouchableOpacity>
                     <Text style={styles.fieldHint}>
-                      Optional — better cosmic insights ke liye
+                      Optional — for better better cosmic insights!
                     </Text>
                   </View>
                 </View>
@@ -348,7 +377,7 @@ export default function OnboardingScreen() {
 
                 {!phoneReady && !hadPhoneAlready && (
                   <Text style={styles.blockedHint}>
-                    Aage badhne ke liye phone number verify karo
+                    Please verify your phone number to continue
                   </Text>
                 )}
               </>
@@ -360,11 +389,14 @@ export default function OnboardingScreen() {
                 <View style={styles.interestsCard}>
                   <Text style={styles.interestsTitle}>✨ Your Interests</Text>
                   <Text style={styles.interestsSubtitle}>
-                    Jo topics mein curious ho, woh choose karo
+                    Pick the topics you're curious about
                   </Text>
                   <View style={styles.chips}>
                     {categoriesLoading ? (
-                      <ActivityIndicator color="#9d0399" style={{ marginTop: 8 }} />
+                      <ActivityIndicator
+                        color="#9d0399"
+                        style={{ marginTop: 8 }}
+                      />
                     ) : (
                       categories.map((item) => {
                         const active = selected.includes(item.id);
@@ -414,7 +446,7 @@ export default function OnboardingScreen() {
                   activeOpacity={0.85}
                 >
                   <Text style={styles.btnText}>
-                    {loading ? "Setting up..." : "Start My Journey 🚀"}
+                    {loading ? "Setting up..." : "Start My Journey"}
                   </Text>
                 </TouchableOpacity>
 
@@ -434,9 +466,7 @@ export default function OnboardingScreen() {
               onPress={confirmSwitchAccount}
               activeOpacity={0.7}
             >
-              <Text style={styles.switchText}>
-                Kisi aur account se login karo
-              </Text>
+              <Text style={styles.switchText}>Use any other account</Text>
             </TouchableOpacity>
 
             <View style={{ height: 40 }} />

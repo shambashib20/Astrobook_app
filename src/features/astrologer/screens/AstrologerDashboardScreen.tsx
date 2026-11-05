@@ -92,8 +92,8 @@ export default function AstrologerDashboardScreen() {
           <DashboardLink
             highlight
             icon="credit-card"
-            title="Bank account jodo"
-            subtitle="Payout paane ke liye onboarding poori karo"
+            title="Connect bank account"
+            subtitle="Complete onboarding to receive payouts"
             onPress={() => go("/(astrologer)/bank-onboarding")}
           />
         ) : null}
@@ -102,7 +102,7 @@ export default function AstrologerDashboardScreen() {
         <View style={styles.sectionRow}>
           <View style={styles.sectionLabelRow}>
             <Feather name="sun" size={14} color={AstroColors.gold} />
-            <Text style={styles.section}>Aaj ke sessions</Text>
+            <Text style={styles.section}>Today's sessions</Text>
           </View>
           <TouchableOpacity onPress={() => go("/(astrologer)/sessions")} hitSlop={8}>
             <Text style={styles.seeAll}>Sab dekho</Text>

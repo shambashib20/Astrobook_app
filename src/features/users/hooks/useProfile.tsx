@@ -46,7 +46,7 @@ export function useUpdateProfile(onSuccess?: (user: UserProfile) => void) {
       const msg =
         err?.response?.data?.message ||
         err?.response?.data?.error?.[0]?.message ||
-        "Profile update nahi hui";
+        "Failed to update profile";
       Alert.alert("Error", msg);
     },
   });

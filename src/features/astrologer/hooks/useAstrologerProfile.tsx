@@ -53,7 +53,7 @@ export function useAstrologerProfile(id: string | undefined) {
     loading: astrologerQuery.isLoading || servicesQuery.isLoading,
     error:
       astrologerQuery.isError || servicesQuery.isError
-        ? "Astrologer profile load nahi hui"
+        ? "Failed to load astrologer profile"
         : null,
     fetchProfile,
   };

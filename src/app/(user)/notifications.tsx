@@ -19,7 +19,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 function timeAgo(iso: string) {
   const diffMs = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diffMs / 60000);
-  if (mins < 1) return "abhi";
+  if (mins < 1) return "just now";
   if (mins < 60) return `${mins}m`;
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h`;
@@ -94,7 +94,7 @@ export default function NotificationsScreen() {
         rightSlot={
           hasUnread ? (
             <TouchableOpacity onPress={markAllRead}>
-              <Text style={styles.markAllText}>Sab read karo</Text>
+              <Text style={styles.markAllText}>Mark all as read</Text>
             </TouchableOpacity>
           ) : undefined
         }
@@ -111,7 +111,7 @@ export default function NotificationsScreen() {
       ) : notifications.length === 0 ? (
         <View style={styles.centerFill}>
           <Feather name="bell" size={32} color="#D1D5DB" />
-          <Text style={styles.emptyText}>Abhi koi notification nahi hai</Text>
+          <Text style={styles.emptyText}>No notifications yet</Text>
         </View>
       ) : (
         <FlatList
