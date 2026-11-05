@@ -1,9 +1,5 @@
 import UserAvatar from "@/components/UserAvatar";
-import {
-  AstroColors,
-  AstroRadius,
-  AstroType,
-} from "@/constants/astro-theme";
+import { AstroColors, AstroRadius, AstroType } from "@/constants/astro-theme";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { memo, useEffect, useRef } from "react";
 import {
@@ -16,8 +12,8 @@ import {
   useWindowDimensions,
 } from "react-native";
 import type { Post } from "../types/post.types";
-import { formatPostDate } from "../utils/time";
 import { prettyTag } from "../utils/tags";
+import { formatPostDate } from "../utils/time";
 import PostActionsBar from "./PostActionsBar";
 import PostHero from "./PostHero";
 import RichCaption from "./RichCaption";
@@ -79,7 +75,11 @@ function FeedPostCardImpl({
       }),
       Animated.sequence([
         Animated.delay(420),
-        Animated.timing(popOpacity, { toValue: 0, duration: 260, useNativeDriver: true }),
+        Animated.timing(popOpacity, {
+          toValue: 0,
+          duration: 260,
+          useNativeDriver: true,
+        }),
       ]),
     ]).start();
   };
@@ -94,7 +94,10 @@ function FeedPostCardImpl({
       return;
     }
     lastTap.current = now;
-    tapTimer.current = setTimeout(() => handlers.onOpenPost(post), DOUBLE_TAP_MS);
+    tapTimer.current = setTimeout(
+      () => handlers.onOpenPost(post),
+      DOUBLE_TAP_MS,
+    );
   };
 
   return (
@@ -127,7 +130,12 @@ function FeedPostCardImpl({
             onPress={() => handlers.onFollow(post)}
             accessibilityLabel={post.isFollowedByMe ? "Unfollow" : "Follow"}
           >
-            <Text style={[styles.followText, post.isFollowedByMe && styles.followTextOn]}>
+            <Text
+              style={[
+                styles.followText,
+                post.isFollowedByMe && styles.followTextOn,
+              ]}
+            >
               {post.isFollowedByMe ? "Following" : "Follow +"}
             </Text>
           </TouchableOpacity>
@@ -228,8 +236,15 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: AstroColors.brand,
   },
-  followOn: { backgroundColor: AstroColors.brandTint, borderColor: AstroColors.brandTint },
-  followText: { ...AstroType.caption, fontWeight: "800", color: AstroColors.brand },
+  followOn: {
+    backgroundColor: AstroColors.brandTint,
+    borderColor: AstroColors.brandTint,
+  },
+  followText: {
+    ...AstroType.caption,
+    fontWeight: "800",
+    color: AstroColors.brand,
+  },
   followTextOn: { color: AstroColors.brandDark },
 
   popWrap: {

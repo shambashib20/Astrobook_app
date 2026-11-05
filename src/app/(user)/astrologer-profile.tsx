@@ -12,7 +12,10 @@ import {
 } from "@/features/astrologer/utils/cardFormat";
 import { useUser } from "@/features/auth/store/auth.store";
 import FavoriteButton from "@/features/favorites/components/FavoriteButton";
-import { useFollowCounts, useFollowStatus } from "@/features/follows/hooks/useFollow";
+import {
+  useFollowCounts,
+  useFollowStatus,
+} from "@/features/follows/hooks/useFollow";
 import ProfilePostTile from "@/features/posts/components/ProfilePostTile";
 import { useAstrologerPosts } from "@/features/posts/hooks/useFeed";
 import AstrologerReviewsSection from "@/features/reviews/components/AstrologerReviewsSection";
@@ -54,9 +57,11 @@ export default function AstrologerProfileScreen() {
   } = useAstrologerProfile(id);
 
   const { posts, loading: postsLoading, fetchPosts } = useAstrologerPosts(id);
-  const { isFollowing, fetchStatus, toggle: toggleFollowStatus } = useFollowStatus(
-    isOwnProfile ? undefined : id,
-  );
+  const {
+    isFollowing,
+    fetchStatus,
+    toggle: toggleFollowStatus,
+  } = useFollowStatus(isOwnProfile ? undefined : id);
   const { counts: followCounts, fetchCounts } = useFollowCounts(id);
 
   useEffect(() => {
@@ -156,7 +161,10 @@ export default function AstrologerProfileScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: 32 + insets.bottom }]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: 32 + insets.bottom },
+        ]}
       >
         {/* Profile Header Card */}
         <View style={styles.headerCard}>
@@ -180,7 +188,10 @@ export default function AstrologerProfileScreen() {
               </View>
               {!isOwnProfile && (
                 <TouchableOpacity
-                  style={[styles.followBtn, isFollowing && styles.followBtnActive]}
+                  style={[
+                    styles.followBtn,
+                    isFollowing && styles.followBtnActive,
+                  ]}
                   onPress={toggleFollow}
                   disabled={isFollowing === null}
                 >
@@ -203,7 +214,11 @@ export default function AstrologerProfileScreen() {
                   {displayName}
                 </Text>
                 {astrologer.isVerified ? (
-                  <Ionicons name="checkmark-circle" size={16} color={AstroColors.brand} />
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={16}
+                    color={AstroColors.brand}
+                  />
                 ) : null}
               </View>
 
@@ -211,13 +226,21 @@ export default function AstrologerProfileScreen() {
                 <View
                   style={[
                     styles.statusDot,
-                    { backgroundColor: isOnline ? AstroColors.success : AstroColors.offline },
+                    {
+                      backgroundColor: isOnline
+                        ? AstroColors.success
+                        : AstroColors.offline,
+                    },
                   ]}
                 />
                 <Text
                   style={[
                     styles.statusText,
-                    { color: isOnline ? AstroColors.successDark : AstroColors.textMuted },
+                    {
+                      color: isOnline
+                        ? AstroColors.successDark
+                        : AstroColors.textMuted,
+                    },
                   ]}
                 >
                   {isOnline ? "Abhi available" : "Offline"}
@@ -228,7 +251,9 @@ export default function AstrologerProfileScreen() {
                 {reviews > 0 ? (
                   <>
                     <Ionicons name="star" size={14} color={AstroColors.gold} />
-                    <Text style={styles.ratingValue}>{formatRating(rating)}</Text>
+                    <Text style={styles.ratingValue}>
+                      {formatRating(rating)}
+                    </Text>
                     <Text style={styles.reviewCount}>
                       · {reviews} review{reviews === 1 ? "" : "s"}
                     </Text>
@@ -244,13 +269,21 @@ export default function AstrologerProfileScreen() {
                 <View style={styles.metaLine}>
                   {experience ? (
                     <View style={styles.metaItem}>
-                      <Ionicons name="briefcase-outline" size={13} color={AstroColors.textSecondary} />
+                      <Ionicons
+                        name="briefcase-outline"
+                        size={13}
+                        color={AstroColors.textSecondary}
+                      />
                       <Text style={styles.metaText}>{experience}</Text>
                     </View>
                   ) : null}
                   {languages ? (
                     <View style={[styles.metaItem, { flexShrink: 1 }]}>
-                      <Ionicons name="language-outline" size={13} color={AstroColors.textSecondary} />
+                      <Ionicons
+                        name="language-outline"
+                        size={13}
+                        color={AstroColors.textSecondary}
+                      />
                       <Text style={styles.metaText} numberOfLines={1}>
                         {languages}
                       </Text>
@@ -323,7 +356,7 @@ export default function AstrologerProfileScreen() {
                 </TouchableOpacity>
               ) : (
                 <Text style={styles.noBasicText}>
-                  Booking abhi available nahi hai
+                  No Bookings available right now!
                 </Text>
               )}
             </View>
@@ -448,7 +481,10 @@ export default function AstrologerProfileScreen() {
           </View>
 
           {postsLoading ? (
-            <ActivityIndicator color={AstroColors.brand} style={{ marginTop: 12 }} />
+            <ActivityIndicator
+              color={AstroColors.brand}
+              style={{ marginTop: 12 }}
+            />
           ) : posts.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>No posts yet</Text>
@@ -477,7 +513,9 @@ export default function AstrologerProfileScreen() {
                   accessibilityRole="button"
                 >
                   <Text style={styles.moreBtnText}>
-                    {showAllPosts ? "Kam dikhao" : `Sab ${posts.length} posts dekho`}
+                    {showAllPosts
+                      ? "Kam dikhao"
+                      : `Sab ${posts.length} posts dekho`}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -544,9 +582,24 @@ const styles = StyleSheet.create({
   followStatText: { fontSize: 12.5, color: "#6B7280" },
   followStatCount: { fontWeight: "700", color: "#1A1A2E" },
   infoColumn: { flex: 1 },
-  nameRow: { flexDirection: "row", alignItems: "center", gap: 6, paddingRight: 30 },
-  name: { flexShrink: 1, fontSize: 18, fontWeight: "800", color: AstroColors.ink },
-  statusRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingRight: 30,
+  },
+  name: {
+    flexShrink: 1,
+    fontSize: 18,
+    fontWeight: "800",
+    color: AstroColors.ink,
+  },
+  statusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 4,
+  },
   statusDot: { width: 8, height: 8, borderRadius: 4 },
   statusText: { fontSize: 12, fontWeight: "700" },
   ratingValue: { fontSize: 13, fontWeight: "800", color: AstroColors.text },
@@ -556,17 +609,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 3,
   },
-  newPillText: { fontSize: 11, fontWeight: "700", color: AstroColors.brandDark },
+  newPillText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: AstroColors.brandDark,
+  },
   metaLine: { marginTop: 8, gap: 4 },
   metaItem: { flexDirection: "row", alignItems: "center", gap: 6 },
   metaText: { fontSize: 12.5, color: AstroColors.textSecondary },
   postGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  moreBtn: { alignItems: "center", justifyContent: "center", minHeight: 44, marginTop: 8 },
+  moreBtn: {
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 44,
+    marginTop: 8,
+  },
   moreBtnText: { fontSize: 14, fontWeight: "700", color: AstroColors.brand },
   speciality: { fontSize: 13, color: "#6B7280", marginBottom: 1 },
   language: { fontSize: 12, color: "#6B7280", marginBottom: 1 },
   exp: { fontSize: 12, color: "#6B7280", marginBottom: 6 },
-  ratingRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 },
+  ratingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 6,
+  },
   reviewCount: { fontSize: 12, color: AstroColors.textSecondary },
 
   bookBtnWrapper: {

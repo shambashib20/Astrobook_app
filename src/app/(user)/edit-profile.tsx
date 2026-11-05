@@ -67,7 +67,11 @@ export default function EditProfileScreen() {
   const [nameTouched, setNameTouched] = useState(false);
 
   const { uploadImage, uploading: avatarUploading } = useImageKitUpload();
-  const { categories, loading: categoriesLoading, fetchCategories } = useCategories();
+  const {
+    categories,
+    loading: categoriesLoading,
+    fetchCategories,
+  } = useCategories();
 
   // Original values for dirty check
   const origRef = useRef({
@@ -159,7 +163,11 @@ export default function EditProfileScreen() {
     const prevUrl = avatarUrl;
     setAvatarUrl(uri); // Optimistic preview
 
-    const url = await uploadImage(uri, `avatar_${Date.now()}.jpg`, "/astrobook/avatars");
+    const url = await uploadImage(
+      uri,
+      `avatar_${Date.now()}.jpg`,
+      "/astrobook/avatars",
+    );
     if (url) {
       setAvatarUrl(url);
     } else {
@@ -264,7 +272,7 @@ export default function EditProfileScreen() {
               )}
             </View>
           </TouchableOpacity>
-          <Text style={styles.avatarHint}>Tap karke photo badlo</Text>
+          <Text style={styles.avatarHint}>Tap to change your photo</Text>
 
           {/* ── Name ── */}
           <View style={styles.fieldBlock}>
@@ -358,7 +366,9 @@ export default function EditProfileScreen() {
               onPress={() => setShowTimePicker(true)}
               activeOpacity={0.7}
             >
-              <Text style={birthTime ? styles.inputText : styles.inputPlaceholder}>
+              <Text
+                style={birthTime ? styles.inputText : styles.inputPlaceholder}
+              >
                 {birthTime
                   ? birthTime.toLocaleTimeString("en-IN", {
                       hour: "2-digit",

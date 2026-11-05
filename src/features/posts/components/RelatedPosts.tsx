@@ -21,7 +21,7 @@ export default function RelatedPosts({
 
   return (
     <View style={styles.section}>
-      <Text style={styles.title}>Aur posts dekho</Text>
+      <Text style={styles.title}>View more posts</Text>
       <View style={styles.row}>
         {posts.slice(0, 3).map((p) => (
           <ProfilePostTile

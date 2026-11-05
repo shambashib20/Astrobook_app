@@ -96,7 +96,11 @@ export default function PostDetailScreen() {
     >
       <TouchableOpacity
         style={styles.backBtn}
-        onPress={() => (router.canGoBack() ? router.back() : router.replace("/(user)/(tabs)/feed" as any))}
+        onPress={() =>
+          router.canGoBack()
+            ? router.back()
+            : router.replace("/(user)/(tabs)/feed" as any)
+        }
         hitSlop={8}
         accessibilityLabel="Wapas jao"
       >
@@ -161,7 +165,9 @@ export default function PostDetailScreen() {
             <Text style={styles.authorName} numberOfLines={1}>
               {post.astrologerName ?? "Astrologer"}
             </Text>
-            <Text style={styles.authorDate}>{formatPostDate(post.createdAt)}</Text>
+            <Text style={styles.authorDate}>
+              {formatPostDate(post.createdAt)}
+            </Text>
           </View>
           <View style={styles.chevron}>
             <Feather name="chevron-right" size={16} color={AstroColors.brand} />
@@ -197,7 +203,7 @@ export default function PostDetailScreen() {
           {post.commentsCount > 0 ? (
             <TouchableOpacity onPress={() => openComments(false)} hitSlop={6}>
               <Text style={styles.viewAll}>
-                Saare {post.commentsCount} comments dekho
+                View {post.commentsCount} comments
               </Text>
             </TouchableOpacity>
           ) : null}
@@ -205,7 +211,7 @@ export default function PostDetailScreen() {
             style={styles.fakeInput}
             activeOpacity={0.8}
             onPress={() => openComments(true)}
-            accessibilityLabel="Comment likho"
+            accessibilityLabel="Write your comment"
           >
             <UserAvatar
               uri={me?.avatarUrl}
@@ -251,8 +257,18 @@ export default function PostDetailScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: AstroColors.canvas },
   flex: { flex: 1 },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 24 },
-  errorText: { ...AstroType.body, color: AstroColors.textSecondary, textAlign: "center" },
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    padding: 24,
+  },
+  errorText: {
+    ...AstroType.body,
+    color: AstroColors.textSecondary,
+    textAlign: "center",
+  },
   retryBtn: {
     minHeight: MIN_TOUCH,
     justifyContent: "center",
@@ -287,7 +303,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   authorName: { ...AstroType.heading, color: AstroColors.ink },
-  authorDate: { ...AstroType.micro, color: AstroColors.textMuted, marginTop: 1 },
+  authorDate: {
+    ...AstroType.micro,
+    color: AstroColors.textMuted,
+    marginTop: 1,
+  },
   chevron: {
     width: 30,
     height: 30,
@@ -306,7 +326,11 @@ const styles = StyleSheet.create({
   },
 
   commentsEntry: { paddingHorizontal: H_PAD, paddingTop: 16, gap: 10 },
-  viewAll: { ...AstroType.caption, fontWeight: "700", color: AstroColors.textSecondary },
+  viewAll: {
+    ...AstroType.caption,
+    fontWeight: "700",
+    color: AstroColors.textSecondary,
+  },
   fakeInput: {
     flexDirection: "row",
     alignItems: "center",

@@ -6,8 +6,8 @@ import {
   AstroType,
   MIN_TOUCH,
 } from "@/constants/astro-theme";
-import FavoriteButton from "@/features/favorites/components/FavoriteButton";
 import { formatPrice } from "@/features/astrologer/utils/cardFormat";
+import FavoriteButton from "@/features/favorites/components/FavoriteButton";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import {
@@ -18,7 +18,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import type { ConsultationServiceVariant } from "../types";
 import DurationOptions from "./DurationOptions";
 
@@ -111,7 +114,9 @@ export default function ServiceDetailView(p: ServiceDetailViewProps) {
     <SafeAreaView style={styles.root} edges={["top"]}>
       <ServiceHeader
         onBack={p.onBack}
-        right={<FavoriteButton itemId={p.serviceId} size={19} style={styles.fav} />}
+        right={
+          <FavoriteButton itemId={p.serviceId} size={19} style={styles.fav} />
+        }
       />
 
       <ScrollView
@@ -144,20 +149,20 @@ export default function ServiceDetailView(p: ServiceDetailViewProps) {
                 </Text>
               </View>
             ) : (
-              <Text style={styles.ratingText}>Profile dekho</Text>
+              <Text style={styles.ratingText}>View your profile</Text>
             )}
           </View>
           <Feather name="chevron-right" size={18} color={AstroColors.brand} />
         </TouchableOpacity>
 
         {/* Duration */}
-        <Text style={styles.section}>Duration chuno</Text>
+        <Text style={styles.section}>Select your duration</Text>
         {p.variants.length === 0 ? (
           <View style={styles.empty}>
             <Feather name="clock" size={18} color={AstroColors.textMuted} />
             <Text style={styles.emptyText}>
-              Is service ke duration aur price abhi available nahi hain. Thodi
-              der baad try karo.
+              This service's duration and price is not available now. Please try
+              again after some time.
             </Text>
           </View>
         ) : (
@@ -171,7 +176,7 @@ export default function ServiceDetailView(p: ServiceDetailViewProps) {
         {/* About */}
         {p.about ? (
           <>
-            <Text style={styles.section}>Is service ke baare mein</Text>
+            <Text style={styles.section}>About this service</Text>
             <Text style={styles.about}>{p.about}</Text>
           </>
         ) : null}
@@ -182,7 +187,9 @@ export default function ServiceDetailView(p: ServiceDetailViewProps) {
         <View style={styles.barPrice}>
           <Text style={styles.price}>{price}</Text>
           <Text style={styles.priceSub}>
-            {selected ? `${selected.durationMinutes} min session` : "Duration chuno"}
+            {selected
+              ? `${selected.durationMinutes} min session`
+              : "Duration chuno"}
           </Text>
         </View>
         <TouchableOpacity
@@ -239,8 +246,18 @@ const styles = StyleSheet.create({
     ...AstroShadow.soft,
   },
   fav: { width: 36, height: 36, elevation: 0, shadowOpacity: 0 },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 32 },
-  stateText: { ...AstroType.body, color: AstroColors.textSecondary, textAlign: "center" },
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    padding: 32,
+  },
+  stateText: {
+    ...AstroType.body,
+    color: AstroColors.textSecondary,
+    textAlign: "center",
+  },
   retryBtn: {
     minHeight: MIN_TOUCH,
     paddingHorizontal: 20,
@@ -266,10 +283,24 @@ const styles = StyleSheet.create({
     ...AstroShadow.soft,
   },
   astroName: { ...AstroType.body, fontWeight: "700", color: AstroColors.text },
-  ratingRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
-  ratingText: { ...AstroType.caption, color: AstroColors.textSecondary, marginTop: 2 },
+  ratingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 2,
+  },
+  ratingText: {
+    ...AstroType.caption,
+    color: AstroColors.textSecondary,
+    marginTop: 2,
+  },
 
-  section: { ...AstroType.heading, color: AstroColors.ink, marginTop: 24, marginBottom: 10 },
+  section: {
+    ...AstroType.heading,
+    color: AstroColors.ink,
+    marginTop: 24,
+    marginBottom: 10,
+  },
   empty: {
     flexDirection: "row",
     gap: 10,
@@ -278,8 +309,18 @@ const styles = StyleSheet.create({
     borderRadius: AstroRadius.lg,
     padding: 14,
   },
-  emptyText: { flex: 1, ...AstroType.caption, lineHeight: 18, color: AstroColors.textSecondary },
-  about: { ...AstroType.body, fontWeight: "400", lineHeight: 22, color: AstroColors.textSecondary },
+  emptyText: {
+    flex: 1,
+    ...AstroType.caption,
+    lineHeight: 18,
+    color: AstroColors.textSecondary,
+  },
+  about: {
+    ...AstroType.body,
+    fontWeight: "400",
+    lineHeight: 22,
+    color: AstroColors.textSecondary,
+  },
 
   bar: {
     flexDirection: "row",
